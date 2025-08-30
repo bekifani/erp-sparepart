@@ -57,16 +57,12 @@ export const authSlice = createSlice({
     user: initializeUser(),
     notifications: [] as string[],
     csrf_token: "",
-    
-    front_url: "https://test.nibdet.com",
-    app_url: "https://backend.nibdet.com",
-    upload_url: "https://backend.nibdet.com/api/uploadFile",
-    media_url: "https://backend.nibdet.com/storage/uploads/",
+  
 
-    // front_url: "http://localhost:5173",
-    // media_url: "http://localhost:8000/storage/uploads/",
-    // app_url: "http://localhost:8000",
-    // upload_url: "http://localhost:8000/api/uploadFile",
+    front_url: "http://localhost:5173",
+    media_url: "http://localhost:8000/storage/uploads/",
+    app_url: "http://localhost:8000",
+    upload_url: "http://localhost:8000/api/uploadFile",
 
     lang: "en",
     tenant: "test",

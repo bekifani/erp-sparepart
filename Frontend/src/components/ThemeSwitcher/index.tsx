@@ -224,11 +224,11 @@ function Main() {
                 </div>
               </div>
 
-              {/* <div className="px-8 pt-4 pb-8">
+              <div className="px-8 pt-4 pb-8">
                 <div className="text-base font-medium">{t('Appearance')}</div>
                 <div className="text-slate-500 mt-0.5">{t('Choose your Language')}</div>
                 <LanguageSelector />
-              </div> */}
+              </div>
             </div>
           </Slideover.Description>
         </Slideover.Panel>

@@ -17,8 +17,7 @@ import { useGetPasswordResetPinMutation, useResetPasswordMutation } from "@/stor
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import LoadingIcon from "@/components/Base/LoadingIcon";
 import { useTranslation } from "react-i18next";
-import logo from '../../assets/images/company/logo_new.png';
-import logoMini from  '../../assets/images/company/logomini.png';
+import logo from  '../../assets/images/company/logo.png';
 import { useRef, useState } from "react";
 
 function Main() {
@@ -109,7 +108,7 @@ function Main() {
           <div className="relative z-10 flex flex-col justify-center w-full h-full py-2 lg:py-32">
             <div className="rounded-[0.8rem] w-[55px] h-[55px] border border-primary/30 flex items-center justify-center">
               <div className="relative flex items-center justify-center w-[50px] rounded-[0.6rem] h-[50px] bg-gradient-to-b from-theme-1/90 to-theme-2/90 bg-white">
-              <img src={logoMini} />
+              <img src={logo} />
               </div>
             </div>
             <form onSubmit={handleSubmit(onSubmit)} className="mt-10">

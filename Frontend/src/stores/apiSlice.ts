@@ -1,29 +1,17 @@
 import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
 import { authenticationEndpoints } from './endpoints/authenticationEndpoints.js'
-
 import { employeeEndpoints } from "./endpoints/employeeEndpoints"
 import { communicationEndpoints } from "./endpoints/communicationEndpoints"
 import { userEndpoints } from "./endpoints/userEndpoints"
 import { roleEndpoints } from "./endpoints/roleEndpoints.js"
 import { dashboardEndpoints } from "./endpoints/dashboardEndpoints.js";
-import { sectorEndpoints } from "./endpoints/sectorEndpoints"
-import { categorieEndpoints } from "./endpoints/categorieEndpoints"
-import { companEndpoints } from "./endpoints/companEndpoints"
-import { addresstypeEndpoints } from "./endpoints/addresstypeEndpoints"
-import { addressbookEndpoints } from "./endpoints/addressbookEndpoints"
-import { adEndpoints } from "./endpoints/adEndpoints"
-import { contactEndpoints } from "./endpoints/contactEndpoints"
-import { sponsorEndpoints } from "./endpoints/sponsorEndpoints"
 import { publicEndpoints } from "./endpoints/PublicEndpoints"
-import { settingEndpoints } from "./endpoints/settingEndpoints"
-//import here
 import { RootState } from './store';
 
 export const apiSlice = createApi({
     reducerPath: "user",
     baseQuery: fetchBaseQuery({
-      // baseUrl: "http://localhost:8000/api/",
-      baseUrl: "https://backend.nibdet.com/api/",
+      baseUrl: "http://localhost:8000/api/",
       credentials: "include",
       prepareHeaders: (headers, { getState }) => {
         const state = getState() as RootState;
@@ -46,16 +34,7 @@ export const apiSlice = createApi({
         ...roleEndpoints(builder),
         ...dashboardEndpoints(builder),
         ...communicationEndpoints(builder),
-...sectorEndpoints(builder),
-...categorieEndpoints(builder),
-...companEndpoints(builder),
-...addresstypeEndpoints(builder),
-...addressbookEndpoints(builder),
-...adEndpoints(builder),
-...contactEndpoints(builder),
-...sponsorEndpoints(builder),
-...publicEndpoints(builder),
-...settingEndpoints(builder),
+        ...publicEndpoints(builder),
         //disperse here
     }),
 });
@@ -115,50 +94,50 @@ export const {
     useMarkAsReadMutation,
 
 
-    useCreateSectorMutation,
-    useEditSectorMutation,
-    useGetSectorDetailQuery,
-    useLazyGetSectorDetailQuery,
-    useDeleteSectorMutation,
-    useGetSectorsQuery,
+    //useCreateSectorMutation,
+    //useEditSectorMutation,
+    //useGetSectorDetailQuery,
+    //useLazyGetSectorDetailQuery,
+    //useDeleteSectorMutation,
+    //useGetSectorsQuery,
 
 
-    useCreateCategorieMutation,
-    useEditCategorieMutation,
-    useGetCategorieDetailQuery,
-    useLazyGetCategorieDetailQuery,
-    useDeleteCategorieMutation,
-    useGetCategoriesQuery,
+    //useCreateCategorieMutation,
+    //useEditCategorieMutation,
+    //useGetCategorieDetailQuery,
+    //useLazyGetCategorieDetailQuery,
+    //useDeleteCategorieMutation,
+    //useGetCategoriesQuery,
 
 
-    useCreateCompanMutation,
-    useEditCompanMutation,
-    useGetCompanDetailQuery,
+    //useCreateCompanMutation,
+    //useEditCompanMutation,
+    //useGetCompanDetailQuery,
     useLazyGetCompanDetailQuery,
     useDeleteCompanMutation,
     useGetCompansQuery,
     useGetMyCompanyQuery,
 
 
-    useCreateAddresstypeMutation,
-    useEditAddresstypeMutation,
-    useGetAddresstypeDetailQuery,
-    useLazyGetAddresstypeDetailQuery,
-    useDeleteAddresstypeMutation,
-    useGetAddresstypesQuery,
+    //useCreateAddresstypeMutation,
+    //useEditAddresstypeMutation,
+    //useGetAddresstypeDetailQuery,
+    //useLazyGetAddresstypeDetailQuery,
+    //useDeleteAddresstypeMutation,
+    //useGetAddresstypesQuery,
 
 
-    useCreateAddressbookMutation,
-    useEditAddressbookMutation,
-    useGetAddressbookDetailQuery,
-    useLazyGetAddressbookDetailQuery,
-    useDeleteAddressbookMutation,
-    useGetAddressbooksQuery,
+    //useCreateAddressbookMutation,
+    //useEditAddressbookMutation,
+    //useGetAddressbookDetailQuery,
+    //useLazyGetAddressbookDetailQuery,
+    //useDeleteAddressbookMutation,
+    useGetAddressbooksQuery,  
 
 
-    useCreateAdMutation,
-    useEditAdMutation,
-    useGetAdDetailQuery,
+    //useCreateAdMutation,
+    //useEditAdMutation,
+    //useGetAdDetailQuery,
     useLazyGetAdDetailQuery,
     useDeleteAdMutation,
     useGetAdsQuery,

@@ -24,8 +24,7 @@ import { authenticateUser } from "@/stores/authReducer";
 import { useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import LoadingIcon from "@/components/Base/LoadingIcon";
-import logo from '../../assets/images/company/logo_new.png';
-import logoMini from  '../../assets/images/company/logomini.png';
+import logo from  '../../assets/images/company/logo.png';
 import NavigationBarSecondary from "@/components/NavigationBarSecondary";
 function Main() {
   // const [loginUser, { isLoading: logging_in, isSuccess: success, error }] = useLoginUserMutation();
@@ -58,7 +57,7 @@ function Main() {
       const response = await loginUser(data).unwrap()
       dispatch(authenticateUser(response.data))
       if(response.data?.permissions.includes("view-my-company")){
-        navigate('/menu/my-company');
+        navigate('/menu/dashboard');
       }
       else{
         navigate('/menu/dashboard');
@@ -93,7 +92,7 @@ function Main() {
         >
           <div className="relative z-10 flex flex-col justify-center w-full h-full py-2 lg:py-32">
             <div className="rounded-[0.8rem] w-[100px] h-[100px]  border-primary/30 flex items-center justify-center">
-              <img src={logoMini} />
+              <img src={logo} />
             </div>
             <form onSubmit={handleSubmit(onSubmit)} className="mt-5">
               <div className="text-2xl font-medium">{t('Sign In')}

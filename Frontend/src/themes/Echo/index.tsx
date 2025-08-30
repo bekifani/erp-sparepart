@@ -24,7 +24,7 @@ import { useTranslation } from "react-i18next";
 import { logoutUser } from "@/stores/authReducer";
 import { useSelector } from "react-redux";
 import { RootState } from "@/stores/store";
-import logoMini from  '../../assets/images/company/logomini.png';
+import logo from  '../../assets/images/company/logo.png';
 
 function Main() {  
   const { t, i18n} = useTranslation()
@@ -161,7 +161,7 @@ function Main() {
             >
               {/* <div className="flex items-center justify-center w-full rounded-lg h-auto bg-gradient-to-b from-theme-1 to-theme-2/80 transition-transform ease-in-out group-[.side-menu--collapsed.side-menu--on-hover]:xl:-rotate-360"> */}
                 {/* <div className="w-[16px] h-[16px] relative -rotate-45 [&_div]:bg-white"> */}
-                  <img src={logoMini}  className="w-[60%] h-auto"/>
+                  <img src={logo}  className="w-[60%] h-auto"/>
                 {/* </div> */}
               {/* </div> */}
               <div className="ml-3.5 group-[.side-menu--collapsed.side-menu--on-hover]:xl:opacity-100 group-[.side-menu--collapsed]:xl:opacity-0 transition-opacity font-medium">

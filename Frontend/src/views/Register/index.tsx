@@ -10,7 +10,7 @@ import * as yup from "yup";
 import { useForm } from "react-hook-form";
 import { useSignUpUserMutation } from "@/stores/apiSlice";
 import { Link } from "react-router-dom";
-import logoMini from  '../../assets/images/company/logomini.png';
+import logo from  '../../assets/images/company/logo.png';
 import RegisterForm from "../PublicPage/Sections/RegisterForm";
 import NavigationBarSecondary from "@/components/NavigationBarSecondary";
 
@@ -67,7 +67,7 @@ function Main() {
           <div className="relative z-10 flex flex-col justify-center w-full h-full py-2 lg:py-32">
             <div className="rounded-[0.8rem] w-[55px] h-[55px] border border-primary/30 flex items-center justify-center">
             <div className="rounded-[0.8rem] w-[100px] h-[100px]  border-primary/30 flex items-center justify-center">
-              <img src={logoMini} />
+              <img src={logo} />
             </div>
             </div>
             <div className="">
@@ -99,7 +99,7 @@ function Main() {
           ])}
         >
           <div className="sticky top-0 z-10 flex-col justify-center hidden h-screen ml-16 lg:flex xl:ml-28 2xl:ml-36 flex justify-center items-center">
-            <img src={logoMini} className="w-64 h-auto"/>
+            <img src={logo} className="w-64 h-auto"/>
             {/* <div className="leading-[1.4] text-[2.6rem] xl:text-5xl font-medium xl:leading-[1.2] text-white">
              National Info Business Directory
             </div> */}

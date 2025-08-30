@@ -2,7 +2,7 @@ import { useRoutes } from "react-router-dom";
 import DashboardOverview1 from "../pages/DashboardOverview1/index.jsx";
 // Authentication Routes
 import Login from '@/views/Login/index.jsx'
-import Register from '@/views/Register'
+// import Register from '@/views/Register'
 import ForgotPassword from '@/views/ForgotPassword/index.jsx'
 import ResetPassword from '@/views/ResetPassword/index.jsx'
 import Layout from "../themes/index.tsx";
@@ -55,10 +55,10 @@ function Router() {
       path: "login",
       element: <Login />,
     },
-    {
-      path: "register",
-      element: <Register />,
-    },
+    // {
+    //   path: "register",
+    //   element: <Register />,
+    // },
     {
       path: "reset-pin",
       element: <ResetPassword/>
