@@ -11,8 +11,6 @@ import { useForm } from "react-hook-form";
 import { useSignUpUserMutation } from "@/stores/apiSlice";
 import { Link } from "react-router-dom";
 import logo from  '../../assets/images/company/logo.png';
-import RegisterForm from "../PublicPage/Sections/RegisterForm";
-import NavigationBarSecondary from "@/components/NavigationBarSecondary";
 
 function Main() {
   const schema = yup
@@ -54,7 +52,6 @@ function Main() {
 
   return (
     <>
-      <NavigationBarSecondary/>
 
       <div className="container grid lg:h-screen grid-cols-12 lg:max-w-[1550px] 2xl:max-w-[1750px] py-10 px-5 sm:py-14 sm:px-10 md:px-36 lg:py-0 lg:pl-14 lg:pr-12 xl:px-24">
         
@@ -78,7 +75,6 @@ function Main() {
                   Sign In
                 </Link>
               </div>
-              <RegisterForm/>
             </div>
           </div>
         </div>

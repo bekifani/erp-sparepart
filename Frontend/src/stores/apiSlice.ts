@@ -86,94 +86,9 @@ export const {
     useGetWarehouseReportQuery,
     useGetShopReportQuery,
     useGetSalesReportQuery,
-    useGetProdcutReportQuery,
     useSendTestNotificationQuery,
 
     
     useGetNotificationsQuery,
     useMarkAsReadMutation,
-
-
-    //useCreateSectorMutation,
-    //useEditSectorMutation,
-    //useGetSectorDetailQuery,
-    //useLazyGetSectorDetailQuery,
-    //useDeleteSectorMutation,
-    //useGetSectorsQuery,
-
-
-    //useCreateCategorieMutation,
-    //useEditCategorieMutation,
-    //useGetCategorieDetailQuery,
-    //useLazyGetCategorieDetailQuery,
-    //useDeleteCategorieMutation,
-    //useGetCategoriesQuery,
-
-
-    //useCreateCompanMutation,
-    //useEditCompanMutation,
-    //useGetCompanDetailQuery,
-    useLazyGetCompanDetailQuery,
-    useDeleteCompanMutation,
-    useGetCompansQuery,
-    useGetMyCompanyQuery,
-
-
-    //useCreateAddresstypeMutation,
-    //useEditAddresstypeMutation,
-    //useGetAddresstypeDetailQuery,
-    //useLazyGetAddresstypeDetailQuery,
-    //useDeleteAddresstypeMutation,
-    //useGetAddresstypesQuery,
-
-
-    //useCreateAddressbookMutation,
-    //useEditAddressbookMutation,
-    //useGetAddressbookDetailQuery,
-    //useLazyGetAddressbookDetailQuery,
-    //useDeleteAddressbookMutation,
-    useGetAddressbooksQuery,  
-
-
-    //useCreateAdMutation,
-    //useEditAdMutation,
-    //useGetAdDetailQuery,
-    useLazyGetAdDetailQuery,
-    useDeleteAdMutation,
-    useGetAdsQuery,
-
-
-    useCreateContactMutation,
-    useEditContactMutation,
-    useGetContactDetailQuery,
-    useLazyGetContactDetailQuery,
-    useDeleteContactMutation,
-    useGetContactsQuery,
-
-
-    useCreateSponsorMutation,
-    useEditSponsorMutation,
-    useGetSponsorDetailQuery,
-    useLazyGetSponsorDetailQuery,
-    useDeleteSponsorMutation,
-    useGetSponsorsQuery,
-
-
-    useCreateSettingMutation,
-    useEditSettingMutation,
-    useGetSettingDetailQuery,
-    useLazyGetSettingDetailQuery,
-    useDeleteSettingMutation,
-    useGetSettingsQuery,
-
-    //add here  
-    useGetLandingPageQuery,
-    useGetSectorsListQuery,
-    useGetSectorCategoriesQuery,
-    useGetCategoryCompaniesQuery,
-    useSearchCompaniesMutation,
-    useGetPublicCompanyDetailQuery,
-    useUpdateCompanyAdsMutation,
-    useAddPageViewQuery,
-    useGetPageViewsQuery
 } = apiSlice
