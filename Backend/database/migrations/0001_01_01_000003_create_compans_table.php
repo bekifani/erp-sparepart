@@ -10,12 +10,20 @@ return new class extends Migration
     {
         Schema::create('compans', function (Blueprint $table) {
             $table->id();
-                $table->foreignId('category')->nullable();
-                $table->foreign('category')->references('id')->on('categories')->onDelete('restrict')->onUpdate('cascade');
-                $table->string('company_logo');
-                $table->string('company_name');
-                $table->integer('order_level')->nullable();
-                
+            $table->string('logo')->nullable();
+            $table->string('name')->nullable();
+            $table->string('name_cn')->nullable();
+            $table->string('company_address')->nullable();
+            $table->string('company_address_cn')->nullable();
+            $table->text('bank_details')->nullable();
+            $table->text('bank_details_cn')->nullable();
+            $table->string('contact_person')->nullable();
+            $table->string('phone_number')->nullable();
+            $table->string('email')->nullable();
+            $table->string('website')->nullable();
+            $table->string('tax_id')->nullable();
+            $table->string('registration_number')->nullable();
+            $table->string('status')->nullable();
             $table->timestamps();
         });
     }
