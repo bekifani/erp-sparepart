@@ -11,12 +11,30 @@ import Employee  from '@/views/Employee'
 import User  from '@/views/User'
 import Activities from '@/views/Activities'
 import Role  from '@/views/Role'
+import Customer  from '@/views/ERP/Customer'
+import Supplier  from '@/views/ERP/Supplier'
+import Categor  from '@/views/ERP/Categor'
+import Productname  from '@/views/ERP/Productname'
+import Carmodel  from '@/views/ERP/Carmodel'
+import Brandname  from '@/views/ERP/Brandname'
+import Specificationheadname  from '@/views/ERP/Specificationheadname'
+import Boxe  from '@/views/ERP/Boxe'
+import Label  from '@/views/ERP/Label'
+import Unit  from '@/views/ERP/Unit'
+import Productinformation  from '@/views/ERP/Productinformation'
+import Product  from '@/views/ERP/Product'
+import Productimage  from '@/views/ERP/Productimage'
+import Crosscode  from '@/views/ERP/Crosscode'
+import Crosscar  from '@/views/ERP/Crosscar'
+import Productspecification  from '@/views/ERP/Productspecification'
+import Exchangerate  from '@/views/ERP/Exchangerate'
+import Compan  from '@/views/ERP/Compan'
 //add file here 
 
 function Router() {
   const routes = [
     {
-      path: "/",
+      path: "",
       element: <Landingpage />,
     },
     
@@ -42,6 +60,78 @@ function Router() {
       }, 
  
   
+  {
+    path: "customer",
+    element: <Customer />,
+  }, 
+  {
+    path: "supplier",
+    element: <Supplier />,
+  }, 
+  {
+    path: "categor",
+    element: <Categor />,
+  }, 
+  {
+    path: "productname",
+    element: <Productname />,
+  }, 
+  {
+    path: "carmodel",
+    element: <Carmodel />,
+  }, 
+  {
+    path: "brandname",
+    element: <Brandname />,
+  }, 
+  {
+    path: "specificationheadname",
+    element: <Specificationheadname />,
+  }, 
+  {
+    path: "boxe",
+    element: <Boxe />,
+  }, 
+  {
+    path: "label",
+    element: <Label />,
+  }, 
+  {
+    path: "unit",
+    element: <Unit />,
+  }, 
+  {
+    path: "productinformation",
+    element: <Productinformation />,
+  }, 
+  {
+    path: "product",
+    element: <Product />,
+  }, 
+  {
+    path: "productimage",
+    element: <Productimage />,
+  }, 
+  {
+    path: "crosscode",
+    element: <Crosscode />,
+  }, 
+  {
+    path: "crosscar",
+    element: <Crosscar />,
+  }, 
+  {
+    path: "productspecification",
+    element: <Productspecification />,
+  }, 
+  {
+    path: "exchangerate",
+    element: <Exchangerate />,
+  }, 
+  {
+    path: "compan",
+    element: <Compan />,
+  }, 
        // add routes here
       {
         path: "dashboard",

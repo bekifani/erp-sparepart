@@ -26,7 +26,4 @@
               method: "DELETE",
           }),
       }),
-      getMyCompany: builder.query({
-        query: () => `my_company`,
-        }),
   });
