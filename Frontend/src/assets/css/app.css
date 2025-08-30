@@ -1,0 +1,46 @@
+/*
+   |--------------------------------------------------------------------------
+   | Fonts
+   |--------------------------------------------------------------------------
+   |
+   | Import all fonts used in the template, the font configuration can be
+   | seen in "tailwind.config.js".
+   |
+   | Please check this link for more details:
+   | https://tailwindcss.com/docs/theme
+   |
+   */
+@import "./fonts/_public-sans.css";
+
+/*
+   |--------------------------------------------------------------------------
+   | Components
+   |--------------------------------------------------------------------------
+   |
+   | Import CSS components.
+   |
+   */
+@import "./components/_box.css";
+@import "./components/_global.css";
+@import "./components/_image-fit.css";
+@import "./components/_scrollbar-hidden.css";
+@import "./components/_typing-dots.css";
+@import "./components/_zoom-in.css";
+
+/*
+ |--------------------------------------------------------------------------
+ | TailwindCSS Directives
+ |--------------------------------------------------------------------------
+ |
+ | Import TailwindCSS directives and swipe out at build-time with all of
+ | the styles it generates based on your configured design system.
+ |
+ | Please check this link for more details:
+ | https://tailwindcss.com/docs/installation#include-tailwind-in-your-css
+ |
+ */
+
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,100..1000;1,9..40,100..1000&family=Manrope:wght@200..800&family=Poppins:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&display=swap');
+@tailwind base;
+@tailwind components;
+@tailwind utilities;

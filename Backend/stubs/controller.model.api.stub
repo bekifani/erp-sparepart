@@ -1,0 +1,130 @@
+<?php
+
+namespace {{ namespace }};
+
+use {{ namespacedModel }};
+use Illuminate\Http\Request;
+use App\Http\Controllers\BaseController;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Validator;
+class {{ class }} extends BaseController
+{
+    protected $searchableColumns = [];
+
+    public function index(Request $request)
+    {
+        $sortBy = 'id';
+        $sortDir = 'desc';
+        if($request['sort']){
+            $sortBy = $request['sort'][0]['field'];
+            $sortDir = $request['sort'][0]['dir'];
+        }
+        $perPage = $request->query('size', 10); 
+        $filters = $request['filter'];
+        $query = {{ model }}::orderBy($sortBy, $sortDir);
+        if($filters){
+            foreach ($filters as $filter) {
+                $field = $filter['field'];
+                $operator = $filter['type'];
+                $searchTerm = $filter['value'];
+                if ($operator == 'like') {
+                    $searchTerm = '%' . $searchTerm . '%';
+                }
+                $query->where($field, $operator, $searchTerm);
+            }
+        }
+        ${{ modelVariable }} = $query->paginate($perPage); 
+        $data = [
+            "data" => ${{ modelVariable }}->toArray(), 
+            'current_page' => ${{ modelVariable }}->currentPage(),
+            'total_pages' => ${{ modelVariable }}->lastPage(),
+            'per_page' => $perPage
+        ];
+        return response()->json($data);
+    }
+
+    public function all_{{ modelVariable }}s(){
+        $data = {{ model }}::all();
+        return $this->sendResponse($data, 1);
+    }
+
+    public function search(Request $request, $search_term){
+        $searchTerm = $search_term;
+        if (empty($searchTerm)) {
+            return response()->json([
+                'message' => 'Please enter a search term.'
+            ], 400);
+        }
+        $results = {{ model }}::where(function ($query) use ($searchTerm) {
+            foreach ($this->searchableColumns as $column) {
+                $query->orWhere($column, 'like', "%$searchTerm%");
+            }
+        })->paginate(20);
+        return $this->sendResponse($results , 'search resutls for {{ modelVariable }}');
+    }
+
+
+    public function store(Request $request)
+    {
+        $validationRules = [
+
+        ];
+
+        $validation = Validator::make($request->all() , $validationRules);
+        if($validation->fails()){
+            return $this->sendError("Invalid Values", ['errors' => $validation->errors()]);
+        }
+        $validated=$validation->validated();
+        
+        //file uploads
+
+        ${{ modelVariable }} = {{ model }}::create($validated);
+        return $this->sendResponse(${{ modelVariable }}, "{{ modelVariable }} created succesfully");
+    }
+
+    public function show($id)
+    {
+        ${{ modelVariable }} = {{ model }}::findOrFail($id);
+        return $this->sendResponse(${{ modelVariable }}, "");
+    }
+
+
+    public function update(Request $request, $id)
+    {
+        ${{ modelVariable }} = {{ model }}::findOrFail($id);
+         $validationRules = [
+            //for update
+
+        ];
+
+        $validation = Validator::make($request->all() , $validationRules);
+        if($validation->fails()){
+            return $this->sendError("Invalid Values", ['errors' => $validation->errors()]);
+        }
+        $validated=$validation->validated();
+
+        //file uploads update
+
+        ${{ modelVariable }}->update($validated);
+        return $this->sendResponse(${{ modelVariable }}, "{{ modelVariable }} updated successfully");
+    }
+
+    public function destroy($id)
+    {
+        ${{ modelVariable }} = {{ model }}::findOrFail($id);
+        ${{ modelVariable }}->delete();
+
+
+        //delete files uploaded
+        return $this->sendResponse(1, "{{ modelVariable }} deleted succesfully");
+    }
+
+    public function deleteFile($filePath) {
+        if (Storage::disk('public')->exists($filePath)) {
+            Storage::disk('public')->delete($filePath);
+            return true;
+        } else {
+            return false;
+        }
+    }
+}
