@@ -30,6 +30,24 @@ function LanguageSelector() {
       >
         {t("English")}
       </button>
+        <button
+        className={clsx([
+          "h-10 p-1 px-3 rounded-full cursor-pointer box",
+          "[&.active]:border-2 [&.active]:border-theme-1/60 font-bold",
+        ])}
+        onClick={() => changeLanguage("cn")}
+      >
+        {t("Chinese")}
+      </button>
+        <button
+        className={clsx([
+          "h-10 p-1 px-3 rounded-full cursor-pointer box",
+          "[&.active]:border-2 [&.active]:border-theme-1/60 font-bold",
+        ])}
+        onClick={() => changeLanguage("az")}
+      >
+        {t("Azerbaijani")}
+      </button>
     </div>
   );
 }
