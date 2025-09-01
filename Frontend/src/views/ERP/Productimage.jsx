@@ -277,14 +277,14 @@ is_primary : yup.string().required(t('The Is Primary field is required')),
 
 return (
     <div>
-      <Dialog
+      <Slideover
         open={showDeleteModal}
         onClose={() => {
           setShowDeleteModal(false);
         }}
       >
-        <Dialog.Panel>
-          <div className="p-5 text-center">
+        <Slideover.Panel>
+          <div className="p-5   text-center overflow-y-auto max-h-[110vh]">
             <Lucide
               icon="XCircle"
               className="w-16 h-16 mx-auto mt-3 text-danger"
@@ -312,23 +312,23 @@ return (
               {t("Delete")}
             </Button>
           </div>
-        </Dialog.Panel>
-      </Dialog>
+        </Slideover.Panel>
+      </Slideover>
 
 
-      <Dialog
+      <Slideover
        
         open={showCreateModal}
         onClose={() => {
           setShowCreateModal(false);
         }}
       >
-        <Dialog.Panel className="text-center">
+        <Slideover.Panel className="  text-center overflow-y-auto max-h-[110vh]">
           <form onSubmit={handleSubmit(onCreate)}>
-            <Dialog.Title>
+            <Slideover.Title>
               <h2 className="mr-auto text-base font-medium">{t("Add New Productimage")}</h2>
-            </Dialog.Title>
-            <Dialog.Description className="relative">
+            </Slideover.Title>
+            <Slideover.Description className="relative">
               <div className="relative">
                 {loading || updating || deleting ? (
                   <div className="w-full h-full z-[99999px] absolute backdrop-blur-md bg-gray-600">
@@ -420,8 +420,8 @@ return (
                   </div>
                       )}
               </div>
-            </Dialog.Description>
-            <Dialog.Footer>
+            </Slideover.Description>
+            <Slideover.Footer>
               <Button
                 type="button"
                 variant="outline-secondary"
@@ -435,23 +435,23 @@ return (
               <Button variant="primary" type="submit" className="w-20">
                 {t("Save")}
               </Button>
-            </Dialog.Footer>
+            </Slideover.Footer>
           </form>
-        </Dialog.Panel>
-      </Dialog>
-      <Dialog
+        </Slideover.Panel>
+      </Slideover>
+      <Slideover
        
         open={showUpdateModal}
         onClose={() => {
           setShowUpdateModal(false);
         }}
       >
-        <Dialog.Panel className="text-center">
+        <Slideover.Panel className="  text-center overflow-y-auto max-h-[110vh]">
           <form onSubmit={handleSubmit(onUpdate)}>
-            <Dialog.Title>
+            <Slideover.Title>
               <h2 className="mr-auto text-base font-medium">{t("Edit Productimage")}</h2>
-            </Dialog.Title>
-            <Dialog.Description className="relative">
+            </Slideover.Title>
+            <Slideover.Description className="relative">
               <div className="relative">
                 {loading || updating || deleting ? (
                   <div className="w-full h-full z-[99999px] absolute backdrop-blur-md bg-gray-600">
@@ -543,8 +543,8 @@ return (
                   </div>
                 )}
               </div>
-            </Dialog.Description>
-            <Dialog.Footer>
+            </Slideover.Description>
+            <Slideover.Footer>
               <Button
                 type="button"
                 variant="outline-secondary"
@@ -558,10 +558,10 @@ return (
               <Button variant="primary" type="submit" className="w-20">
                 {t("Update")}
               </Button>
-            </Dialog.Footer>
+            </Slideover.Footer>
           </form>
-        </Dialog.Panel>
-      </Dialog>
+        </Slideover.Panel>
+      </Slideover>
       <Notification
         getRef={(el) => {
           basicStickyNotification.current = el;
