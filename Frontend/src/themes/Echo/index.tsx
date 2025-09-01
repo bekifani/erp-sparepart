@@ -416,7 +416,7 @@ function Main() {
                 </Breadcrumb.Link>
               </Breadcrumb> */}
               <p className="text-white">
-              NIBDET
+              KOMIPARTS
               </p>
               {/* END: Breadcrumb */}
               {/* BEGIN: Search */}
@@ -472,7 +472,7 @@ function Main() {
                 <Menu className="ml-5">
                   <Menu.Button className="overflow-hidden rounded-full w-[36px] h-[36px] border-[3px] border-white/[0.15] image-fit">
                     <img
-                      alt="NIBDET"
+                      alt="KOMIPARTS"
                       src={media_url + user_data?.user?.employee?.photo}
                     />
                   </Menu.Button>
