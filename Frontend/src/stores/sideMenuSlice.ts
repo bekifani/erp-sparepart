@@ -70,115 +70,86 @@ const initialState: SideMenuState = {
       ],
     },
 
-   
-    
 
     {
-      icon: "BookMarked",
+      icon: "ShoppingCart",
+      title: "Order Management",
+      permission: "view-hr-menu",
+      subMenu: [
+        {
+      icon: "UserCheck",
       pathname: "/menu/customer",
-      title: "Customer",
+      title: "Customers",
       permission: "customer-list"
-    },
-    
+        },
 
-    {
-      icon: "BookMarked",
+        {
+      icon: "Truck",
       pathname: "/menu/supplier",
-      title: "Supplier",
+      title: "Suppliers",
       permission: "supplier-list"
+      },
+
+         {
+      icon: "ListOrdered",
+      pathname: "/menu/product",
+      title: "Products",
+      permission: "product-list"
+    },
+
+        {
+      icon: "Info",
+      pathname: "/menu/productInformation",
+      title: "Product Information",
+      permission: "productInformation-list"
     },
     
+        
+      ],
+    },
 
+       {
+      icon: "Briefcase",
+      title: "Product Portifolio",
+      permission: "view-hr-menu",
+      subMenu: [
     {
-      icon: "BookMarked",
+      icon: "List",
       pathname: "/menu/categor",
-      title: "Categor",
+      title: "Categories",
       permission: "categor-list"
     },
-    
 
     {
-      icon: "BookMarked",
+      icon: "Tag",
       pathname: "/menu/productname",
-      title: "Productname",
+      title: "Product Name",
       permission: "productname-list"
     },
     
 
     {
-      icon: "BookMarked",
-      pathname: "/menu/carmodel",
-      title: "Carmodel",
-      permission: "carmodel-list"
-    },
-    
-
-    {
-      icon: "BookMarked",
-      pathname: "/menu/brandname",
-      title: "Brandname",
-      permission: "brandname-list"
-    },
-    
-
-    {
-      icon: "BookMarked",
-      pathname: "/menu/specificationheadname",
-      title: "Specificationheadname",
-      permission: "specificationheadname-list"
-    },
-    
-
-    {
-      icon: "BookMarked",
-      pathname: "/menu/boxe",
-      title: "Boxe",
-      permission: "boxe-list"
-    },
-    
-
-    {
-      icon: "BookMarked",
-      pathname: "/menu/label",
-      title: "Label",
-      permission: "label-list"
-    },
-    
-
-    {
-      icon: "BookMarked",
-      pathname: "/menu/unit",
-      title: "Unit",
-      permission: "unit-list"
-    },
-    
-
-    {
-      icon: "BookMarked",
-      pathname: "/menu/productinformation",
-      title: "Productinformation",
-      permission: "productinformation-list"
-    },
-    
-
-    {
-      icon: "BookMarked",
-      pathname: "/menu/product",
-      title: "Product",
-      permission: "product-list"
-    },
-    
-
-    {
-      icon: "BookMarked",
+      icon: "Image",
       pathname: "/menu/productimage",
-      title: "Productimage",
+      title: "Product Images",
       permission: "productimage-list"
     },
-    
+    {
+      icon: "Package",
+      pathname: "/menu/boxe",
+      title: "Boxes",
+      permission: "boxe-list"
+    },
 
     {
-      icon: "BookMarked",
+      icon: "Bookmark",
+      pathname: "/menu/label",
+      title: "Labels",
+      permission: "label-list"
+    },
+
+        {
+      icon: "GitBranch",
       pathname: "/menu/crosscode",
       title: "Crosscode",
       permission: "crosscode-list"
@@ -186,36 +157,116 @@ const initialState: SideMenuState = {
     
 
     {
-      icon: "BookMarked",
+      icon: "Gauge",
       pathname: "/menu/crosscar",
-      title: "Crosscar",
+      title: "Crosscars",
       permission: "crosscar-list"
     },
     
-
-    {
-      icon: "BookMarked",
-      pathname: "/menu/productspecification",
-      title: "Productspecification",
-      permission: "productspecification-list"
+       {
+      icon: "ShoppingCart",
+      title: "Specifications",
+      permission: "view-hr-menu",
+      subMenu: [
+          {
+      icon: "FileText",
+      pathname: "/menu/specificationheadname",
+      title: "Specification Headname",
+      permission: "specificationheadname-list"
     },
     
+        {
+      icon: "ClipboardList",
+      pathname: "/menu/productspecification",
+      title: "Product Specification",
+      permission: "productspecification-list"
+    },
+        
+      ],
+    },
 
     {
-      icon: "BookMarked",
+      icon: "Car",
+      pathname: "/menu/carmodel",
+      title: "Car Models",
+      permission: "carmodel-list"
+    },
+    
+       {
+      icon: "Award",
+      pathname: "/menu/brandname",
+      title: "Brand Names",
+      permission: "brandname-list"
+    },
+    
+     
+      ],
+    },
+
+    
+
+    
+    {
+      icon: "Users",
+      title: "Reference Book",
+      permission: "view-hr-menu",
+      subMenu: [
+        
+    {
+      icon: "DollarSign",
       pathname: "/menu/exchangerate",
-      title: "Exchangerate",
+      title: "Exchange Rates",
       permission: "exchangerate-list"
     },
     
-
+    
     {
-      icon: "BookMarked",
+      icon: "Ruler",
+      pathname: "/menu/unit",
+      title: "Unit Type",
+      permission: "unit-list"
+    },
+    
+    {
+      icon: "Building",
       pathname: "/menu/compan",
-      title: "Compan",
+      title: "Company Profiles",
       permission: "compan-list"
     },
     
+        
+      ],
+    },
+
+    
+
+
+
+
+
+
+
+
+
+    
+
+    
+
+
+  
+
+
+    
+
+
+
+
+
+    
+
+
+
+
     //addhere 
   ],
 };
