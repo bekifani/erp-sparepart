@@ -41,18 +41,20 @@ function index_main() {
     useState(t("Are you Sure Do You want to Delete ProductInformation"));
 
   
- const [
-    createProductInformation,
+const [
+    createProductinformation,
     { isLoading: loading, isSuccess: success, error: successError },
-  ] = useCreateProductInformationMutation();
+  ] = useCreateProductinformationMutation();
+  
   const [
-    updateProductInformation,
+    updateProductinformation,
     { isLoading: updating, isSuccess: updated, error: updateError },
-  ] = useEditProductInformationMutation();
+  ] = useEditProductinformationMutation();
+  
   const [
-    deleteProductInformation,
+    deleteProductinformation,
     { isLoading: deleting, isSuccess: deleted, error: deleteError },
-  ] = useDeleteProductInformationMutation()
+  ] = useDeleteProductinformationMutation();
 
 
   const [toastMessage, setToastMessage] = useState("");
@@ -464,7 +466,7 @@ additional_note : yup.string().required(t('The Additional Note field is required
 
   const onCreate = async (data) => {
     try {
-      const response = await createProductInformation(data);
+      const response = await createProductinformation(data);
       setToastMessage(t("ProductInformation created successfully."));
     } catch (error) {
       setToastMessage(t("Error creating ProductInformation."));
@@ -477,7 +479,7 @@ additional_note : yup.string().required(t('The Additional Note field is required
   const onUpdate = async (data) => {
     setShowUpdateModal(false)
     try {
-      const response = await updateProductInformation(data);
+      const response = await updateProductinformation(data);
       setToastMessage(t('ProductInformation updated successfully'));
       setRefetch(true)
     } catch (error) {
@@ -491,7 +493,7 @@ additional_note : yup.string().required(t('The Additional Note field is required
     let id = getValues("id");
     setShowDeleteModal(false)
     try {
-        const response = deleteProductInformation(id);
+        const response = deleteProductinformation(id);
         setToastMessage(t("ProductInformation deleted successfully."));
         setRefetch(true);
       }
@@ -1492,7 +1494,7 @@ return (
       >
         <div className="font-medium">{toastMessage}</div>
       </Notification>
-      <Can permission="productinformation-list">
+      <Can permission="productInformation-list">
         <TableComponent
           setShowCreateModal={setShowCreateModal}
           endpoint={app_url + "/api/productinformation"}
