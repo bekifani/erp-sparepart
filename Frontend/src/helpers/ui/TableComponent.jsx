@@ -82,6 +82,15 @@ function Main({setShowCreateModal, show_create=true, endpoint, data, searchColum
             last_page:response.total_pages
           };
         },
+        ajaxError: function(xhr, textStatus, errorThrown) {
+          console.log('Ajax Load Error - Connection Error:', xhr.status, xhr.statusText);
+          console.log('Data Load Error: ', xhr);
+          if (xhr.status === 403) {
+            console.error('Permission denied. Check if user has required permissions for this endpoint.');
+          } else if (xhr.status === 401) {
+            console.error('Authentication failed. Check if token is valid and not expired.');
+          }
+        },
         layout: "fitColumns",
         // responsiveLayout: "collapse",
         placeholder: t("No matching records found"),
