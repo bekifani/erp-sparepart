@@ -16,6 +16,7 @@ import {
   useCreateLabelMutation,
   useDeleteLabelMutation,
   useEditLabelMutation,
+  useGetBrandnamesQuery,
 } from "@/stores/apiSlice";
 import clsx from "clsx";
 import { Dialog } from "@/components/Base/Headless";
@@ -463,15 +464,14 @@ return (
                       >
                         {t("Brand")}
                       </FormLabel>
-                      <FormInput
-                        {...register("brand")}
-                        id="validation-form-1"
-                        type="text"
-                        name="brand"
-                        className={clsx({
-                          "border-danger": errors.brand,
+                      <TomSelectSearch 
+                        apiUrl={`${app_url}/api/search_brandname`} 
+                        setValue={setValue} 
+                        variable="brand"
+                        customDataMapping={(item) => ({
+                          value: item.id,
+                          text: `${item.brand_code || ''} - ${item.brand_name || ''}${item.name_az || item.name_ru || item.name_cn ? ` (${[item.name_az && `AZ: ${item.name_az}`, item.name_ru && `RU: ${item.name_ru}`, item.name_cn && `CN: ${item.name_cn}`].filter(Boolean).join(', ')})` : ''}`
                         })}
-                        placeholder={t("Enter brand")}
                       />
                       {errors.brand && (
                         <div className="mt-2 text-danger">
@@ -783,15 +783,15 @@ return (
                       >
                         {t("Brand")}
                       </FormLabel>
-                      <FormInput
-                        {...register("brand")}
-                        id="validation-form-1"
-                        type="text"
-                        name="brand"
-                        className={clsx({
-                          "border-danger": errors.brand,
+                      <TomSelectSearch 
+                        apiUrl={`${app_url}/api/search_brandname`} 
+                        setValue={setValue} 
+                        variable="brand"
+                        defaultValue={getValues("brand")}
+                        customDataMapping={(item) => ({
+                          value: item.id,
+                          text: `${item.brand_code || ''} - ${item.brand_name || ''}${item.name_az || item.name_ru || item.name_cn ? ` (${[item.name_az && `AZ: ${item.name_az}`, item.name_ru && `RU: ${item.name_ru}`, item.name_cn && `CN: ${item.name_cn}`].filter(Boolean).join(', ')})` : ''}`
                         })}
-                        placeholder={t("Enter brand")}
                       />
                       {errors.brand && (
                         <div className="mt-2 text-danger">
