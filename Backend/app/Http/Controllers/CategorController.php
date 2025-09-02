@@ -7,6 +7,7 @@ use App\Models\Categor;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
+
 class CategorController extends BaseController
 {
     protected $searchableColumns = ['category_en', 'category_ru', 'category_cn', 'category_az', 'category_code'];
@@ -66,13 +67,14 @@ class CategorController extends BaseController
 
     public function store(Request $request)
     {
+
         $validationRules = [
           
           "category_en"=>"required|string|max:255",
           "category_ru"=>"required|string|max:255",
           "category_cn"=>"required|string|max:255",
           "category_az"=>"required|string|max:255",
-          "category_code"=>"required|string|unique:categories,category_code|max:255",
+          "category_code"=>"required|string|unique:categors,category_code|max:255",
           
 
         ];
@@ -101,8 +103,9 @@ class CategorController extends BaseController
 
     public function update(Request $request, $id)
     {
+        
         $categor = Categor::findOrFail($id);
-         $validationRules = [
+        $validationRules = [
             //for update
 
           
@@ -110,7 +113,7 @@ class CategorController extends BaseController
           "category_ru"=>"required|string|max:255",
           "category_cn"=>"required|string|max:255",
           "category_az"=>"required|string|max:255",
-          "category_code"=>"required|string|unique:categories,category_code|max:255",
+          "category_code"=>"required|string|unique:categors,category_code|max:255",
           
         ];
 

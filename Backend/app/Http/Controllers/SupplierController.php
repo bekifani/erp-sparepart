@@ -7,6 +7,8 @@ use App\Models\Supplier;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Facades\Log;
+
 class SupplierController extends BaseController
 {
     protected $searchableColumns = ['supplier', 'name_surname', 'occupation', 'code', 'address', 'email', 'phone_number', 'whatsapp', 'wechat_id', 'image', 'number_of_products', 'category_of_products', 'name_of_products', 'additional_note'];
@@ -66,6 +68,8 @@ class SupplierController extends BaseController
 
     public function store(Request $request)
     {
+        Log::info('Incoming request to store supplier:', $request->all());
+
         $validationRules = [
           
           "supplier"=>"required|string|max:255",

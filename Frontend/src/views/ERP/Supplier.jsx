@@ -1,4 +1,3 @@
-
 import "@/assets/css/vendors/tabulator.css";
 import Lucide from "@/components/Base/Lucide";
 import ReactDOMServer from 'react-dom/server';
@@ -311,19 +310,27 @@ function index_main() {
   // schema
   const schema = yup
     .object({
-     supplier : yup.string().required(t('The Supplier field is required')), 
-name_surname : yup.string().required(t('The Name Surname field is required')), 
-occupation : yup.string().required(t('The Occupation field is required')), 
-code : yup.string().required(t('The Code field is required')), 
-address : yup.string().required(t('The Address field is required')), 
-phone_number : yup.string().required(t('The Phone Number field is required')), 
-whatsapp : yup.string().required(t('The Whatsapp field is required')), 
-wechat_id : yup.string().required(t('The Wechat Id field is required')), 
-image : yup.string().required(t('The Image field is required')), 
-category_of_products : yup.string().required(t('The Category Of Products field is required')), 
-name_of_products : yup.string().required(t('The Name Of Products field is required')), 
-additional_note : yup.string().required(t('The Additional Note field is required')), 
-
+      supplier: yup.string().max(255).required(t('The Supplier field is required')),
+      name_surname: yup.string().max(255).required(t('The Name Surname field is required')),
+      occupation: yup.string().max(255).nullable(),
+      code: yup.string().max(255).nullable(),
+      address: yup.string().max(255).nullable(),
+      email: yup
+        .string()
+        .email(t('Please enter a valid email'))
+        .required(t('The Email field is required')),
+      phone_number: yup.string().max(20).nullable(),
+      whatsapp: yup.string().max(20).nullable(),
+      wechat_id: yup.string().max(255).nullable(),
+      image: yup.string().nullable(),
+      number_of_products: yup
+        .number()
+        .typeError(t('The Number Of Products must be a number'))
+        .transform((value, originalValue) => (originalValue === '' || originalValue === null ? null : value))
+        .nullable(),
+      category_of_products: yup.string().max(255).nullable(),
+      name_of_products: yup.string().max(255).nullable(),
+      additional_note: yup.string().nullable(),
     })
     .required();
 
