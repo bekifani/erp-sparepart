@@ -345,6 +345,7 @@ return (
         onClose={() => {
           setShowDeleteModal(false);
         }}
+        size="xl"
       >
         <Slideover.Panel>
           <div className="p-5  text-center overflow-y-auto max-h-[110vh]">
@@ -385,6 +386,7 @@ return (
         onClose={() => {
           setShowCreateModal(false);
         }}
+        size="xl"
       >
         <Slideover.Panel className="  text-center overflow-y-auto max-h-[110vh]">
           <form onSubmit={handleSubmit(onCreate)}>
@@ -664,6 +666,7 @@ return (
         onClose={() => {
           setShowUpdateModal(false);
         }}
+        size="xl"
       >
         <Slideover.Panel className="  text-center overflow-y-auto max-h-[110vh]">
           <form onSubmit={handleSubmit(onUpdate)}>
