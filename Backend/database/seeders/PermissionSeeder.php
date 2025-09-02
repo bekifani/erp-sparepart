@@ -80,7 +80,7 @@ class PermissionSeeder extends Seeder
              'unit-list', 'unit-create', 'unit-edit', 'unit-delete', 
 
            //ProductInformation Permissions list 
-             'productInformation-list', 'productInformation-create', 'productInformation-edit', 'productInformation-delete', 
+             'productinformation-list', 'productinformation-create', 'productinformation-edit', 'productinformation-delete', 
 
            //Product Permissions list 
              'product-list', 'product-create', 'product-edit', 'product-delete', 

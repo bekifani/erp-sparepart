@@ -101,7 +101,7 @@ function Router() {
     element: <Unit />,
   }, 
   {
-    path: "productinformation",
+    path: "ProductInformation",
     element: <Productinformation />,
   }, 
   {

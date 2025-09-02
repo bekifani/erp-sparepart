@@ -1,4 +1,3 @@
-
 import "@/assets/css/vendors/tabulator.css";
 import Lucide from "@/components/Base/Lucide";
 import ReactDOMServer from 'react-dom/server';
@@ -1494,15 +1493,15 @@ return (
       >
         <div className="font-medium">{toastMessage}</div>
       </Notification>
-      <Can permission="productInformation-list">
+      <Can permission="productinformation-list">
         <TableComponent
           setShowCreateModal={setShowCreateModal}
-          endpoint={app_url + "/api/productinformation"}
+          endpoint={app_url + "/api/ProductInformation"}
           data={data}
           searchColumns={searchColumns}
           refetch={refetch}
           setRefetch={setRefetch}
-          permission={"ProductInformation"}
+          permission={"productinformation"} 
         />
       </Can>
     </div>

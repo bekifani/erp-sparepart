@@ -2,27 +2,27 @@
   export const productinformationEndpoints = (builder) => ({
       createProductinformation: builder.mutation({
           query: (data) => ({
-              url: `productinformation`,
+              url: `ProductInformation`,
               method: "POST",
               body: data,
           }),
       }),
       editProductinformation: builder.mutation({
           query: (data) => ({
-              url: `productinformation/${data.id}`,
+              url: `ProductInformation/${data.id}`,
               method: "PUT",
               body: data,
           }),
       }),
       getProductinformations: builder.query({
-        query: () => `productinformation`,
+        query: () => `ProductInformation`,
       }),
       getProductinformationDetail: builder.query({
-          query: (id) => `productinformation/${id}`,
+          query: (id) => `ProductInformation/${id}`,
       }),
       deleteProductinformation: builder.mutation({
           query: (id) => ({
-              url: `productinformation/${id}`,
+              url: `ProductInformation/${id}`,
               method: "DELETE",
           }),
       }),

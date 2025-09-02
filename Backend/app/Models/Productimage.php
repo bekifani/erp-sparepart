@@ -31,7 +31,7 @@ class Productimage extends Model
             ->useLogName("Productimage");
     }
 
- public function productinformation() { 
+ public function ProductInformation() { 
  return $this->belongsTo(ProductInformation::class, 'product_information_id', 'id');
  }
 }

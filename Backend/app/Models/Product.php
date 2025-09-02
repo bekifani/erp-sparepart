@@ -31,7 +31,7 @@ class Product extends Model
             ->useLogName("Product");
     }
 
- public function productinformation() { 
+ public function ProductInformation() { 
  return $this->belongsTo(ProductInformation::class, 'product_information_id', 'id');
  }
  public function supplier() { 
