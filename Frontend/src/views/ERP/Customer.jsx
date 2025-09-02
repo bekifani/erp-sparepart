@@ -98,17 +98,6 @@ function index_main() {
     },
     
 
-    {
-      title: t("User Id"),
-      minWidth: 200,
-      field: "user_id",
-      hozAlign: "center",
-      headerHozAlign: "center",
-      vertAlign: "middle",
-      print: true,
-      download: true,
-      
-    },
     
 
     {
@@ -267,16 +256,16 @@ function index_main() {
       },
     },
 ]);
-  const [searchColumns, setSearchColumns] = useState(['name_surname', 'shipping_mark', 'user_id', 'country', 'address', 'email', 'phone_number', 'whatsapp', 'wechat_id', 'additional_note', ]);
+  const [searchColumns, setSearchColumns] = useState(['name_surname', 'shipping_mark', 'country', 'address', 'email', 'phone_number', 'whatsapp', 'wechat_id', 'additional_note', ]);
 
   // schema
   const schema = yup
     .object({
      name_surname : yup.string().required(t('The Name Surname field is required')), 
 shipping_mark : yup.string().required(t('The Shipping Mark field is required')), 
-user_id : yup.string().required(t('The User Id field is required')), 
 country : yup.string().required(t('The Country field is required')), 
 address : yup.string().required(t('The Address field is required')), 
+email : yup.string().email(t('Please enter a valid email')).required(t('The Email field is required')), 
 phone_number : yup.string().required(t('The Phone Number field is required')), 
 whatsapp : yup.string().required(t('The Whatsapp field is required')), 
 wechat_id : yup.string().required(t('The Wechat Id field is required')), 
@@ -490,22 +479,6 @@ return (
                       )}
                     </div>
 
-
-   <div className="mt-3 input-form">
-      <FormLabel
-        htmlFor="validation-form-1"
-        className="flex flex-col w-full sm:flex-row"
-      >
-        {t("User Id")}
-      </FormLabel>
-      <TomSelectSearch apiUrl={`${app_url}/api/search_user`} setValue={setValue} variable="user_id"/>
-      {errors.user_id && (
-        <div className="mt-2 text-danger">
-          {typeof errors.user_id.message === "string" &&
-            errors.user_id.message}
-        </div>
-      )}
-    </div>
 
 <div className="mt-3 input-form">
                       <FormLabel
@@ -790,22 +763,6 @@ return (
                       )}
                     </div>
 
-
-   <div className="mt-3 input-form">
-      <FormLabel
-        htmlFor="validation-form-1"
-        className="flex flex-col w-full sm:flex-row"
-      >
-        {t("User Id")}
-      </FormLabel>
-      <TomSelectSearch apiUrl={`${app_url}/api/search_user`} setValue={setValue} variable="user_id"/>
-      {errors.user_id && (
-        <div className="mt-2 text-danger">
-          {typeof errors.user_id.message === "string" &&
-            errors.user_id.message}
-        </div>
-      )}
-    </div>
 
 <div className="mt-3 input-form">
                       <FormLabel

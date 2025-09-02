@@ -4,7 +4,7 @@ import axios from "axios";
 import { useSelector } from "react-redux";
 import { useTranslation } from "react-i18next";
 
-const TomSelectSearch = ({ apiUrl, setValue , variable, defaultValue}) => {
+const TomSelectSearch = ({ apiUrl, setValue , variable, defaultValue, customDataMapping}) => {
   const {t,i18n} = useTranslation()
   const tomSelectRef = useRef(null);
   const token = useSelector((state)=> state.auth.token)
@@ -23,10 +23,15 @@ const TomSelectSearch = ({ apiUrl, setValue , variable, defaultValue}) => {
                   'Authorization': `Bearer ${token}`
               }
           });
-          const options = response.data.data.data.map(item => ({
-            value: item.id,  
-            text: item.name,
-          }));
+          const options = response.data.data.data.map(item => {
+            if (customDataMapping) {
+              return customDataMapping(item);
+            }
+            return {
+              value: item.id,  
+              text: item.name,
+            };
+          });
           console.log('options');
           callback(options);  // Return options for the dropdown
         } catch (error) {

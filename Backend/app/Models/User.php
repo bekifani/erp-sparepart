@@ -32,7 +32,10 @@ class User extends Authenticatable
         'type',
         'password',
         'employee_id',
+        'customer_id',
         'company_id',
+        'email_verified_at',
+        'phone_verified_at',
     ];
 
     /**

@@ -10,6 +10,7 @@ use Spatie\Permission\Models\Role;
 use Illuminate\Support\Facades\Validator;
 use Auth;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Log;
 class UserController extends BaseController
 {
     protected $searchableColumns = ['name', 'email', 'phone', 'company_id'];
@@ -92,6 +93,10 @@ class UserController extends BaseController
     }
 
     public function search(Request $request, $search_term){
+         Log::info('Incoming request to user-/Customer@search', [
+            'method' => $request->method(),
+            'params' => $request->all(),
+        ]);
         $field = $request->input('field');
         $oprator = $request->input('oprator');
         $searchTerm = $request->input('value');
@@ -110,7 +115,10 @@ class UserController extends BaseController
         //     ], 400);
         // }
         $results = User::where(function ($query) use ($searchTerm) {
-           foreach ($searchableColumns as $column) {
+        //      Log::info('Incoming request to Customer@search Result', [
+        //     'search_term' => $search_term
+        // ]);
+           foreach ($this->searchableColumns as $column) {
                 $query->orWhere($column, 'like', "%$searchTerm%");
             }
         })->paginate(20);
@@ -121,6 +129,10 @@ class UserController extends BaseController
 
     public function store(Request $request)
     {
+          Log::info('Incoming request to user-store/Customer@search', [
+            'method' => $request->method(),
+            'params' => $request->all()
+        ]);
         $validation = Validator::make($request->all(), [
             'name' => 'nullable',
             'phone' => 'nullable',
