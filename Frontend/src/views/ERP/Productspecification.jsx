@@ -344,7 +344,15 @@ return (
       >
         {t("Headname Id")}
       </FormLabel>
-      <TomSelectSearch apiUrl={`${app_url}/api/search_headname`} setValue={setValue} variable="headname_id"/>
+      <TomSelectSearch 
+        apiUrl={`${app_url}/api/search_specificationheadname`} 
+        setValue={setValue} 
+        variable="headname_id"
+        customDataMapping={(item) => ({
+          value: item.id,
+          text: item.headname
+        })}
+      />
       {errors.headname_id && (
         <div className="mt-2 text-danger">
           {typeof errors.headname_id.message === "string" &&
@@ -448,7 +456,15 @@ return (
       >
         {t("Headname Id")}
       </FormLabel>
-      <TomSelectSearch apiUrl={`${app_url}/api/search_headname`} setValue={setValue} variable="headname_id"/>
+      <TomSelectSearch 
+        apiUrl={`${app_url}/api/search_specificationheadname`} 
+        setValue={setValue} 
+        variable="headname_id"
+        customDataMapping={(item) => ({
+          value: item.id,
+          text: item.headname
+        })}
+      />
       {errors.headname_id && (
         <div className="mt-2 text-danger">
           {typeof errors.headname_id.message === "string" &&
