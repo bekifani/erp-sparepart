@@ -57,10 +57,12 @@ class BoxeController extends BaseController
         }
         $results = Boxe::where(function ($query) use ($searchTerm) {
             foreach ($this->searchableColumns as $column) {
-                $query->orWhere($column, 'like', "%$searchTerm%");
+                $query->orWhere("boxes.$column", 'like', "%$searchTerm%");
             }
-        })->paginate(20);
-        return $this->sendResponse($results , 'search resutls for boxe');
+        })->leftJoin('labels', 'boxes.label', '=', 'labels.label_name')
+        ->select('boxes.id', 'boxes.brand', 'boxes.box_name', 'boxes.material', 'boxes.stock_qty', 'boxes.order_qty', 'boxes.price', 'boxes.size_a', 'boxes.size_b', 'boxes.size_c', 'boxes.volume', 'boxes.label', 'boxes.image', 'boxes.design_file', 'boxes.additional_note', 'boxes.operation_mode', 'boxes.is_factory_supplied', 'labels.id as label_id')
+        ->paginate(20);
+        return $this->sendResponse($results , 'search results for boxe');
     }
 
 

@@ -17,10 +17,16 @@ class Boxe extends Model
     protected static $logAttributes = ['*'];
     public $guarded = [];
 
-    // Relationship with labels
+    // Relationship with labels (based on label name matching)
     public function labelRelation()
     {
-        return $this->belongsTo(Label::class, 'label_id');
+        return $this->belongsTo(Label::class, 'label', 'label_name');
+    }
+
+    // Relationship with brands (based on brand name matching)
+    public function brandRelation()
+    {
+        return $this->belongsTo(Brandname::class, 'brand', 'brand_name');
     }
 
     public function getDescriptionForEvent(string $eventName): string
