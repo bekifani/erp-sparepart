@@ -1,4 +1,3 @@
-
 import "@/assets/css/vendors/tabulator.css";
 import Lucide from "@/components/Base/Lucide";
 import ReactDOMServer from 'react-dom/server';
@@ -206,6 +205,8 @@ category_code : yup.string().required(t('The Category Code field is required')),
     trigger,
     getValues,
     setValue,
+    setError,
+    reset,
     handleSubmit,
     formState: { errors },
   } = useForm({
@@ -246,10 +247,30 @@ category_code : yup.string().required(t('The Category Code field is required')),
 
   const onCreate = async (data) => {
     try {
-      const response = await createCategor(data);
+      await createCategor(data).unwrap();
       setToastMessage(t("Categor created successfully."));
+      // Clear form after successful create
+      reset({
+        category_en: '',
+        category_ru: '',
+        category_cn: '',
+        category_az: '',
+        category_code: '',
+      });
     } catch (error) {
-      setToastMessage(t("Error creating Categor."));
+      // Map backend validation errors to field errors
+      const backendErrors = error?.data?.errors || error?.data?.data?.errors;
+      if (backendErrors && typeof backendErrors === 'object') {
+        Object.entries(backendErrors).forEach(([field, messages]) => {
+          const message = Array.isArray(messages) ? messages[0] : String(messages);
+          setError(field, { type: 'server', message });
+        });
+      }
+      const serverMsg = error?.data?.message
+        || (backendErrors && Object.values(backendErrors).flat()[0])
+        || error?.error
+        || t("Error creating Categor.");
+      setToastMessage(serverMsg);
     }
     basicStickyNotification.current?.showToast();
     setRefetch(true);
@@ -259,12 +280,23 @@ category_code : yup.string().required(t('The Category Code field is required')),
   const onUpdate = async (data) => {
     setShowUpdateModal(false)
     try {
-      const response = await updateCategor(data);
+      await updateCategor(data).unwrap();
       setToastMessage(t('Categor updated successfully'));
       setRefetch(true)
     } catch (error) {
       setShowUpdateModal(true)
-      setToastMessage(t('Categor deletion failed'));
+      const backendErrors = error?.data?.errors || error?.data?.data?.errors;
+      if (backendErrors && typeof backendErrors === 'object') {
+        Object.entries(backendErrors).forEach(([field, messages]) => {
+          const message = Array.isArray(messages) ? messages[0] : String(messages);
+          setError(field, { type: 'server', message });
+        });
+      }
+      const serverMsg = error?.data?.message
+        || (backendErrors && Object.values(backendErrors).flat()[0])
+        || error?.error
+        || t('Categor update failed');
+      setToastMessage(serverMsg);
     }
     basicStickyNotification.current?.showToast();
   };

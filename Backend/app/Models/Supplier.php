@@ -9,6 +9,7 @@ use Spatie\Activitylog\Traits\LogsActivity;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Notifications\Notifiable;
+use App\Models\Product; // added this line
 
 class Supplier extends Model
 {
@@ -31,4 +32,9 @@ class Supplier extends Model
             ->useLogName("Supplier");
     }
 
+    // A supplier has many products
+    public function products()
+    {
+        return $this->hasMany(Product::class, 'supplier_id', 'id');
+    }
 }

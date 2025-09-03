@@ -32,7 +32,7 @@ class ProductInformation extends Model
     }
 
  public function productname() { 
- return $this->belongsTo(ProductName::class, 'product_name_id', 'id');
+ return $this->belongsTo(Productname::class, 'product_name_id', 'id');
  }
  public function brandname() { 
  return $this->belongsTo(BrandName::class, 'brand_code', 'id');
