@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Http\Controllers\BaseController;
 use App\Models\Supplier;
+use App\Models\SupplierImage;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
@@ -23,7 +24,7 @@ class SupplierController extends BaseController
         }
         $perPage = $request->query('size', 10); 
         $filters = $request['filter'];
-        $query = Supplier::with(['products.ProductInformation.productname'])
+        $query = Supplier::with(['products.ProductInformation.productname', 'images'])
             ->orderBy($sortBy, $sortDir);
         if($filters){
             foreach ($filters as $filter) {
@@ -38,7 +39,7 @@ class SupplierController extends BaseController
         }
         $supplier = $query->paginate($perPage);
 
-        // Compute derived fields from related products
+        // Compute derived fields from related products and map related images for FE
         $supplier->getCollection()->transform(function ($s) {
             $products = $s->products ?? collect();
             $names = collect($products)->map(function ($p) {
@@ -62,6 +63,12 @@ class SupplierController extends BaseController
             $s->setAttribute('name_of_products', $names->join(', '));
             $s->setAttribute('category_of_products', $categories->join(', '));
             $s->setAttribute('number_of_products', collect($products)->count());
+
+            // map related images to a simple array of paths
+            $imagePaths = ($s->images ?? collect())->pluck('image')->values();
+            unset($s->images); // don't expose relation object
+            $s->setAttribute('images', $imagePaths);
+
             return $s;
         });
 
@@ -98,45 +105,70 @@ class SupplierController extends BaseController
     public function store(Request $request)
     {
         Log::info('Incoming request to store supplier:', $request->all());
-
+    
         $validationRules = [
-          
-          "supplier"=>"required|string|max:255",
-          "name_surname"=>"required|string|max:255",
-          "occupation"=>"nullable|string|max:255",
-          "code"=>"nullable|string|max:255",
-          "address"=>"nullable|string|max:255",
-          "email"=>"required|email|unique:suppliers,email",
-          "phone_number"=>"nullable|string|max:20",
-          "whatsapp"=>"nullable|string|max:20",
-          "wechat_id"=>"nullable|string|max:255",
-          "image"=>"nullable|",
-          "number_of_products"=>"nullable|numeric",
-          "category_of_products"=>"nullable|string|max:255",
-          "name_of_products"=>"nullable|string|max:255",
-          "additional_note"=>"nullable|string",
-          
-
+            "supplier" => "required|string|max:255",
+            "name_surname" => "required|string|max:255",
+            "occupation" => "nullable|string|max:255",
+            "code" => "nullable|string|max:255",
+            "address" => "nullable|string|max:255",
+            "email" => "required|email|unique:suppliers,email",
+            "phone_number" => "nullable|string|max:20",
+            "whatsapp" => "nullable|string|max:20",
+            "wechat_id" => "nullable|string|max:255",
+            "images" => "nullable|array",
+            "images.*" => "nullable|string",
+            "number_of_products" => "nullable|numeric",
+            "category_of_products" => "nullable|string|max:255",
+            "name_of_products" => "nullable|string|max:255",
+            "additional_note" => "nullable|string",
         ];
-
-        $validation = Validator::make($request->all() , $validationRules);
-        if($validation->fails()){
+    
+        $validation = Validator::make($request->all(), $validationRules);
+        if ($validation->fails()) {
+            Log::error('Supplier validation failed:', $validation->errors()->toArray());
             return $this->sendError("Invalid Values", ['errors' => $validation->errors()]);
         }
-        $validated=$validation->validated();
-
-
-
         
-        //file uploads
-
-        $supplier = Supplier::create($validated);
-        return $this->sendResponse($supplier, "supplier created succesfully");
+        $validated = $validation->validated();
+        Log::info('Validated supplier data:', $validated);
+    
+        try {
+            // Create supplier with all validated data except images
+            $images = $validated['images'] ?? [];
+            unset($validated['images']);
+            
+            $supplier = Supplier::create($validated);
+            Log::info('Supplier created successfully:', $supplier->toArray());
+    
+            // Handle images - store them directly as paths (frontend should handle uploads)
+            if (!empty($images)) {
+                $payload = collect($images)->filter()->map(function($path) use ($supplier) {
+                    return [
+                        'supplier_id' => $supplier->id,
+                        'image' => $path, // Store the path directly as sent from frontend
+                        'created_at' => now(),
+                        'updated_at' => now(),
+                    ];
+                })->values()->all();
+                
+                if (!empty($payload)) {
+                    SupplierImage::insert($payload);
+                    Log::info('Supplier images inserted:', ['count' => count($payload)]);
+                }
+            }
+    
+            return $this->sendResponse($supplier, "Supplier created successfully");
+            
+        } catch (\Exception $e) {
+            Log::error('Supplier creation failed:', ['error' => $e->getMessage()]);
+            return $this->sendError("Database Error", ['error' => $e->getMessage()]);
+        }
     }
 
     public function show($id)
     {
-        $supplier = Supplier::findOrFail($id);
+        $supplier = Supplier::with('images')->findOrFail($id);
         return $this->sendResponse($supplier, "");
     }
 
@@ -153,11 +185,13 @@ class SupplierController extends BaseController
           "occupation"=>"nullable|string|max:255",
           "code"=>"nullable|string|max:255",
           "address"=>"nullable|string|max:255",
+          // allow the same email for the record being updated
           "email"=>"required|email|unique:suppliers,email,{$supplier->id}",
           "phone_number"=>"nullable|string|max:20",
           "whatsapp"=>"nullable|string|max:20",
           "wechat_id"=>"nullable|string|max:255",
-          "image"=>"nullable|",
+          "images"=>"nullable|array",
+          "images.*"=>"nullable|string",
           "number_of_products"=>"nullable|numeric",
           "category_of_products"=>"nullable|string|max:255",
           "name_of_products"=>"nullable|string|max:255",
@@ -171,25 +205,40 @@ class SupplierController extends BaseController
         }
         $validated=$validation->validated();
 
-
-
-
-        //file uploads update
+        // Use images[] as-is for replace-or-no-change
+        $images = $validated['images'] ?? null; // null means no change, array means replace
+        unset($validated['images']);
+        Log::info('Supplier.update: images', ['id' => $supplier->id, 'images' => $images]);
 
         $supplier->update($validated);
+        if (is_array($images)) {
+            // replace strategy: delete existing image rows then insert provided
+            SupplierImage::where('supplier_id', $supplier->id)->delete();
+            $payload = collect($images)->filter()->map(function($path) use ($supplier) {
+                return [
+                    'supplier_id' => $supplier->id,
+                    'image' => $path,
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ];
+            })->values()->all();
+            if (!empty($payload)) {
+                SupplierImage::insert($payload);
+            }
+        }
         return $this->sendResponse($supplier, "supplier updated successfully");
     }
 
     public function destroy($id)
     {
-        $supplier = Supplier::findOrFail($id);
+        $supplier = Supplier::with('images')->findOrFail($id);
+        // attempt to delete files; then rely on FK cascade to remove rows
+        foreach (($supplier->images ?? collect()) as $img) {
+            if (!empty($img->image)) {
+                $this->deleteFile($img->image);
+            }
+        }
         $supplier->delete();
-
-
-
-        $this->deleteFile($supplier->image);
-
-        //delete files uploaded
         return $this->sendResponse(1, "supplier deleted succesfully");
     }
 
