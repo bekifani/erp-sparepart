@@ -27,6 +27,6 @@
           }),
       }),
       searchLabel: builder.query({
-          query: (searchTerm) => `search_label?search=${searchTerm}`,
+          query: (searchTerm) => `search_label/${searchTerm}`,
       }),
   });

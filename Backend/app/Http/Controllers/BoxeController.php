@@ -71,7 +71,7 @@ class BoxeController extends BaseController
         error_log('Boxe creation request received: ' . json_encode($request->all()));
         
         $validationRules = [
-          "brand_id"=>"nullable|string|max:255",
+          "brand"=>"nullable|string|max:255",
           "box_name"=>"required|string|unique:boxes,box_name|max:255",
           "material"=>"nullable|string|max:255",
           "stock_qty"=>"nullable|numeric",
@@ -81,7 +81,7 @@ class BoxeController extends BaseController
           "size_b"=>"nullable|numeric",
           "size_c"=>"nullable|numeric",
           "volume"=>"nullable|numeric",
-          "label_id"=>"nullable|string|max:255",
+          "label"=>"nullable|string|max:255",
           "image"=>"nullable|string",
           "design_file"=>"nullable|string",
           "additional_note"=>"nullable|string",
@@ -98,18 +98,8 @@ class BoxeController extends BaseController
         
         \Log::info('Validated data before mapping:', $validated);
 
-        // Map frontend field names to database field names
+        // Data is ready to save directly since frontend sends names
         $dataForDatabase = $validated;
-        
-        if (isset($validated['brand_id'])) {
-            $dataForDatabase['brand'] = $validated['brand_id'];
-            unset($dataForDatabase['brand_id']);
-        }
-        
-        if (isset($validated['label_id'])) {
-            $dataForDatabase['label'] = $validated['label_id'];
-            unset($dataForDatabase['label_id']);
-        }
 
         \Log::info('Final data for database save:', $dataForDatabase);
 
@@ -136,7 +126,10 @@ class BoxeController extends BaseController
     {
         $boxe = Boxe::findOrFail($id);
          $validationRules = [
-          "brand_id"=>"nullable|string|max:255",
+            //for update
+
+          
+          "brand"=>"nullable|string|max:255",
           "box_name"=>"required|string|unique:boxes,box_name,".$id."|max:255",
           "material"=>"nullable|string|max:255",
           "stock_qty"=>"nullable|numeric",
@@ -146,7 +139,7 @@ class BoxeController extends BaseController
           "size_b"=>"nullable|numeric",
           "size_c"=>"nullable|numeric",
           "volume"=>"nullable|numeric",
-          "label_id"=>"nullable|string|max:255",
+          "label"=>"nullable|string|max:255",
           "image"=>"nullable|string",
           "design_file"=>"nullable|string",
           "additional_note"=>"nullable|string",
@@ -160,18 +153,8 @@ class BoxeController extends BaseController
         }
         $validated=$validation->validated();
 
-        // Map frontend field names to database field names
+        // Data is ready to save directly since frontend sends names
         $dataForDatabase = $validated;
-        
-        if (isset($validated['brand_id'])) {
-            $dataForDatabase['brand'] = $validated['brand_id'];
-            unset($dataForDatabase['brand_id']);
-        }
-        
-        if (isset($validated['label_id'])) {
-            $dataForDatabase['label'] = $validated['label_id'];
-            unset($dataForDatabase['label_id']);
-        }
 
         //file uploads update
 

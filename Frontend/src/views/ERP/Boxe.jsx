@@ -78,7 +78,7 @@ function index_main() {
     {
       title: t("Brand"),
       minWidth: 200,
-      field: "brand_name",
+      field: "brand",
       hozAlign: "center",
       headerHozAlign: "center",
       vertAlign: "middle",
@@ -208,7 +208,7 @@ function index_main() {
     {
       title: t("Label"),
       minWidth: 200,
-      field: "label_name",
+      field: "label",
       hozAlign: "center",
       headerHozAlign: "center",
       vertAlign: "middle",
@@ -337,15 +337,15 @@ function index_main() {
       },
     },
   ]);
-  const [searchColumns, setSearchColumns] = useState(['brand_name', 'box_name', 'material', 'stock_qty', 'order_qty', 'price', 'size_a', 'size_b', 'size_c', 'volume', 'label_name', 'additional_note', 'operation_mode', 'is_factory_supplied',]);
+  const [searchColumns, setSearchColumns] = useState(['brand', 'box_name', 'material', 'stock_qty', 'order_qty', 'price', 'size_a', 'size_b', 'size_c', 'volume', 'label', 'additional_note', 'operation_mode', 'is_factory_supplied',]);
 
   // schema
   const schema = yup
     .object({
-      brand_id: yup.string().required(t('The Brand field is required')),
+      brand: yup.string().required(t('The Brand field is required')),
       box_name: yup.string().required(t('The Box Name field is required')),
       material: yup.string().required(t('The Material field is required')),
-      label_id: yup.string().nullable(),
+      label: yup.string().nullable(),
       size_a: yup.number().nullable(),
       size_b: yup.number().nullable(),
       size_c: yup.number().nullable(),
@@ -358,7 +358,7 @@ function index_main() {
       design_file: yup.string().nullable(),
       additional_note: yup.string().nullable(),
       operation_mode: yup.string().nullable(),
-      is_factory_supplied: yup.string().nullable(),
+      is_factory_supplied: yup.string().required(t('The Is Factory Supplied field is required')),
     })
     .required();
 
@@ -426,9 +426,33 @@ function index_main() {
   };
 
   const onCreate = async (data) => {
-    console.log('Frontend sending data:', data);
+    // Filter out unwanted fields and only send necessary data
+    const cleanData = {
+      brand: data.brand,
+      box_name: data.box_name,
+      material: data.material,
+      label: data.label,
+      size_a: data.size_a,
+      size_b: data.size_b,
+      size_c: data.size_c,
+      unit_id: data.unit_id,
+      volume: data.volume,
+      stock_qty: data.stock_qty,
+      order_qty: data.order_qty,
+      price: data.price,
+      image: data.image,
+      design_file: data.design_file,
+      additional_note: data.additional_note,
+      operation_mode: data.operation_mode,
+      is_factory_supplied: data.is_factory_supplied,
+    };
+    
+    console.log('Frontend sending clean data:', cleanData);
+    console.log('Brand Name:', cleanData.brand);
+    console.log('Label Name:', cleanData.label);
+    
     try {
-      const response = await createBoxe(data);
+      const response = await createBoxe(cleanData);
       console.log('Backend response:', response);
       if (response.error) {
         console.error('API Error:', response.error);
@@ -547,19 +571,19 @@ function index_main() {
                         <TomSelectSearch
                           apiUrl={`${app_url}/api/search_brandname`}
                           setValue={setValue}
-                          variable="brand_id"
+                          variable="brand"
                           customDataMapping={(item) => ({
-                            value: item.id,
+                            value: item.brand_name,
                             text: item.brand_name
                           })}
                           className={clsx({
-                            "border-danger": errors.brand_id,
+                            "border-danger": errors.brand,
                           })}
                         />
-                        {errors.brand_id && (
+                        {errors.brand && (
                           <div className="mt-2 text-danger">
-                            {typeof errors.brand_id.message === "string" &&
-                              errors.brand_id.message}
+                            {typeof errors.brand.message === "string" &&
+                              errors.brand.message}
                           </div>
                         )}
                       </div>
@@ -627,19 +651,19 @@ function index_main() {
                         <TomSelectSearch
                           apiUrl={`${app_url}/api/search_label`}
                           setValue={setValue}
-                          variable="label_id"
+                          variable="label"
                           customDataMapping={(item) => ({
-                            value: item.id,
+                            value: item.label_name || item.labelname || item.name,
                             text: item.label_name || item.labelname || item.name
                           })}
                           className={clsx({
-                            "border-danger": errors.label_id,
+                            "border-danger": errors.label,
                           })}
                         />
-                        {errors.label_id && (
+                        {errors.label && (
                           <div className="mt-2 text-danger">
-                            {typeof errors.label_id.message === "string" &&
-                              errors.label_id.message}
+                            {typeof errors.label.message === "string" &&
+                              errors.label.message}
                           </div>
                         )}
                       </div>
@@ -963,19 +987,19 @@ function index_main() {
                         <TomSelectSearch
                           apiUrl={`${app_url}/api/search_brandname`}
                           setValue={setValue}
-                          variable="brand_id"
+                          variable="brand"
                           customDataMapping={(item) => ({
-                            value: item.id,
+                            value: item.brand_name,
                             text: item.brand_name
                           })}
                           className={clsx({
-                            "border-danger": errors.brand_id,
+                            "border-danger": errors.brand,
                           })}
                         />
-                        {errors.brand_id && (
+                        {errors.brand && (
                           <div className="mt-2 text-danger">
-                            {typeof errors.brand_id.message === "string" &&
-                              errors.brand_id.message}
+                            {typeof errors.brand.message === "string" &&
+                              errors.brand.message}
                           </div>
                         )}
                       </div>
@@ -1043,19 +1067,19 @@ function index_main() {
                         <TomSelectSearch
                           apiUrl={`${app_url}/api/search_label`}
                           setValue={setValue}
-                          variable="label_id"
+                          variable="label"
                           customDataMapping={(item) => ({
-                            value: item.id,
+                            value: item.label_name || item.labelname || item.name,
                             text: item.label_name || item.labelname || item.name
                           })}
                           className={clsx({
-                            "border-danger": errors.label_id,
+                            "border-danger": errors.label,
                           })}
                         />
-                        {errors.label_id && (
+                        {errors.label && (
                           <div className="mt-2 text-danger">
-                            {typeof errors.label_id.message === "string" &&
-                              errors.label_id.message}
+                            {typeof errors.label.message === "string" &&
+                              errors.label.message}
                           </div>
                         )}
                       </div>

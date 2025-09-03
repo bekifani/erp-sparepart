@@ -17,6 +17,12 @@ class Boxe extends Model
     protected static $logAttributes = ['*'];
     public $guarded = [];
 
+    // Relationship with labels
+    public function labelRelation()
+    {
+        return $this->belongsTo(Label::class, 'label_id');
+    }
+
     public function getDescriptionForEvent(string $eventName): string
     {
         //$user = Auth::user()->name;

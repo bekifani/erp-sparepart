@@ -17,6 +17,12 @@ class Label extends Model
     protected static $logAttributes = ['*'];
     public $guarded = [];
 
+    // Relationship with boxes
+    public function boxes()
+    {
+        return $this->hasMany(Boxe::class, 'label_id');
+    }
+
     public function getDescriptionForEvent(string $eventName): string
     {
         //$user = Auth::user()->name;
