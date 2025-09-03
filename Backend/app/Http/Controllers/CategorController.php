@@ -46,22 +46,41 @@ class CategorController extends BaseController
 
     public function all_categors(){
         $data = Categor::all();
+        \Log::info('All categories retrieved: ' . $data->count() . ' categories found');
         return $this->sendResponse($data, 1);
     }
 
     public function search(Request $request, $search_term){
+        \Log::info('Incoming request to CategorController@search', [
+            'method' => $request->method(),
+            'params' => $request->all(),
+            'search_term' => $search_term
+        ]);
+
         $searchTerm = $search_term;
         if (empty($searchTerm)) {
+            \Log::warning('Empty search term provided');
             return response()->json([
                 'message' => 'Please enter a search term.'
             ], 400);
         }
+        
+        // Check total categories count
+        $totalCategories = Categor::count();
+        \Log::info('Total categories in database: ' . $totalCategories);
+        \Log::info('Searchable columns: ' . json_encode($this->searchableColumns));
+        
         $results = Categor::where(function ($query) use ($searchTerm) {
             foreach ($this->searchableColumns as $column) {
                 $query->orWhere($column, 'like', "%$searchTerm%");
             }
-        })->paginate(20);
-        return $this->sendResponse($results , 'search resutls for categor');
+        })->select('id', 'category_en', 'category_ru', 'category_cn', 'category_az', 'category_code')
+        ->paginate(20);
+        
+        \Log::info('Search results count: ' . $results->count());
+        \Log::info('Search results data: ' . json_encode($results->items()));
+        
+        return $this->sendResponse($results, 'search results for categor');
     }
 
 

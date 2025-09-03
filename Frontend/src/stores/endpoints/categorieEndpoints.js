@@ -26,4 +26,7 @@
               method: "DELETE",
           }),
       }),
+      searchCategorie: builder.query({
+          query: (searchTerm) => `search_categor/${searchTerm}`,
+      }),
   });
