@@ -30,12 +30,3 @@ export const unitEndpoints = (builder) => ({
     }),
   }),
 });
-
-export const {
-  useCreateUnitMutation,
-  useEditUnitMutation,
-  useGetUnitsQuery,
-  useGetUnitDetailQuery,
-  useSearchUnitQuery,
-  useDeleteUnitMutation,
-} = unitEndpoints;
