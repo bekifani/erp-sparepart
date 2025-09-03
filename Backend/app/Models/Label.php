@@ -17,10 +17,10 @@ class Label extends Model
     protected static $logAttributes = ['*'];
     public $guarded = [];
 
-    // Relationship with boxes
+    // Relationship with boxes (based on label name matching)
     public function boxes()
     {
-        return $this->hasMany(Boxe::class, 'label_id');
+        return $this->hasMany(Boxe::class, 'label', 'label_name');
     }
 
     public function getDescriptionForEvent(string $eventName): string
