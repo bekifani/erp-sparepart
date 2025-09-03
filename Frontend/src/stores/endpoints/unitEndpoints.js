@@ -21,15 +21,7 @@ export const unitEndpoints = (builder) => ({
     query: (id) => `unit/${id}`,
   }),
   searchUnit: builder.query({
-    query: (searchTerm) => ({
-      url: `/search_unit/${searchTerm}`,
-      method: "GET",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${getState().auth.token}`,
-        "X-Tenant-ID": getState().auth.user.tenant_id,
-      },
-    }),
+    query: (searchTerm) => `search_unit/${searchTerm}`,
   }),
 });
 
