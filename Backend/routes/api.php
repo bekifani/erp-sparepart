@@ -115,7 +115,7 @@ Route::get('/all_specificationheadnames', [App\Http\Controllers\Specificationhea
 Route::get('/boxe', [App\Http\Controllers\BoxeController::class, 'index'])->middleware('permission:boxe-list|boxe-create|boxe-edit|boxe-delete');
 Route::get('/boxe/{id}', [App\Http\Controllers\BoxeController::class, 'show'])->middleware('permission:boxe-list|boxe-create|boxe-edit|boxe-delete');
 Route::get('/search_boxe/{search_term}', [App\Http\Controllers\BoxeController::class, 'search'])->middleware('permission:boxe-list|boxe-create|boxe-edit|boxe-delete');
-Route::post('/boxe', [App\Http\Controllers\BoxeController::class, 'store'])->middleware('permission:boxe-create');
+Route::post('/boxe', [App\Http\Controllers\BoxeController::class, 'store']);
 Route::put('/boxe/{id}', [App\Http\Controllers\BoxeController::class, 'update'])->middleware('permission:boxe-edit');
 Route::delete('/boxe/{id}', [App\Http\Controllers\BoxeController::class, 'destroy'])->middleware('permission:boxe-delete');
 Route::get('/all_boxes', [App\Http\Controllers\BoxeController::class,'all_boxes']);

@@ -59,8 +59,9 @@ class LabelController extends BaseController
             foreach ($this->searchableColumns as $column) {
                 $query->orWhere($column, 'like', "%$searchTerm%");
             }
-        })->paginate(20);
-        return $this->sendResponse($results , 'search resutls for label');
+        })->select('id', 'brand', 'label_name', 'price', 'stock_qty', 'order_qty', 'labels_size_a', 'labels_size_b', 'image', 'design_file', 'additional_note', 'operation_mode', 'is_factory_supplied')
+        ->paginate(20);
+        return $this->sendResponse($results , 'search results for label');
     }
 
 

@@ -25,7 +25,7 @@ const TomSelectSearch = ({ apiUrl, setValue , variable, defaultValue}) => {
           });
           const options = response.data.data.data.map(item => ({
             value: item.id,  
-            text: item.name,
+            text: item.name || item.brand_name || item.product_name || item.box_name || item.label_name || item.unit_name || item.brand_code || item.product_name_code,
           }));
           console.log('options');
           callback(options);  // Return options for the dropdown

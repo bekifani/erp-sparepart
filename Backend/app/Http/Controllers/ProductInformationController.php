@@ -9,11 +9,21 @@ use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
 class ProductInformationController extends BaseController
 {
-    protected $searchableColumns = ['product_name_id', 'product_code', 'brand_code', 'oe_code', 'description', 'net_weight', 'gross_weight', 'unit_id', 'box_id', 'product_size_a', 'product_size_b', 'product_size_c', 'volume', 'label_id', 'qr_code', 'properties', 'technical_image', 'image', 'size_mode', 'additional_note'];
+    protected $searchableColumns = [
+        'product_information.product_code', 
+        'product_information.oe_code', 
+        'product_information.description',
+        'productnames.name_az',
+        'productnames.product_name_code',
+        'brandnames.brand_name',
+        'brandnames.brand_code',
+        'boxes.box_name',
+        'labels.label_name'
+    ];
 
     public function index(Request $request)
     {
-        $sortBy = 'id';
+        $sortBy = 'product_information.id';
         $sortDir = 'desc';
         if($request['sort']){
             $sortBy = $request['sort'][0]['field'];
@@ -21,7 +31,25 @@ class ProductInformationController extends BaseController
         }
         $perPage = $request->query('size', 10); 
         $filters = $request['filter'];
-        $query = ProductInformation::orderBy($sortBy, $sortDir);
+        
+        $query = ProductInformation::with(['productname', 'brandname', 'box', 'label', 'unit'])
+            ->leftJoin('productnames', 'product_information.product_name_id', '=', 'productnames.id')
+            ->leftJoin('brandnames', 'product_information.brand_code', '=', 'brandnames.id')
+            ->leftJoin('boxes', 'product_information.box_id', '=', 'boxes.id')
+            ->leftJoin('labels', 'product_information.label_id', '=', 'labels.id')
+            ->leftJoin('units', 'product_information.unit_id', '=', 'units.id')
+            ->select(
+                'product_information.*',
+                'productnames.name_az as product_name',
+                'productnames.product_name_code',
+                'brandnames.brand_name',
+                'brandnames.brand_code as brand_code_name',
+                'boxes.box_name',
+                'labels.label_name',
+                'units.name as unit_name'
+            )
+            ->orderBy($sortBy, $sortDir);
+            
         if($filters){
             foreach ($filters as $filter) {
                 $field = $filter['field'];
@@ -44,7 +72,23 @@ class ProductInformationController extends BaseController
     }
 
     public function all_productInformations(){
-        $data = ProductInformation::all();
+        $data = ProductInformation::with(['productname', 'brandname', 'box', 'label', 'unit'])
+            ->leftJoin('productnames', 'product_information.product_name_id', '=', 'productnames.id')
+            ->leftJoin('brandnames', 'product_information.brand_code', '=', 'brandnames.id')
+            ->leftJoin('boxes', 'product_information.box_id', '=', 'boxes.id')
+            ->leftJoin('labels', 'product_information.label_id', '=', 'labels.id')
+            ->leftJoin('units', 'product_information.unit_id', '=', 'units.id')
+            ->select(
+                'product_information.*',
+                'productnames.name_az as product_name',
+                'productnames.product_name_code',
+                'brandnames.brand_name',
+                'brandnames.brand_code as brand_code_name',
+                'boxes.box_name',
+                'labels.label_name',
+                'units.name as unit_name'
+            )
+            ->get();
         return $this->sendResponse($data, 1);
     }
 
@@ -55,22 +99,48 @@ class ProductInformationController extends BaseController
                 'message' => 'Please enter a search term.'
             ], 400);
         }
-        $results = ProductInformation::where(function ($query) use ($searchTerm) {
-            foreach ($this->searchableColumns as $column) {
-                $query->orWhere($column, 'like', "%$searchTerm%");
-            }
-        })->paginate(20);
-        return $this->sendResponse($results , 'search resutls for productInformation');
+        
+        $results = ProductInformation::with(['productname', 'brandname', 'box', 'label', 'unit'])
+            ->leftJoin('productnames', 'product_information.product_name_id', '=', 'productnames.id')
+            ->leftJoin('brandnames', 'product_information.brand_code', '=', 'brandnames.id')
+            ->leftJoin('boxes', 'product_information.box_id', '=', 'boxes.id')
+            ->leftJoin('labels', 'product_information.label_id', '=', 'labels.id')
+            ->leftJoin('units', 'product_information.unit_id', '=', 'units.id')
+            ->select(
+                'product_information.*',
+                'productnames.name_az as product_name',
+                'productnames.product_name_code',
+                'brandnames.brand_name',
+                'brandnames.brand_code as brand_code_name',
+                'boxes.box_name',
+                'labels.label_name',
+                'units.name as unit_name'
+            )
+            ->where(function ($query) use ($searchTerm) {
+                // Search in product_information table
+                $query->where('product_information.product_code', 'like', "%$searchTerm%")
+                      ->orWhere('product_information.oe_code', 'like', "%$searchTerm%")
+                      ->orWhere('product_information.description', 'like', "%$searchTerm%")
+                      // Search in related tables
+                      ->orWhere('productnames.name_az', 'like', "%$searchTerm%")
+                      ->orWhere('productnames.product_name_code', 'like', "%$searchTerm%")
+                      ->orWhere('brandnames.brand_name', 'like', "%$searchTerm%")
+                      ->orWhere('brandnames.brand_code', 'like', "%$searchTerm%")
+                      ->orWhere('boxes.box_name', 'like', "%$searchTerm%")
+                      ->orWhere('labels.label_name', 'like', "%$searchTerm%");
+            })
+            ->paginate(20);
+            
+        return $this->sendResponse($results , 'search results for productInformation');
     }
 
 
     public function store(Request $request)
     {
         $validationRules = [
-          
-          "product_name_id"=>"required|exists:product_names,id",
+          "product_name_id"=>"required|exists:productnames,id",
           "product_code"=>"required|string|unique:product_information,product_code|max:255",
-          "brand_code"=>"required|exists:brand_names,brand_code",
+          "brand_code"=>"required|exists:brandnames,id",
           "oe_code"=>"nullable|string|max:255",
           "description"=>"nullable|string|max:255",
           "net_weight"=>"nullable|numeric",
@@ -84,12 +154,10 @@ class ProductInformationController extends BaseController
           "label_id"=>"nullable|exists:labels,id",
           "qr_code"=>"nullable|string|max:255",
           "properties"=>"nullable|string|max:255",
-          "technical_image"=>"nullable|",
-          "image"=>"nullable|",
+          "technical_image"=>"nullable|string",
+          "image"=>"nullable|string",
           "size_mode"=>"nullable|string|max:255",
           "additional_note"=>"nullable|string",
-          
-
         ];
 
         $validation = Validator::make($request->all() , $validationRules);
@@ -118,12 +186,9 @@ class ProductInformationController extends BaseController
     {
         $productInformation = ProductInformation::findOrFail($id);
          $validationRules = [
-            //for update
-
-          
-          "product_name_id"=>"required|exists:product_names,id",
-          "product_code"=>"required|string|unique:product_information,product_code|max:255",
-          "brand_code"=>"required|exists:brand_names,brand_code",
+          "product_name_id"=>"required|exists:productnames,id",
+          "product_code"=>"required|string|unique:product_information,product_code,".$id."|max:255",
+          "brand_code"=>"required|exists:brandnames,id",
           "oe_code"=>"nullable|string|max:255",
           "description"=>"nullable|string|max:255",
           "net_weight"=>"nullable|numeric",
@@ -137,11 +202,10 @@ class ProductInformationController extends BaseController
           "label_id"=>"nullable|exists:labels,id",
           "qr_code"=>"nullable|string|max:255",
           "properties"=>"nullable|string|max:255",
-          "technical_image"=>"nullable|",
-          "image"=>"nullable|",
+          "technical_image"=>"nullable|string",
+          "image"=>"nullable|string",
           "size_mode"=>"nullable|string|max:255",
           "additional_note"=>"nullable|string",
-          
         ];
 
         $validation = Validator::make($request->all() , $validationRules);

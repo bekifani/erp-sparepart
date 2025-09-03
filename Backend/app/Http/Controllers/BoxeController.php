@@ -57,17 +57,22 @@ class BoxeController extends BaseController
         }
         $results = Boxe::where(function ($query) use ($searchTerm) {
             foreach ($this->searchableColumns as $column) {
-                $query->orWhere($column, 'like', "%$searchTerm%");
+                $query->orWhere("boxes.$column", 'like', "%$searchTerm%");
             }
-        })->paginate(20);
-        return $this->sendResponse($results , 'search resutls for boxe');
+        })->leftJoin('labels', 'boxes.label', '=', 'labels.label_name')
+        ->select('boxes.id', 'boxes.brand', 'boxes.box_name', 'boxes.material', 'boxes.stock_qty', 'boxes.order_qty', 'boxes.price', 'boxes.size_a', 'boxes.size_b', 'boxes.size_c', 'boxes.volume', 'boxes.label', 'boxes.image', 'boxes.design_file', 'boxes.additional_note', 'boxes.operation_mode', 'boxes.is_factory_supplied', 'labels.id as label_id')
+        ->paginate(20);
+        return $this->sendResponse($results , 'search results for boxe');
     }
 
 
     public function store(Request $request)
     {
+        // Debug: Log incoming request data
+        \Log::info('Boxe creation request data:', $request->all());
+        error_log('Boxe creation request received: ' . json_encode($request->all()));
+        
         $validationRules = [
-          
           "brand"=>"nullable|string|max:255",
           "box_name"=>"required|string|unique:boxes,box_name|max:255",
           "material"=>"nullable|string|max:255",
@@ -79,28 +84,37 @@ class BoxeController extends BaseController
           "size_c"=>"nullable|numeric",
           "volume"=>"nullable|numeric",
           "label"=>"nullable|string|max:255",
-          "image"=>"nullable|",
-          "design_"=>"nullable|",
+          "image"=>"nullable|string",
+          "design_file"=>"nullable|string",
           "additional_note"=>"nullable|string",
           "operation_mode"=>"nullable|string|max:255",
           "is_factory_supplied"=>"required|boolean",
-          
-
         ];
 
         $validation = Validator::make($request->all() , $validationRules);
         if($validation->fails()){
+            \Log::error('Boxe validation failed:', $validation->errors()->toArray());
             return $this->sendError("Invalid Values", ['errors' => $validation->errors()]);
         }
         $validated=$validation->validated();
-
-
-
         
+        \Log::info('Validated data before mapping:', $validated);
+
+        // Data is ready to save directly since frontend sends names
+        $dataForDatabase = $validated;
+
+        \Log::info('Final data for database save:', $dataForDatabase);
+
         //file uploads
 
-        $boxe = Boxe::create($validated);
-        return $this->sendResponse($boxe, "boxe created succesfully");
+        try {
+            $boxe = Boxe::create($dataForDatabase);
+            \Log::info('Boxe created successfully:', $boxe->toArray());
+            return $this->sendResponse($boxe, "boxe created succesfully");
+        } catch (\Exception $e) {
+            \Log::error('Boxe creation failed:', ['error' => $e->getMessage()]);
+            return $this->sendError("Database Error", ['error' => $e->getMessage()]);
+        }
     }
 
     public function show($id)
@@ -118,7 +132,7 @@ class BoxeController extends BaseController
 
           
           "brand"=>"nullable|string|max:255",
-          "box_name"=>"required|string|unique:boxes,box_name|max:255",
+          "box_name"=>"required|string|unique:boxes,box_name,".$id."|max:255",
           "material"=>"nullable|string|max:255",
           "stock_qty"=>"nullable|numeric",
           "order_qty"=>"nullable|numeric",
@@ -128,12 +142,11 @@ class BoxeController extends BaseController
           "size_c"=>"nullable|numeric",
           "volume"=>"nullable|numeric",
           "label"=>"nullable|string|max:255",
-          "image"=>"nullable|",
-          "design_"=>"nullable|",
+          "image"=>"nullable|string",
+          "design_file"=>"nullable|string",
           "additional_note"=>"nullable|string",
           "operation_mode"=>"nullable|string|max:255",
           "is_factory_supplied"=>"required|boolean",
-          
         ];
 
         $validation = Validator::make($request->all() , $validationRules);
@@ -142,12 +155,12 @@ class BoxeController extends BaseController
         }
         $validated=$validation->validated();
 
-
-
+        // Data is ready to save directly since frontend sends names
+        $dataForDatabase = $validated;
 
         //file uploads update
 
-        $boxe->update($validated);
+        $boxe->update($dataForDatabase);
         return $this->sendResponse($boxe, "boxe updated successfully");
     }
 

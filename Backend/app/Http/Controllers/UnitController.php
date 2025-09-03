@@ -59,8 +59,9 @@ class UnitController extends BaseController
             foreach ($this->searchableColumns as $column) {
                 $query->orWhere($column, 'like', "%$searchTerm%");
             }
-        })->paginate(20);
-        return $this->sendResponse($results , 'search resutls for unit');
+        })->select('id', 'name as unit_name', 'base_unit', 'base_value')
+        ->paginate(20);
+        return $this->sendResponse($results , 'search results for unit');
     }
 
 

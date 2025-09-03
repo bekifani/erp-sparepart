@@ -4,7 +4,7 @@ import Lucide from "@/components/Base/Lucide";
 import ReactDOMServer from 'react-dom/server';
 import { Slideover } from "@/components/Base/Headless";
 import Button from "@/components/Base/Button";
-import React, { useRef, useState } from "react";
+import React, { useRef, useState, useEffect } from "react";
 import { yupResolver } from "@hookform/resolvers/yup";
 import Notification from "@/components/Base/Notification";
 import TableComponent from "@/helpers/ui/TableComponent.jsx";
@@ -289,12 +289,16 @@ function index_main() {
   const schema = yup
     .object({
      brand : yup.string().required(t('The Brand field is required')), 
-label_name : yup.string().required(t('The Label Name field is required')), 
-image : yup.string().required(t('The Image field is required')), 
-design_file : yup.string().required(t('The Design File field is required')), 
-additional_note : yup.string().required(t('The Additional Note field is required')), 
-operation_mode : yup.string().required(t('The Operation Mode field is required')), 
-is_factory_supplied : yup.string().required(t('The Is Factory Supplied field is required')), 
+     labels_size_a : yup.number().required(t('The Label Size A field is required')),
+     labels_size_b : yup.number().required(t('The Label Size B field is required')),
+     price : yup.number().required(t('The Price field is required')),
+     stock_qty : yup.number().required(t('The Stock Qty field is required')),
+     order_qty : yup.number().nullable(),
+     image : yup.string().nullable(), 
+     design_file : yup.string().nullable(), 
+     additional_note : yup.string().nullable(), 
+     operation_mode : yup.string().nullable(), 
+     is_factory_supplied : yup.string().required(t('The Is Factory Supplied field is required')), 
 
     })
     .required();
@@ -305,11 +309,24 @@ is_factory_supplied : yup.string().required(t('The Is Factory Supplied field is 
     getValues,
     setValue,
     handleSubmit,
+    watch,
     formState: { errors },
   } = useForm({
     mode: "onChange",
     resolver: yupResolver(schema),
   });
+
+  // Watch for changes in brand, labels_size_a, and labels_size_b to auto-generate label_name
+  const watchedBrand = watch('brand');
+  const watchedSizeA = watch('labels_size_a');
+  const watchedSizeB = watch('labels_size_b');
+
+  useEffect(() => {
+    if (watchedBrand && watchedSizeA && watchedSizeB) {
+      const generatedLabelName = `${watchedBrand}(${watchedSizeA}x${watchedSizeB})`;
+      setValue('label_name', generatedLabelName);
+    }
+  }, [watchedBrand, watchedSizeA, watchedSizeB, setValue]);
 
    
 
@@ -708,17 +725,17 @@ return (
           <div className="flex flex-col mt-2 sm:flex-row">
               <div>
             <input
-              {...register('is_active')}
+              {...register('is_factory_supplied')}
               type="radio"
               value={1}
               className="mx-2"
-            /> Active
+            /> Yes
             <input
-              {...register('is_active')}
+              {...register('is_factory_supplied')}
               type="radio"
               value={0}
               className="mx-2"
-            /> Inactive
+            /> No
       </div>
           </div>
       {errors.is_factory_supplied && (
@@ -1028,17 +1045,17 @@ return (
           <div className="flex flex-col mt-2 sm:flex-row">
               <div>
             <input
-              {...register('is_active')}
+              {...register('is_factory_supplied')}
               type="radio"
               value={1}
               className="mx-2"
-            /> Active
+            /> Yes
             <input
-              {...register('is_active')}
+              {...register('is_factory_supplied')}
               type="radio"
               value={0}
               className="mx-2"
-            /> Inactive
+            /> No
       </div>
           </div>
       {errors.is_factory_supplied && (

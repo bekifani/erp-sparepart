@@ -75,7 +75,8 @@ class BrandnameController extends BaseController
             foreach ($this->searchableColumns as $column) {
                 $query->orWhere($column, 'like', "%$searchTerm%");
             }
-        })->paginate(20);
+        })->select('id', 'brand_code', 'brand_name', 'name_az', 'name_ru', 'name_cn', 'number_of_products')
+        ->paginate(20);
         return $this->sendResponse($results, 'search results for brandname');
     }
 

@@ -4,7 +4,7 @@ import axios from "axios";
 import { useSelector } from "react-redux";
 import { useTranslation } from "react-i18next";
 
-const TomSelectSearch = ({ apiUrl, setValue , variable, defaultValue, customDataMapping}) => {
+const TomSelectSearch = ({ apiUrl, setValue , variable, defaultValue, customDataMapping, onSelectionChange}) => {
   const {t,i18n} = useTranslation()
   const tomSelectRef = useRef(null);
   const token = useSelector((state)=> state.auth.token)
@@ -23,7 +23,20 @@ const TomSelectSearch = ({ apiUrl, setValue , variable, defaultValue, customData
                   'Authorization': `Bearer ${token}`
               }
           });
-          const options = response.data.data.data.map(item => {
+          
+          // Handle different response structures
+          let data = response.data;
+          if (data.data) {
+            data = data.data;
+            if (data.data) {
+              data = data.data;
+            }
+          }
+          
+          // Ensure data is an array
+          const items = Array.isArray(data) ? data : [];
+          
+          const options = items.map(item => {
             if (customDataMapping) {
               return customDataMapping(item);
             }
@@ -32,7 +45,9 @@ const TomSelectSearch = ({ apiUrl, setValue , variable, defaultValue, customData
               text: item.name,
             };
           });
-          console.log('options');
+          
+          // Store items for later use in onChange
+          tomSelectInstance.itemsData = items;
           callback(options);  // Return options for the dropdown
         } catch (error) {
           console.error("Error fetching data:", error);
@@ -41,6 +56,15 @@ const TomSelectSearch = ({ apiUrl, setValue , variable, defaultValue, customData
       create: false, // Disable create option (optional)
       onChange: (value) => {
         setValue(variable, value);  // Update selected value on change
+        
+        // Call onSelectionChange callback if provided
+        if (onSelectionChange && tomSelectInstance.itemsData) {
+          const selectedItem = tomSelectInstance.itemsData.find(item => item.id == value);
+          if (selectedItem) {
+            console.log('Selected item:', selectedItem);
+            onSelectionChange(selectedItem);
+          }
+        }
       },
     });
 

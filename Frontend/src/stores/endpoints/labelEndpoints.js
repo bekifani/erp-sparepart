@@ -26,4 +26,7 @@
               method: "DELETE",
           }),
       }),
+      searchLabel: builder.query({
+          query: (searchTerm) => `search_label/${searchTerm}`,
+      }),
   });
