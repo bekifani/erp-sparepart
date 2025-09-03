@@ -17,12 +17,17 @@ const TomSelectSearch = ({ apiUrl, setValue , variable, defaultValue, customData
         try {
           if (!query.trim()) return callback();
          
+          console.log('TomSelectSearch: Making API call to:', `${apiUrl}/${query}`);
+          console.log('TomSelectSearch: Query term:', query);
+          
           const response = await axios.get(`${apiUrl}/${query}`, {
               headers: {
                   'X-Tenant': `${tenant}`,
                   'Authorization': `Bearer ${token}`
               }
           });
+          
+          console.log('TomSelectSearch: Raw API response:', response.data);
           
           // Handle different response structures
           let data = response.data;
@@ -33,12 +38,18 @@ const TomSelectSearch = ({ apiUrl, setValue , variable, defaultValue, customData
             }
           }
           
+          console.log('TomSelectSearch: Processed data:', data);
+          
           // Ensure data is an array
           const items = Array.isArray(data) ? data : [];
+          console.log('TomSelectSearch: Items array:', items);
+          console.log('TomSelectSearch: Items count:', items.length);
           
           const options = items.map(item => {
             if (customDataMapping) {
-              return customDataMapping(item);
+              const mapped = customDataMapping(item);
+              console.log('TomSelectSearch: Custom mapped item:', mapped);
+              return mapped;
             }
             return {
               value: item.id,  
@@ -46,11 +57,14 @@ const TomSelectSearch = ({ apiUrl, setValue , variable, defaultValue, customData
             };
           });
           
+          console.log('TomSelectSearch: Final options for dropdown:', options);
+          
           // Store items for later use in onChange
           tomSelectInstance.itemsData = items;
           callback(options);  // Return options for the dropdown
         } catch (error) {
-          console.error("Error fetching data:", error);
+          console.error("TomSelectSearch: Error fetching data:", error);
+          console.error("TomSelectSearch: Error details:", error.response?.data);
         }
       },
       create: false, // Disable create option (optional)
