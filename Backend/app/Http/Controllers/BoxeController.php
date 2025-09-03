@@ -66,9 +66,12 @@ class BoxeController extends BaseController
 
     public function store(Request $request)
     {
+        // Debug: Log incoming request data
+        \Log::info('Boxe creation request data:', $request->all());
+        error_log('Boxe creation request received: ' . json_encode($request->all()));
+        
         $validationRules = [
-          
-          "brand"=>"nullable|string|max:255",
+          "brand_id"=>"nullable|string|max:255",
           "box_name"=>"required|string|unique:boxes,box_name|max:255",
           "material"=>"nullable|string|max:255",
           "stock_qty"=>"nullable|numeric",
@@ -78,29 +81,48 @@ class BoxeController extends BaseController
           "size_b"=>"nullable|numeric",
           "size_c"=>"nullable|numeric",
           "volume"=>"nullable|numeric",
-          "label"=>"nullable|string|max:255",
-          "image"=>"nullable|",
-          "design_"=>"nullable|",
+          "label_id"=>"nullable|string|max:255",
+          "image"=>"nullable|string",
+          "design_file"=>"nullable|string",
           "additional_note"=>"nullable|string",
           "operation_mode"=>"nullable|string|max:255",
           "is_factory_supplied"=>"required|boolean",
-          
-
         ];
 
         $validation = Validator::make($request->all() , $validationRules);
         if($validation->fails()){
+            \Log::error('Boxe validation failed:', $validation->errors()->toArray());
             return $this->sendError("Invalid Values", ['errors' => $validation->errors()]);
         }
         $validated=$validation->validated();
-
-
-
         
+        \Log::info('Validated data before mapping:', $validated);
+
+        // Map frontend field names to database field names
+        $dataForDatabase = $validated;
+        
+        if (isset($validated['brand_id'])) {
+            $dataForDatabase['brand'] = $validated['brand_id'];
+            unset($dataForDatabase['brand_id']);
+        }
+        
+        if (isset($validated['label_id'])) {
+            $dataForDatabase['label'] = $validated['label_id'];
+            unset($dataForDatabase['label_id']);
+        }
+
+        \Log::info('Final data for database save:', $dataForDatabase);
+
         //file uploads
 
-        $boxe = Boxe::create($validated);
-        return $this->sendResponse($boxe, "boxe created succesfully");
+        try {
+            $boxe = Boxe::create($dataForDatabase);
+            \Log::info('Boxe created successfully:', $boxe->toArray());
+            return $this->sendResponse($boxe, "boxe created succesfully");
+        } catch (\Exception $e) {
+            \Log::error('Boxe creation failed:', ['error' => $e->getMessage()]);
+            return $this->sendError("Database Error", ['error' => $e->getMessage()]);
+        }
     }
 
     public function show($id)
@@ -114,11 +136,8 @@ class BoxeController extends BaseController
     {
         $boxe = Boxe::findOrFail($id);
          $validationRules = [
-            //for update
-
-          
-          "brand"=>"nullable|string|max:255",
-          "box_name"=>"required|string|unique:boxes,box_name|max:255",
+          "brand_id"=>"nullable|string|max:255",
+          "box_name"=>"required|string|unique:boxes,box_name,".$id."|max:255",
           "material"=>"nullable|string|max:255",
           "stock_qty"=>"nullable|numeric",
           "order_qty"=>"nullable|numeric",
@@ -127,13 +146,12 @@ class BoxeController extends BaseController
           "size_b"=>"nullable|numeric",
           "size_c"=>"nullable|numeric",
           "volume"=>"nullable|numeric",
-          "label"=>"nullable|string|max:255",
-          "image"=>"nullable|",
-          "design_"=>"nullable|",
+          "label_id"=>"nullable|string|max:255",
+          "image"=>"nullable|string",
+          "design_file"=>"nullable|string",
           "additional_note"=>"nullable|string",
           "operation_mode"=>"nullable|string|max:255",
           "is_factory_supplied"=>"required|boolean",
-          
         ];
 
         $validation = Validator::make($request->all() , $validationRules);
@@ -142,12 +160,22 @@ class BoxeController extends BaseController
         }
         $validated=$validation->validated();
 
-
-
+        // Map frontend field names to database field names
+        $dataForDatabase = $validated;
+        
+        if (isset($validated['brand_id'])) {
+            $dataForDatabase['brand'] = $validated['brand_id'];
+            unset($dataForDatabase['brand_id']);
+        }
+        
+        if (isset($validated['label_id'])) {
+            $dataForDatabase['label'] = $validated['label_id'];
+            unset($dataForDatabase['label_id']);
+        }
 
         //file uploads update
 
-        $boxe->update($validated);
+        $boxe->update($dataForDatabase);
         return $this->sendResponse($boxe, "boxe updated successfully");
     }
 

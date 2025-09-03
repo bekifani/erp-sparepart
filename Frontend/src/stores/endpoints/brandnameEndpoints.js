@@ -26,4 +26,7 @@
               method: "DELETE",
           }),
       }),
+      searchBrandname: builder.query({
+          query: (searchTerm) => `search_brandname?search=${searchTerm}`,
+      }),
   });

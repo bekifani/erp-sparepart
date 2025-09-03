@@ -10,12 +10,15 @@ import Notification from "@/components/Base/Notification";
 import TableComponent from "@/helpers/ui/TableComponent.jsx";
 import * as yup from "yup";
 import { useForm } from "react-hook-form";
-import { FormCheck, FormTextarea , FormInput, FormLabel } from "@/components/Base/Form";
+import { FormCheck, FormTextarea, FormInput, FormLabel } from "@/components/Base/Form";
 import { stringToHTML } from "@/utils/helper";
 import {
   useCreateBoxeMutation,
   useDeleteBoxeMutation,
   useEditBoxeMutation,
+  useGetBrandnamesQuery,
+  useGetLabelsQuery,
+  useGetUnitsQuery,
 } from "@/stores/apiSlice";
 import clsx from "clsx";
 import { Dialog } from "@/components/Base/Headless";
@@ -31,8 +34,8 @@ import { ClassicEditor } from "@/components/Base/Ckeditor";
 function index_main() {
   const { t, i18n } = useTranslation();
   const app_url = useSelector((state) => state.auth.app_url)
-  const upload_url = useSelector((state)=> state.auth.upload_url)
-  const media_url = useSelector((state)=>state.auth.media_url)
+  const upload_url = useSelector((state) => state.auth.upload_url)
+  const media_url = useSelector((state) => state.auth.media_url)
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showUpdateModal, setShowUpdateModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
@@ -40,8 +43,8 @@ function index_main() {
   const [confirmationMessage, setConfirmationMessage] =
     useState(t("Are you Sure Do You want to Delete Boxe"));
 
-  
- const [
+
+  const [
     createBoxe,
     { isLoading: loading, isSuccess: success, error: successError },
   ] = useCreateBoxeMutation();
@@ -57,7 +60,7 @@ function index_main() {
 
   const [toastMessage, setToastMessage] = useState("");
   const basicStickyNotification = useRef();
-  const user = useSelector((state)=> state.auth.user)
+  const user = useSelector((state) => state.auth.user)
   const hasPermission = (permission) => {
     return user.permissions.includes(permission)
   }
@@ -71,19 +74,19 @@ function index_main() {
       print: true,
       download: true,
     },
-   
+
     {
       title: t("Brand"),
       minWidth: 200,
-      field: "brand",
+      field: "brand_name",
       hozAlign: "center",
       headerHozAlign: "center",
       vertAlign: "middle",
       print: true,
       download: true,
-      
+
     },
-    
+
 
     {
       title: t("Box Name"),
@@ -94,9 +97,9 @@ function index_main() {
       vertAlign: "middle",
       print: true,
       download: true,
-      
+
     },
-    
+
 
     {
       title: t("Material"),
@@ -107,9 +110,9 @@ function index_main() {
       vertAlign: "middle",
       print: true,
       download: true,
-      
+
     },
-    
+
 
     {
       title: t("Stock Qty"),
@@ -120,9 +123,9 @@ function index_main() {
       vertAlign: "middle",
       print: true,
       download: true,
-      
+
     },
-    
+
 
     {
       title: t("Order Qty"),
@@ -133,9 +136,9 @@ function index_main() {
       vertAlign: "middle",
       print: true,
       download: true,
-      
+
     },
-    
+
 
     {
       title: t("Price"),
@@ -146,9 +149,9 @@ function index_main() {
       vertAlign: "middle",
       print: true,
       download: true,
-      
+
     },
-    
+
 
     {
       title: t("Size A"),
@@ -159,9 +162,9 @@ function index_main() {
       vertAlign: "middle",
       print: true,
       download: true,
-      
+
     },
-    
+
 
     {
       title: t("Size B"),
@@ -172,9 +175,9 @@ function index_main() {
       vertAlign: "middle",
       print: true,
       download: true,
-      
+
     },
-    
+
 
     {
       title: t("Size C"),
@@ -185,9 +188,9 @@ function index_main() {
       vertAlign: "middle",
       print: true,
       download: true,
-      
+
     },
-    
+
 
     {
       title: t("Volume"),
@@ -198,22 +201,22 @@ function index_main() {
       vertAlign: "middle",
       print: true,
       download: true,
-      
+
     },
-    
+
 
     {
       title: t("Label"),
       minWidth: 200,
-      field: "label",
+      field: "label_name",
       hozAlign: "center",
       headerHozAlign: "center",
       vertAlign: "middle",
       print: true,
       download: true,
-      
+
     },
-    
+
 
     {
       title: t("Image"),
@@ -225,10 +228,10 @@ function index_main() {
       print: true,
       download: true,
       formatter(cell) {
-      return getMiniDisplay(cell.getData().image)
+        return getMiniDisplay(cell.getData().image)
       }
     },
-    
+
 
     {
       title: t("Design File"),
@@ -240,10 +243,10 @@ function index_main() {
       print: true,
       download: true,
       formatter(cell) {
-      return getMiniDisplay(cell.getData().design_file)
+        return getMiniDisplay(cell.getData().design_file)
       }
     },
-    
+
 
     {
       title: t("Additional Note"),
@@ -254,9 +257,9 @@ function index_main() {
       vertAlign: "middle",
       print: true,
       download: true,
-      
+
     },
-    
+
 
     {
       title: t("Operation Mode"),
@@ -267,9 +270,9 @@ function index_main() {
       vertAlign: "middle",
       print: true,
       download: true,
-      
+
     },
-    
+
 
     {
       title: t("Is Factory Supplied"),
@@ -280,9 +283,9 @@ function index_main() {
       vertAlign: "middle",
       print: true,
       download: true,
-      
+
     },
-    
+
 
     {
       title: t("Actions"),
@@ -324,31 +327,38 @@ function index_main() {
           setShowDeleteModal(true);
         });
         let permission = "boxe";
-        if(hasPermission(permission+'-edit')){
+        if (hasPermission(permission + '-edit')) {
           element.append(a)
         }
-        if(hasPermission(permission+'-delete')){
+        if (hasPermission(permission + '-delete')) {
           element.append(b)
         }
         return element;
       },
     },
-]);
-  const [searchColumns, setSearchColumns] = useState(['brand', 'box_name', 'material', 'stock_qty', 'order_qty', 'price', 'size_a', 'size_b', 'size_c', 'volume', 'label', 'additional_note', 'operation_mode', 'is_factory_supplied', ]);
+  ]);
+  const [searchColumns, setSearchColumns] = useState(['brand_name', 'box_name', 'material', 'stock_qty', 'order_qty', 'price', 'size_a', 'size_b', 'size_c', 'volume', 'label_name', 'additional_note', 'operation_mode', 'is_factory_supplied',]);
 
   // schema
   const schema = yup
     .object({
-     brand : yup.string().required(t('The Brand field is required')), 
-box_name : yup.string().required(t('The Box Name field is required')), 
-material : yup.string().required(t('The Material field is required')), 
-label : yup.string().required(t('The Label field is required')), 
-image : yup.string().required(t('The Image field is required')), 
-design_file : yup.string().required(t('The Design File field is required')), 
-additional_note : yup.string().required(t('The Additional Note field is required')), 
-operation_mode : yup.string().required(t('The Operation Mode field is required')), 
-is_factory_supplied : yup.string().required(t('The Is Factory Supplied field is required')), 
-
+      brand_id: yup.string().required(t('The Brand field is required')),
+      box_name: yup.string().required(t('The Box Name field is required')),
+      material: yup.string().required(t('The Material field is required')),
+      label_id: yup.string().nullable(),
+      size_a: yup.number().nullable(),
+      size_b: yup.number().nullable(),
+      size_c: yup.number().nullable(),
+      unit_id: yup.string().nullable(),
+      volume: yup.number().nullable(),
+      stock_qty: yup.number().nullable(),
+      order_qty: yup.number().nullable(),
+      price: yup.number().nullable(),
+      image: yup.string().nullable(),
+      design_file: yup.string().nullable(),
+      additional_note: yup.string().nullable(),
+      operation_mode: yup.string().nullable(),
+      is_factory_supplied: yup.string().nullable(),
     })
     .required();
 
@@ -364,33 +374,43 @@ is_factory_supplied : yup.string().required(t('The Is Factory Supplied field is 
     resolver: yupResolver(schema),
   });
 
-   
 
-          const setUploadImage  = (value) => {
-              setValue('image', value);
-            } 
 
-        
-          const setUploadDesign_file  = (value) => {
-              setValue('design_file', value);
-            } 
+  const setUploadImage = (value) => {
+    setValue('image', value);
+  }
 
-        
+
+  const setUploadDesign_file = (value) => {
+    setValue('design_file', value);
+  }
+
+
 
   const [refetch, setRefetch] = useState(false);
+
+  // Fetch brandnames, labels and units for dropdowns
+  const { data: brandnamesResponse } = useGetBrandnamesQuery();
+  const { data: labelsResponse } = useGetLabelsQuery();
+  const { data: unitsResponse } = useGetUnitsQuery();
+
+  // Handle API response structure - data might be nested in response.data
+  const brandnames = Array.isArray(brandnamesResponse) ? brandnamesResponse : (brandnamesResponse?.data || []);
+  const labels = Array.isArray(labelsResponse) ? labelsResponse : (labelsResponse?.data || []);
+  const units = Array.isArray(unitsResponse) ? unitsResponse : (unitsResponse?.data || []);
   const getMiniDisplay = (url) => {
-    let data = app_url +'/api/file/' + url;
-    
+    let data = app_url + '/api/file/' + url;
+
     const fileExtension = data.split('.').pop().toLowerCase();
     const imageExtensions = ['jpg', 'jpeg', 'png', 'gif', 'bmp', 'svg', 'webp'];
     const videoExtensions = ['mp4', 'webm', 'ogg', 'mov', 'avi', 'mkv'];
 
     let element;
-    
+
     if (imageExtensions.includes(fileExtension)) {
       element = (
         // <DynamicImage imagePath={url} token={token}/>
-        <img data-action="zoom" src={media_url + url} alt="Preview" style={{ width: '40px', height: '40px', objectFit: 'cover' }} className="rounded-md"/>
+        <img data-action="zoom" src={media_url + url} alt="Preview" style={{ width: '40px', height: '40px', objectFit: 'cover' }} className="rounded-md" />
       );
     } else if (videoExtensions.includes(fileExtension)) {
       element = <Lucide icon="Film" style={{ width: '40px', height: '40px', objectFit: 'cover' }} className="block mx-auto" />;
@@ -406,11 +426,19 @@ is_factory_supplied : yup.string().required(t('The Is Factory Supplied field is 
   };
 
   const onCreate = async (data) => {
+    console.log('Frontend sending data:', data);
     try {
       const response = await createBoxe(data);
-      setToastMessage(t("Boxe created successfully."));
+      console.log('Backend response:', response);
+      if (response.error) {
+        console.error('API Error:', response.error);
+        setToastMessage(t("Error creating Boxe: ") + JSON.stringify(response.error));
+      } else {
+        setToastMessage(t("Boxe created successfully."));
+      }
     } catch (error) {
-      setToastMessage(t("Error creating Boxe."));
+      console.error('Request failed:', error);
+      setToastMessage(t("Error creating Boxe: ") + error.message);
     }
     basicStickyNotification.current?.showToast();
     setRefetch(true);
@@ -434,17 +462,17 @@ is_factory_supplied : yup.string().required(t('The Is Factory Supplied field is 
     let id = getValues("id");
     setShowDeleteModal(false)
     try {
-        const response = deleteBoxe(id);
-        setToastMessage(t("Boxe deleted successfully."));
-        setRefetch(true);
-      }
+      const response = deleteBoxe(id);
+      setToastMessage(t("Boxe deleted successfully."));
+      setRefetch(true);
+    }
     catch (error) {
       setToastMessage(t("Error deleting Boxe."));
     }
     basicStickyNotification.current?.showToast();
-  };    
+  };
 
-return (
+  return (
     <div>
       <Slideover
         open={showDeleteModal}
@@ -484,10 +512,8 @@ return (
           </div>
         </Slideover.Panel>
       </Slideover>
-
-
+  
       <Slideover
-       
         open={showCreateModal}
         onClose={() => {
           setShowCreateModal(false);
@@ -508,139 +534,254 @@ return (
                     </div>
                   </div>
                 ) : (
-                  <div className=" w-full grid grid-cols-1 gap-4 gap-y-3">
-                    
-<div className="mt-3 input-form">
-                      <FormLabel
-                        htmlFor="validation-form-1"
-                        className="flex justify-start items-start flex-col w-full sm:flex-row"
-                      >
-                        {t("Brand")}
-                      </FormLabel>
-                      <FormInput
-                        {...register("brand")}
-                        id="validation-form-1"
-                        type="text"
-                        name="brand"
-                        className={clsx({
-                          "border-danger": errors.brand,
-                        })}
-                        placeholder={t("Enter brand")}
-                      />
-                      {errors.brand && (
-                        <div className="mt-2 text-danger">
-                          {typeof errors.brand.message === "string" &&
-                            errors.brand.message}
-                        </div>
-                      )}
+                  <div className="w-full gap-4 gap-y-3">
+                    {/* Row 1: Brand and Box Name side by side */}
+                    <div className="grid grid-cols-2 gap-4 mt-3">
+                      <div className="input-form">
+                        <FormLabel
+                          htmlFor="validation-form-1"
+                          className="flex justify-start items-start flex-col w-full sm:flex-row"
+                        >
+                          {t("Brand")}
+                        </FormLabel>
+                        <TomSelectSearch
+                          apiUrl={`${app_url}/api/search_brandname`}
+                          setValue={setValue}
+                          variable="brand_id"
+                          customDataMapping={(item) => ({
+                            value: item.id,
+                            text: item.brand_name
+                          })}
+                          className={clsx({
+                            "border-danger": errors.brand_id,
+                          })}
+                        />
+                        {errors.brand_id && (
+                          <div className="mt-2 text-danger">
+                            {typeof errors.brand_id.message === "string" &&
+                              errors.brand_id.message}
+                          </div>
+                        )}
+                      </div>
+  
+                      <div className="input-form">
+                        <FormLabel
+                          htmlFor="validation-form-1"
+                          className="flex justify-start items-start flex-col w-full sm:flex-row"
+                        >
+                          {t("Box Name")}
+                        </FormLabel>
+                        <FormInput
+                          {...register("box_name")}
+                          id="validation-form-1"
+                          type="text"
+                          name="box_name"
+                          className={clsx({
+                            "border-danger": errors.box_name,
+                          })}
+                          placeholder={t("Enter box_name")}
+                        />
+                        {errors.box_name && (
+                          <div className="mt-2 text-danger">
+                            {typeof errors.box_name.message === "string" &&
+                              errors.box_name.message}
+                          </div>
+                        )}
+                      </div>
                     </div>
-
-
-<div className="mt-3 input-form">
-                      <FormLabel
-                        htmlFor="validation-form-1"
-                        className="flex justify-start items-start flex-col w-full sm:flex-row"
-                      >
-                        {t("Box Name")}
-                      </FormLabel>
-                      <FormInput
-                        {...register("box_name")}
-                        id="validation-form-1"
-                        type="text"
-                        name="box_name"
-                        className={clsx({
-                          "border-danger": errors.box_name,
-                        })}
-                        placeholder={t("Enter box_name")}
-                      />
-                      {errors.box_name && (
-                        <div className="mt-2 text-danger">
-                          {typeof errors.box_name.message === "string" &&
-                            errors.box_name.message}
-                        </div>
-                      )}
+  
+                    {/* Row 2: Material and Label side by side */}
+                    <div className="grid grid-cols-2 gap-4 mt-3">
+                      <div className="input-form">
+                        <FormLabel
+                          htmlFor="validation-form-1"
+                          className="flex justify-start items-start flex-col w-full sm:flex-row"
+                        >
+                          {t("Material")}
+                        </FormLabel>
+                        <FormInput
+                          {...register("material")}
+                          id="validation-form-1"
+                          type="text"
+                          name="material"
+                          className={clsx({
+                            "border-danger": errors.material,
+                          })}
+                          placeholder={t("Enter material")}
+                        />
+                        {errors.material && (
+                          <div className="mt-2 text-danger">
+                            {typeof errors.material.message === "string" &&
+                              errors.material.message}
+                          </div>
+                        )}
+                      </div>
+  
+                      <div className="input-form">
+                        <FormLabel
+                          htmlFor="validation-form-1"
+                          className="flex justify-start items-start flex-col w-full sm:flex-row"
+                        >
+                          {t("Label")}
+                        </FormLabel>
+                        <TomSelectSearch
+                          apiUrl={`${app_url}/api/search_label`}
+                          setValue={setValue}
+                          variable="label_id"
+                          customDataMapping={(item) => ({
+                            value: item.id,
+                            text: item.label_name || item.labelname || item.name
+                          })}
+                          className={clsx({
+                            "border-danger": errors.label_id,
+                          })}
+                        />
+                        {errors.label_id && (
+                          <div className="mt-2 text-danger">
+                            {typeof errors.label_id.message === "string" &&
+                              errors.label_id.message}
+                          </div>
+                        )}
+                      </div>
                     </div>
-
-
-<div className="mt-3 input-form">
-                      <FormLabel
-                        htmlFor="validation-form-1"
-                        className="flex justify-start items-start flex-col w-full sm:flex-row"
-                      >
-                        {t("Material")}
-                      </FormLabel>
-                      <FormInput
-                        {...register("material")}
-                        id="validation-form-1"
-                        type="text"
-                        name="material"
-                        className={clsx({
-                          "border-danger": errors.material,
-                        })}
-                        placeholder={t("Enter material")}
-                      />
-                      {errors.material && (
-                        <div className="mt-2 text-danger">
-                          {typeof errors.material.message === "string" &&
-                            errors.material.message}
-                        </div>
-                      )}
+  
+                    {/* Row 3: Box Sizes (A, B, C) with Unit Type */}
+                    <div className="grid grid-cols-4 gap-4 mt-3">
+                      <div className="input-form">
+                        <FormLabel className="flex justify-start items-start flex-col w-full sm:flex-row">
+                          {t("Size A")}
+                        </FormLabel>
+                        <FormInput
+                          {...register("size_a")}
+                          type="number"
+                          name="size_a"
+                          className={clsx({"border-danger": errors.size_a})}
+                          placeholder={t("Enter size A")}
+                        />
+                        {errors.size_a && (
+                          <div className="mt-2 text-danger">
+                            {typeof errors.size_a.message === "string" && errors.size_a.message}
+                          </div>
+                        )}
+                      </div>
+  
+                      <div className="input-form">
+                        <FormLabel className="flex justify-start items-start flex-col w-full sm:flex-row">
+                          {t("Size B")}
+                        </FormLabel>
+                        <FormInput
+                          {...register("size_b")}
+                          type="number"
+                          name="size_b"
+                          className={clsx({"border-danger": errors.size_b})}
+                          placeholder={t("Enter size B")}
+                        />
+                        {errors.size_b && (
+                          <div className="mt-2 text-danger">
+                            {typeof errors.size_b.message === "string" && errors.size_b.message}
+                          </div>
+                        )}
+                      </div>
+  
+                      <div className="input-form">
+                        <FormLabel className="flex justify-start items-start flex-col w-full sm:flex-row">
+                          {t("Size C")}
+                        </FormLabel>
+                        <FormInput
+                          {...register("size_c")}
+                          type="number"
+                          name="size_c"
+                          className={clsx({"border-danger": errors.size_c})}
+                          placeholder={t("Enter size C")}
+                        />
+                        {errors.size_c && (
+                          <div className="mt-2 text-danger">
+                            {typeof errors.size_c.message === "string" && errors.size_c.message}
+                          </div>
+                        )}
+                      </div>
+  
+                      <div className="input-form">
+                        <FormLabel className="flex justify-start items-start flex-col w-full sm:flex-row">
+                          {t("Unit Type")}
+                        </FormLabel>
+                        <TomSelectSearch
+                          apiUrl={`${app_url}/api/search_unit`}
+                          setValue={setValue}
+                          variable="unit_id"
+                          customDataMapping={(item) => ({
+                            value: item.id,
+                            text: item.unit_name || item.name
+                          })}
+                          className={clsx({"border-danger": errors.unit_id})}
+                        />
+                        {errors.unit_id && (
+                          <div className="mt-2 text-danger">
+                            {typeof errors.unit_id.message === "string" && errors.unit_id.message}
+                          </div>
+                        )}
+                      </div>
                     </div>
-
-
-<div className="mt-3 input-form">
-                      <FormLabel
-                        htmlFor="validation-form-1"
-                        className="flex justify-start items-start flex-col w-full sm:flex-row"
-                      >
-                        {t("Stock Qty")}
-                      </FormLabel>
-                      <FormInput
-                        {...register("stock_qty")}
-                        id="validation-form-1"
-                        type="number"
-                        name="stock_qty"
-                        className={clsx({
-                          "border-danger": errors.stock_qty,
-                        })}
-                        placeholder={t("Enter stock_qty")}
-                      />
-                      {errors.stock_qty && (
-                        <div className="mt-2 text-danger">
-                          {typeof errors.stock_qty.message === "string" &&
-                            errors.stock_qty.message}
-                        </div>
-                      )}
+  
+                    {/* Row 4: Volume, Stock Qty, Order Qty */}
+                    <div className="grid grid-cols-3 gap-4 mt-3">
+                      <div className="input-form">
+                        <FormLabel className="flex justify-start items-start flex-col w-full sm:flex-row">
+                          {t("Volume")}
+                        </FormLabel>
+                        <FormInput
+                          {...register("volume")}
+                          type="number"
+                          name="volume"
+                          className={clsx({"border-danger": errors.volume})}
+                          placeholder={t("Enter volume")}
+                        />
+                        {errors.volume && (
+                          <div className="mt-2 text-danger">
+                            {typeof errors.volume.message === "string" && errors.volume.message}
+                          </div>
+                        )}
+                      </div>
+  
+                      <div className="input-form">
+                        <FormLabel className="flex justify-start items-start flex-col w-full sm:flex-row">
+                          {t("Stock Qty")}
+                        </FormLabel>
+                        <FormInput
+                          {...register("stock_qty")}
+                          type="number"
+                          name="stock_qty"
+                          className={clsx({"border-danger": errors.stock_qty})}
+                          placeholder={t("Enter stock qty")}
+                        />
+                        {errors.stock_qty && (
+                          <div className="mt-2 text-danger">
+                            {typeof errors.stock_qty.message === "string" && errors.stock_qty.message}
+                          </div>
+                        )}
+                      </div>
+  
+                      <div className="input-form">
+                        <FormLabel className="flex justify-start items-start flex-col w-full sm:flex-row">
+                          {t("Order Qty")}
+                        </FormLabel>
+                        <FormInput
+                          {...register("order_qty")}
+                          type="number"
+                          name="order_qty"
+                          className={clsx({"border-danger": errors.order_qty})}
+                          placeholder={t("Enter order qty")}
+                        />
+                        {errors.order_qty && (
+                          <div className="mt-2 text-danger">
+                            {typeof errors.order_qty.message === "string" && errors.order_qty.message}
+                          </div>
+                        )}
+                      </div>
                     </div>
-
-
-<div className="mt-3 input-form">
-                      <FormLabel
-                        htmlFor="validation-form-1"
-                        className="flex justify-start items-start flex-col w-full sm:flex-row"
-                      >
-                        {t("Order Qty")}
-                      </FormLabel>
-                      <FormInput
-                        {...register("order_qty")}
-                        id="validation-form-1"
-                        type="number"
-                        name="order_qty"
-                        className={clsx({
-                          "border-danger": errors.order_qty,
-                        })}
-                        placeholder={t("Enter order_qty")}
-                      />
-                      {errors.order_qty && (
-                        <div className="mt-2 text-danger">
-                          {typeof errors.order_qty.message === "string" &&
-                            errors.order_qty.message}
-                        </div>
-                      )}
-                    </div>
-
-
-<div className="mt-3 input-form">
+  
+                    {/* Row 5: Price */}
+                    <div className="mt-3 input-form">
                       <FormLabel
                         htmlFor="validation-form-1"
                         className="flex justify-start items-start flex-col w-full sm:flex-row"
@@ -664,147 +805,28 @@ return (
                         </div>
                       )}
                     </div>
-
-
-<div className="mt-3 input-form">
-                      <FormLabel
-                        htmlFor="validation-form-1"
-                        className="flex justify-start items-start flex-col w-full sm:flex-row"
-                      >
-                        {t("Size A")}
-                      </FormLabel>
-                      <FormInput
-                        {...register("size_a")}
-                        id="validation-form-1"
-                        type="number"
-                        name="size_a"
-                        className={clsx({
-                          "border-danger": errors.size_a,
-                        })}
-                        placeholder={t("Enter size_a")}
-                      />
-                      {errors.size_a && (
-                        <div className="mt-2 text-danger">
-                          {typeof errors.size_a.message === "string" &&
-                            errors.size_a.message}
-                        </div>
-                      )}
+  
+                    {/* Row 6: Design File */}
+                    <div className="mt-3">
+                      <div className="input-form">
+                        <FormLabel className="flex justify-start items-start flex-col w-full sm:flex-row">
+                          {t("Design File")}
+                        </FormLabel>
+                        <FileUpload endpoint={upload_url} type="*" className="w-full" setUploadedURL={setUploadDesign_file}/>
+                      </div>
                     </div>
-
-
-<div className="mt-3 input-form">
-                      <FormLabel
-                        htmlFor="validation-form-1"
-                        className="flex justify-start items-start flex-col w-full sm:flex-row"
-                      >
-                        {t("Size B")}
-                      </FormLabel>
-                      <FormInput
-                        {...register("size_b")}
-                        id="validation-form-1"
-                        type="number"
-                        name="size_b"
-                        className={clsx({
-                          "border-danger": errors.size_b,
-                        })}
-                        placeholder={t("Enter size_b")}
-                      />
-                      {errors.size_b && (
-                        <div className="mt-2 text-danger">
-                          {typeof errors.size_b.message === "string" &&
-                            errors.size_b.message}
-                        </div>
-                      )}
+  
+                    {/* Row 7: Image */}
+                    <div className="mt-3">
+                      <div className="input-form">
+                        <FormLabel className="flex justify-start items-start flex-col w-full sm:flex-row">
+                          {t("Image")}
+                        </FormLabel>
+                        <FileUpload endpoint={upload_url} type="image/*" className="w-full" setUploadedURL={setUploadImage}/>
+                      </div>
                     </div>
-
-
-<div className="mt-3 input-form">
-                      <FormLabel
-                        htmlFor="validation-form-1"
-                        className="flex justify-start items-start flex-col w-full sm:flex-row"
-                      >
-                        {t("Size C")}
-                      </FormLabel>
-                      <FormInput
-                        {...register("size_c")}
-                        id="validation-form-1"
-                        type="number"
-                        name="size_c"
-                        className={clsx({
-                          "border-danger": errors.size_c,
-                        })}
-                        placeholder={t("Enter size_c")}
-                      />
-                      {errors.size_c && (
-                        <div className="mt-2 text-danger">
-                          {typeof errors.size_c.message === "string" &&
-                            errors.size_c.message}
-                        </div>
-                      )}
-                    </div>
-
-
-<div className="mt-3 input-form">
-                      <FormLabel
-                        htmlFor="validation-form-1"
-                        className="flex justify-start items-start flex-col w-full sm:flex-row"
-                      >
-                        {t("Volume")}
-                      </FormLabel>
-                      <FormInput
-                        {...register("volume")}
-                        id="validation-form-1"
-                        type="number"
-                        name="volume"
-                        className={clsx({
-                          "border-danger": errors.volume,
-                        })}
-                        placeholder={t("Enter volume")}
-                      />
-                      {errors.volume && (
-                        <div className="mt-2 text-danger">
-                          {typeof errors.volume.message === "string" &&
-                            errors.volume.message}
-                        </div>
-                      )}
-                    </div>
-
-
-<div className="mt-3 input-form">
-                      <FormLabel
-                        htmlFor="validation-form-1"
-                        className="flex justify-start items-start flex-col w-full sm:flex-row"
-                      >
-                        {t("Label")}
-                      </FormLabel>
-                      <FormInput
-                        {...register("label")}
-                        id="validation-form-1"
-                        type="text"
-                        name="label"
-                        className={clsx({
-                          "border-danger": errors.label,
-                        })}
-                        placeholder={t("Enter label")}
-                      />
-                      {errors.label && (
-                        <div className="mt-2 text-danger">
-                          {typeof errors.label.message === "string" &&
-                            errors.label.message}
-                        </div>
-                      )}
-                    </div>
-
-
-          <div className="w-full ">
-              <FileUpload endpoint={upload_url} type="image/*" className="w-full " setUploadedURL={setUploadImage}/>
-          </div>
         
-          <div className="w-full ">
-              <FileUpload endpoint={upload_url} type="image/*" className="w-full " setUploadedURL={setUploadDesign_file}/>
-          </div>
-        
-<div className="mt-3 input-form">
+                    <div className="mt-3 input-form">
                       <FormLabel
                         htmlFor="validation-form-1"
                         className="flex justify-start items-start flex-col w-full sm:flex-row"
@@ -828,9 +850,8 @@ return (
                         </div>
                       )}
                     </div>
-
-
-<div className="mt-3 input-form">
+  
+                    <div className="mt-3 input-form">
                       <FormLabel
                         htmlFor="validation-form-1"
                         className="flex justify-start items-start flex-col w-full sm:flex-row"
@@ -854,42 +875,39 @@ return (
                         </div>
                       )}
                     </div>
-
-
- <div className="mt-3 input-form">
-      <FormLabel
-        htmlFor="validation-form-1"
-        className="flex flex-col w-full sm:flex-row"
-      >
-        {t("Is Factory Supplied")}
-      </FormLabel>
-          <div className="flex flex-col mt-2 sm:flex-row">
-              <div>
-            <input
-              {...register('is_active')}
-              type="radio"
-              value={1}
-              className="mx-2"
-            /> Active
-            <input
-              {...register('is_active')}
-              type="radio"
-              value={0}
-              className="mx-2"
-            /> Inactive
-      </div>
-          </div>
-      {errors.is_factory_supplied && (
-        <div className="mt-2 text-danger">
-          {typeof errors.is_factory_supplied.message === "string" &&
-            errors.is_factory_supplied.message}
-        </div>
-      )}
-    </div>
-    
-
-                  </div>
+  
+                    <div className="mt-3 input-form">
+                      <FormLabel
+                        htmlFor="validation-form-1"
+                        className="flex flex-col w-full sm:flex-row"
+                      >
+                        {t("Is Factory Supplied")}
+                      </FormLabel>
+                      <div className="flex flex-col mt-2 sm:flex-row">
+                        <div>
+                          <input
+                            {...register('is_factory_supplied')}
+                            type="radio"
+                            value={1}
+                            className="mx-2"
+                          /> Yes
+                          <input
+                            {...register('is_factory_supplied')}
+                            type="radio"
+                            value={0}
+                            className="mx-2"
+                          /> No
+                        </div>
+                      </div>
+                      {errors.is_factory_supplied && (
+                        <div className="mt-2 text-danger">
+                          {typeof errors.is_factory_supplied.message === "string" &&
+                            errors.is_factory_supplied.message}
+                        </div>
                       )}
+                    </div>
+                  </div>
+                )}
               </div>
             </Slideover.Description>
             <Slideover.Footer>
@@ -910,6 +928,7 @@ return (
           </form>
         </Slideover.Panel>
       </Slideover>
+      
       <Slideover
         open={showUpdateModal}
         onClose={() => {
@@ -917,7 +936,7 @@ return (
         }}
         size="xl"
       >
-        <Slideover.Panel className=" text-center overflow-y-auto max-h-[110vh]">
+        <Slideover.Panel className="text-center overflow-y-auto max-h-[110vh]">
           <form onSubmit={handleSubmit(onUpdate)}>
             <Slideover.Title>
               <h2 className="mr-auto text-base font-medium">{t("Edit Boxe")}</h2>
@@ -931,139 +950,254 @@ return (
                     </div>
                   </div>
                 ) : (
-                  <div className=" w-full grid grid-cols-1  gap-4 gap-y-3">
-                    
-<div className="mt-3 input-form">
-                      <FormLabel
-                        htmlFor="validation-form-1"
-                        className="flex justify-start items-start flex-col w-full sm:flex-row"
-                      >
-                        {t("Brand")}
-                      </FormLabel>
-                      <FormInput
-                        {...register("brand")}
-                        id="validation-form-1"
-                        type="text"
-                        name="brand"
-                        className={clsx({
-                          "border-danger": errors.brand,
-                        })}
-                        placeholder={t("Enter brand")}
-                      />
-                      {errors.brand && (
-                        <div className="mt-2 text-danger">
-                          {typeof errors.brand.message === "string" &&
-                            errors.brand.message}
-                        </div>
-                      )}
+                  <div className="w-full gap-4 gap-y-3">
+                    {/* Row 1: Brand and Box Name side by side */}
+                    <div className="grid grid-cols-2 gap-4 mt-3">
+                      <div className="input-form">
+                        <FormLabel
+                          htmlFor="validation-form-1"
+                          className="flex justify-start items-start flex-col w-full sm:flex-row"
+                        >
+                          {t("Brand")}
+                        </FormLabel>
+                        <TomSelectSearch
+                          apiUrl={`${app_url}/api/search_brandname`}
+                          setValue={setValue}
+                          variable="brand_id"
+                          customDataMapping={(item) => ({
+                            value: item.id,
+                            text: item.brand_name
+                          })}
+                          className={clsx({
+                            "border-danger": errors.brand_id,
+                          })}
+                        />
+                        {errors.brand_id && (
+                          <div className="mt-2 text-danger">
+                            {typeof errors.brand_id.message === "string" &&
+                              errors.brand_id.message}
+                          </div>
+                        )}
+                      </div>
+  
+                      <div className="input-form">
+                        <FormLabel
+                          htmlFor="validation-form-1"
+                          className="flex justify-start items-start flex-col w-full sm:flex-row"
+                        >
+                          {t("Box Name")}
+                        </FormLabel>
+                        <FormInput
+                          {...register("box_name")}
+                          id="validation-form-1"
+                          type="text"
+                          name="box_name"
+                          className={clsx({
+                            "border-danger": errors.box_name,
+                          })}
+                          placeholder={t("Enter box_name")}
+                        />
+                        {errors.box_name && (
+                          <div className="mt-2 text-danger">
+                            {typeof errors.box_name.message === "string" &&
+                              errors.box_name.message}
+                          </div>
+                        )}
+                      </div>
                     </div>
-
-
-<div className="mt-3 input-form">
-                      <FormLabel
-                        htmlFor="validation-form-1"
-                        className="flex justify-start items-start flex-col w-full sm:flex-row"
-                      >
-                        {t("Box Name")}
-                      </FormLabel>
-                      <FormInput
-                        {...register("box_name")}
-                        id="validation-form-1"
-                        type="text"
-                        name="box_name"
-                        className={clsx({
-                          "border-danger": errors.box_name,
-                        })}
-                        placeholder={t("Enter box_name")}
-                      />
-                      {errors.box_name && (
-                        <div className="mt-2 text-danger">
-                          {typeof errors.box_name.message === "string" &&
-                            errors.box_name.message}
-                        </div>
-                      )}
+  
+                    {/* Row 2: Material and Label side by side */}
+                    <div className="grid grid-cols-2 gap-4 mt-3">
+                      <div className="input-form">
+                        <FormLabel
+                          htmlFor="validation-form-1"
+                          className="flex justify-start items-start flex-col w-full sm:flex-row"
+                        >
+                          {t("Material")}
+                        </FormLabel>
+                        <FormInput
+                          {...register("material")}
+                          id="validation-form-1"
+                          type="text"
+                          name="material"
+                          className={clsx({
+                            "border-danger": errors.material,
+                          })}
+                          placeholder={t("Enter material")}
+                        />
+                        {errors.material && (
+                          <div className="mt-2 text-danger">
+                            {typeof errors.material.message === "string" &&
+                              errors.material.message}
+                          </div>
+                        )}
+                      </div>
+  
+                      <div className="input-form">
+                        <FormLabel
+                          htmlFor="validation-form-1"
+                          className="flex justify-start items-start flex-col w-full sm:flex-row"
+                        >
+                          {t("Label")}
+                        </FormLabel>
+                        <TomSelectSearch
+                          apiUrl={`${app_url}/api/search_label`}
+                          setValue={setValue}
+                          variable="label_id"
+                          customDataMapping={(item) => ({
+                            value: item.id,
+                            text: item.label_name || item.labelname || item.name
+                          })}
+                          className={clsx({
+                            "border-danger": errors.label_id,
+                          })}
+                        />
+                        {errors.label_id && (
+                          <div className="mt-2 text-danger">
+                            {typeof errors.label_id.message === "string" &&
+                              errors.label_id.message}
+                          </div>
+                        )}
+                      </div>
                     </div>
-
-
-<div className="mt-3 input-form">
-                      <FormLabel
-                        htmlFor="validation-form-1"
-                        className="flex justify-start items-start flex-col w-full sm:flex-row"
-                      >
-                        {t("Material")}
-                      </FormLabel>
-                      <FormInput
-                        {...register("material")}
-                        id="validation-form-1"
-                        type="text"
-                        name="material"
-                        className={clsx({
-                          "border-danger": errors.material,
-                        })}
-                        placeholder={t("Enter material")}
-                      />
-                      {errors.material && (
-                        <div className="mt-2 text-danger">
-                          {typeof errors.material.message === "string" &&
-                            errors.material.message}
-                        </div>
-                      )}
+  
+                    {/* Row 3: Box Sizes (A, B, C) with Unit Type */}
+                    <div className="grid grid-cols-4 gap-4 mt-3">
+                      <div className="input-form">
+                        <FormLabel className="flex justify-start items-start flex-col w-full sm:flex-row">
+                          {t("Size A")}
+                        </FormLabel>
+                        <FormInput
+                          {...register("size_a")}
+                          type="number"
+                          name="size_a"
+                          className={clsx({"border-danger": errors.size_a})}
+                          placeholder={t("Enter size A")}
+                        />
+                        {errors.size_a && (
+                          <div className="mt-2 text-danger">
+                            {typeof errors.size_a.message === "string" && errors.size_a.message}
+                          </div>
+                        )}
+                      </div>
+  
+                      <div className="input-form">
+                        <FormLabel className="flex justify-start items-start flex-col w-full sm:flex-row">
+                          {t("Size B")}
+                        </FormLabel>
+                        <FormInput
+                          {...register("size_b")}
+                          type="number"
+                          name="size_b"
+                          className={clsx({"border-danger": errors.size_b})}
+                          placeholder={t("Enter size B")}
+                        />
+                        {errors.size_b && (
+                          <div className="mt-2 text-danger">
+                            {typeof errors.size_b.message === "string" && errors.size_b.message}
+                          </div>
+                        )}
+                      </div>
+  
+                      <div className="input-form">
+                        <FormLabel className="flex justify-start items-start flex-col w-full sm:flex-row">
+                          {t("Size C")}
+                        </FormLabel>
+                        <FormInput
+                          {...register("size_c")}
+                          type="number"
+                          name="size_c"
+                          className={clsx({"border-danger": errors.size_c})}
+                          placeholder={t("Enter size C")}
+                        />
+                        {errors.size_c && (
+                          <div className="mt-2 text-danger">
+                            {typeof errors.size_c.message === "string" && errors.size_c.message}
+                          </div>
+                        )}
+                      </div>
+  
+                      <div className="input-form">
+                        <FormLabel className="flex justify-start items-start flex-col w-full sm:flex-row">
+                          {t("Unit Type")}
+                        </FormLabel>
+                        <TomSelectSearch
+                          apiUrl={`${app_url}/api/search_unit`}
+                          setValue={setValue}
+                          variable="unit_id"
+                          customDataMapping={(item) => ({
+                            value: item.id,
+                            text: item.unit_name || item.name
+                          })}
+                          className={clsx({"border-danger": errors.unit_id})}
+                        />
+                        {errors.unit_id && (
+                          <div className="mt-2 text-danger">
+                            {typeof errors.unit_id.message === "string" && errors.unit_id.message}
+                          </div>
+                        )}
+                      </div>
                     </div>
-
-
-<div className="mt-3 input-form">
-                      <FormLabel
-                        htmlFor="validation-form-1"
-                        className="flex justify-start items-start flex-col w-full sm:flex-row"
-                      >
-                        {t("Stock Qty")}
-                      </FormLabel>
-                      <FormInput
-                        {...register("stock_qty")}
-                        id="validation-form-1"
-                        type="number"
-                        name="stock_qty"
-                        className={clsx({
-                          "border-danger": errors.stock_qty,
-                        })}
-                        placeholder={t("Enter stock_qty")}
-                      />
-                      {errors.stock_qty && (
-                        <div className="mt-2 text-danger">
-                          {typeof errors.stock_qty.message === "string" &&
-                            errors.stock_qty.message}
-                        </div>
-                      )}
+  
+                    {/* Row 4: Volume, Stock Qty, Order Qty */}
+                    <div className="grid grid-cols-3 gap-4 mt-3">
+                      <div className="input-form">
+                        <FormLabel className="flex justify-start items-start flex-col w-full sm:flex-row">
+                          {t("Volume")}
+                        </FormLabel>
+                        <FormInput
+                          {...register("volume")}
+                          type="number"
+                          name="volume"
+                          className={clsx({"border-danger": errors.volume})}
+                          placeholder={t("Enter volume")}
+                        />
+                        {errors.volume && (
+                          <div className="mt-2 text-danger">
+                            {typeof errors.volume.message === "string" && errors.volume.message}
+                          </div>
+                        )}
+                      </div>
+  
+                      <div className="input-form">
+                        <FormLabel className="flex justify-start items-start flex-col w-full sm:flex-row">
+                          {t("Stock Qty")}
+                        </FormLabel>
+                        <FormInput
+                          {...register("stock_qty")}
+                          type="number"
+                          name="stock_qty"
+                          className={clsx({"border-danger": errors.stock_qty})}
+                          placeholder={t("Enter stock qty")}
+                        />
+                        {errors.stock_qty && (
+                          <div className="mt-2 text-danger">
+                            {typeof errors.stock_qty.message === "string" && errors.stock_qty.message}
+                          </div>
+                        )}
+                      </div>
+  
+                      <div className="input-form">
+                        <FormLabel className="flex justify-start items-start flex-col w-full sm:flex-row">
+                          {t("Order Qty")}
+                        </FormLabel>
+                        <FormInput
+                          {...register("order_qty")}
+                          type="number"
+                          name="order_qty"
+                          className={clsx({"border-danger": errors.order_qty})}
+                          placeholder={t("Enter order qty")}
+                        />
+                        {errors.order_qty && (
+                          <div className="mt-2 text-danger">
+                            {typeof errors.order_qty.message === "string" && errors.order_qty.message}
+                          </div>
+                        )}
+                      </div>
                     </div>
-
-
-<div className="mt-3 input-form">
-                      <FormLabel
-                        htmlFor="validation-form-1"
-                        className="flex justify-start items-start flex-col w-full sm:flex-row"
-                      >
-                        {t("Order Qty")}
-                      </FormLabel>
-                      <FormInput
-                        {...register("order_qty")}
-                        id="validation-form-1"
-                        type="number"
-                        name="order_qty"
-                        className={clsx({
-                          "border-danger": errors.order_qty,
-                        })}
-                        placeholder={t("Enter order_qty")}
-                      />
-                      {errors.order_qty && (
-                        <div className="mt-2 text-danger">
-                          {typeof errors.order_qty.message === "string" &&
-                            errors.order_qty.message}
-                        </div>
-                      )}
-                    </div>
-
-
-<div className="mt-3 input-form">
+  
+                    {/* Row 5: Price */}
+                    <div className="mt-3 input-form">
                       <FormLabel
                         htmlFor="validation-form-1"
                         className="flex justify-start items-start flex-col w-full sm:flex-row"
@@ -1087,147 +1221,28 @@ return (
                         </div>
                       )}
                     </div>
-
-
-<div className="mt-3 input-form">
-                      <FormLabel
-                        htmlFor="validation-form-1"
-                        className="flex justify-start items-start flex-col w-full sm:flex-row"
-                      >
-                        {t("Size A")}
-                      </FormLabel>
-                      <FormInput
-                        {...register("size_a")}
-                        id="validation-form-1"
-                        type="number"
-                        name="size_a"
-                        className={clsx({
-                          "border-danger": errors.size_a,
-                        })}
-                        placeholder={t("Enter size_a")}
-                      />
-                      {errors.size_a && (
-                        <div className="mt-2 text-danger">
-                          {typeof errors.size_a.message === "string" &&
-                            errors.size_a.message}
-                        </div>
-                      )}
+  
+                    {/* Row 6: Design File */}
+                    <div className="mt-3">
+                      <div className="input-form">
+                        <FormLabel className="flex justify-start items-start flex-col w-full sm:flex-row">
+                          {t("Design File")}
+                        </FormLabel>
+                        <FileUpload endpoint={upload_url} type="*" className="w-full" setUploadedURL={setUploadDesign_file}/>
+                      </div>
                     </div>
-
-
-<div className="mt-3 input-form">
-                      <FormLabel
-                        htmlFor="validation-form-1"
-                        className="flex justify-start items-start flex-col w-full sm:flex-row"
-                      >
-                        {t("Size B")}
-                      </FormLabel>
-                      <FormInput
-                        {...register("size_b")}
-                        id="validation-form-1"
-                        type="number"
-                        name="size_b"
-                        className={clsx({
-                          "border-danger": errors.size_b,
-                        })}
-                        placeholder={t("Enter size_b")}
-                      />
-                      {errors.size_b && (
-                        <div className="mt-2 text-danger">
-                          {typeof errors.size_b.message === "string" &&
-                            errors.size_b.message}
-                        </div>
-                      )}
+  
+                    {/* Row 7: Image */}
+                    <div className="mt-3">
+                      <div className="input-form">
+                        <FormLabel className="flex justify-start items-start flex-col w-full sm:flex-row">
+                          {t("Image")}
+                        </FormLabel>
+                        <FileUpload endpoint={upload_url} type="image/*" className="w-full" setUploadedURL={setUploadImage}/>
+                      </div>
                     </div>
-
-
-<div className="mt-3 input-form">
-                      <FormLabel
-                        htmlFor="validation-form-1"
-                        className="flex justify-start items-start flex-col w-full sm:flex-row"
-                      >
-                        {t("Size C")}
-                      </FormLabel>
-                      <FormInput
-                        {...register("size_c")}
-                        id="validation-form-1"
-                        type="number"
-                        name="size_c"
-                        className={clsx({
-                          "border-danger": errors.size_c,
-                        })}
-                        placeholder={t("Enter size_c")}
-                      />
-                      {errors.size_c && (
-                        <div className="mt-2 text-danger">
-                          {typeof errors.size_c.message === "string" &&
-                            errors.size_c.message}
-                        </div>
-                      )}
-                    </div>
-
-
-<div className="mt-3 input-form">
-                      <FormLabel
-                        htmlFor="validation-form-1"
-                        className="flex justify-start items-start flex-col w-full sm:flex-row"
-                      >
-                        {t("Volume")}
-                      </FormLabel>
-                      <FormInput
-                        {...register("volume")}
-                        id="validation-form-1"
-                        type="number"
-                        name="volume"
-                        className={clsx({
-                          "border-danger": errors.volume,
-                        })}
-                        placeholder={t("Enter volume")}
-                      />
-                      {errors.volume && (
-                        <div className="mt-2 text-danger">
-                          {typeof errors.volume.message === "string" &&
-                            errors.volume.message}
-                        </div>
-                      )}
-                    </div>
-
-
-<div className="mt-3 input-form">
-                      <FormLabel
-                        htmlFor="validation-form-1"
-                        className="flex justify-start items-start flex-col w-full sm:flex-row"
-                      >
-                        {t("Label")}
-                      </FormLabel>
-                      <FormInput
-                        {...register("label")}
-                        id="validation-form-1"
-                        type="text"
-                        name="label"
-                        className={clsx({
-                          "border-danger": errors.label,
-                        })}
-                        placeholder={t("Enter label")}
-                      />
-                      {errors.label && (
-                        <div className="mt-2 text-danger">
-                          {typeof errors.label.message === "string" &&
-                            errors.label.message}
-                        </div>
-                      )}
-                    </div>
-
-
-          <div className="w-full ">
-              <FileUpload endpoint={upload_url} type="image/*" className="w-full " setUploadedURL={setUploadImage}/>
-          </div>
         
-          <div className="w-full ">
-              <FileUpload endpoint={upload_url} type="image/*" className="w-full " setUploadedURL={setUploadDesign_file}/>
-          </div>
-        
-<div className="mt-3 input-form">
+                    <div className="mt-3 input-form">
                       <FormLabel
                         htmlFor="validation-form-1"
                         className="flex justify-start items-start flex-col w-full sm:flex-row"
@@ -1251,9 +1266,8 @@ return (
                         </div>
                       )}
                     </div>
-
-
-<div className="mt-3 input-form">
+  
+                    <div className="mt-3 input-form">
                       <FormLabel
                         htmlFor="validation-form-1"
                         className="flex justify-start items-start flex-col w-full sm:flex-row"
@@ -1277,40 +1291,37 @@ return (
                         </div>
                       )}
                     </div>
-
-
- <div className="mt-3 input-form">
-      <FormLabel
-        htmlFor="validation-form-1"
-        className="flex flex-col w-full sm:flex-row"
-      >
-        {t("Is Factory Supplied")}
-      </FormLabel>
-          <div className="flex flex-col mt-2 sm:flex-row">
-              <div>
-            <input
-              {...register('is_active')}
-              type="radio"
-              value={1}
-              className="mx-2"
-            /> Active
-            <input
-              {...register('is_active')}
-              type="radio"
-              value={0}
-              className="mx-2"
-            /> Inactive
-      </div>
-          </div>
-      {errors.is_factory_supplied && (
-        <div className="mt-2 text-danger">
-          {typeof errors.is_factory_supplied.message === "string" &&
-            errors.is_factory_supplied.message}
-        </div>
-      )}
-    </div>
-    
-
+  
+                    <div className="mt-3 input-form">
+                      <FormLabel
+                        htmlFor="validation-form-1"
+                        className="flex flex-col w-full sm:flex-row"
+                      >
+                        {t("Is Factory Supplied")}
+                      </FormLabel>
+                      <div className="flex flex-col mt-2 sm:flex-row">
+                        <div>
+                          <input
+                            {...register('is_factory_supplied')}
+                            type="radio"
+                            value={1}
+                            className="mx-2"
+                          /> Yes
+                          <input
+                            {...register('is_factory_supplied')}
+                            type="radio"
+                            value={0}
+                            className="mx-2"
+                          /> No
+                        </div>
+                      </div>
+                      {errors.is_factory_supplied && (
+                        <div className="mt-2 text-danger">
+                          {typeof errors.is_factory_supplied.message === "string" &&
+                            errors.is_factory_supplied.message}
+                        </div>
+                      )}
+                    </div>
                   </div>
                 )}
               </div>
@@ -1333,6 +1344,7 @@ return (
           </form>
         </Slideover.Panel>
       </Slideover>
+      
       <Notification
         getRef={(el) => {
           basicStickyNotification.current = el;
@@ -1341,6 +1353,7 @@ return (
       >
         <div className="font-medium">{toastMessage}</div>
       </Notification>
+      
       <Can permission="boxe-list">
         <TableComponent
           setShowCreateModal={setShowCreateModal}

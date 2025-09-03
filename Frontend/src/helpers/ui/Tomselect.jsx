@@ -23,7 +23,20 @@ const TomSelectSearch = ({ apiUrl, setValue , variable, defaultValue, customData
                   'Authorization': `Bearer ${token}`
               }
           });
-          const options = response.data.data.data.map(item => {
+          
+          // Handle different response structures
+          let data = response.data;
+          if (data.data) {
+            data = data.data;
+            if (data.data) {
+              data = data.data;
+            }
+          }
+          
+          // Ensure data is an array
+          const items = Array.isArray(data) ? data : [];
+          
+          const options = items.map(item => {
             if (customDataMapping) {
               return customDataMapping(item);
             }
@@ -32,7 +45,6 @@ const TomSelectSearch = ({ apiUrl, setValue , variable, defaultValue, customData
               text: item.name,
             };
           });
-          console.log('options');
           callback(options);  // Return options for the dropdown
         } catch (error) {
           console.error("Error fetching data:", error);
