@@ -215,7 +215,6 @@ function index_main() {
       
     },
     
-
     {
       title: t("Category Of Products"),
       minWidth: 200,
@@ -225,7 +224,27 @@ function index_main() {
       vertAlign: "middle",
       print: true,
       download: true,
-      
+      formatter: (cell) => {
+        const container = stringToHTML('<div class="flex items-center justify-center flex-wrap gap-1"></div>');
+        const value = cell.getValue() || '';
+        const list = value.split(',').map(v => v.trim()).filter(Boolean);
+        const preview = list.slice(0, 2);
+        preview.forEach(item => {
+          const badge = stringToHTML(`<span class="px-2 py-0.5 rounded-full bg-slate-200 text-slate-700 text-xs">${item}</span>`);
+          container.append(badge);
+        });
+        if (list.length > 2) {
+          const moreBtn = stringToHTML(`<a href="javascript:;" class="text-primary text-xs">+${list.length - 2} ${t('more')}</a>`);
+          moreBtn.addEventListener('click', () => {
+            setCategoriesDialogContent(list);
+            setShowCategoriesDialog(true);
+          });
+          container.append(moreBtn);
+        }
+        // Fallback tooltip with full list
+        container.setAttribute('title', list.join(', '));
+        return container;
+      }
     },
     
 
@@ -238,7 +257,26 @@ function index_main() {
       vertAlign: "middle",
       print: true,
       download: true,
-      
+      formatter: (cell) => {
+        const container = stringToHTML('<div class="flex items-center justify-center flex-wrap gap-1"></div>');
+        const value = cell.getValue() || '';
+        const list = value.split(',').map(v => v.trim()).filter(Boolean);
+        const preview = list.slice(0, 2);
+        preview.forEach(item => {
+          const badge = stringToHTML(`<span class="px-2 py-0.5 rounded-full bg-success/10 text-success text-xs">${item}</span>`);
+          container.append(badge);
+        });
+        if (list.length > 2) {
+          const moreBtn = stringToHTML(`<a href="javascript:;" class="text-primary text-xs">+${list.length - 2} ${t('more')}</a>`);
+          moreBtn.addEventListener('click', () => {
+            setNamesDialogContent(list);
+            setShowNamesDialog(true);
+          });
+          container.append(moreBtn);
+        }
+        container.setAttribute('title', list.join(', '));
+        return container;
+      }
     },
     
 
@@ -328,8 +366,6 @@ function index_main() {
         .typeError(t('The Number Of Products must be a number'))
         .transform((value, originalValue) => (originalValue === '' || originalValue === null ? null : value))
         .nullable(),
-      category_of_products: yup.string().max(255).nullable(),
-      name_of_products: yup.string().max(255).nullable(),
       additional_note: yup.string().nullable(),
     })
     .required();
@@ -421,7 +457,13 @@ function index_main() {
     basicStickyNotification.current?.showToast();
   };    
 
-return (
+  // Local UI state for viewing long lists in table cells
+  const [showCategoriesDialog, setShowCategoriesDialog] = useState(false);
+  const [categoriesDialogContent, setCategoriesDialogContent] = useState([]);
+  const [showNamesDialog, setShowNamesDialog] = useState(false);
+  const [namesDialogContent, setNamesDialogContent] = useState([]);
+
+  return (
     <div>
       <Slideover
         open={showDeleteModal}
@@ -485,7 +527,7 @@ return (
                     </div>
                   </div>
                 ) : (
-                  <div className=" w-full grid grid-cols-1 gap-4 gap-y-3">
+                  <div className="w-full grid grid-cols-1 md:grid-cols-2 gap-4 gap-y-3">
                     
 <div className="mt-3 input-form">
                       <FormLabel
@@ -721,7 +763,7 @@ return (
                     </div>
 
 
-          <div className="w-full ">
+          <div className="w-full md:col-span-2">
               <FileUpload endpoint={upload_url} type="image/*" className="w-full " setUploadedURL={setUploadImage}/>
           </div>
         
@@ -751,59 +793,7 @@ return (
                     </div>
 
 
-<div className="mt-3 input-form">
-                      <FormLabel
-                        htmlFor="validation-form-1"
-                        className="flex justify-start items-start flex-col w-full sm:flex-row"
-                      >
-                        {t("Category Of Products")}
-                      </FormLabel>
-                      <FormInput
-                        {...register("category_of_products")}
-                        id="validation-form-1"
-                        type="text"
-                        name="category_of_products"
-                        className={clsx({
-                          "border-danger": errors.category_of_products,
-                        })}
-                        placeholder={t("Enter category_of_products")}
-                      />
-                      {errors.category_of_products && (
-                        <div className="mt-2 text-danger">
-                          {typeof errors.category_of_products.message === "string" &&
-                            errors.category_of_products.message}
-                        </div>
-                      )}
-                    </div>
-
-
-<div className="mt-3 input-form">
-                      <FormLabel
-                        htmlFor="validation-form-1"
-                        className="flex justify-start items-start flex-col w-full sm:flex-row"
-                      >
-                        {t("Name Of Products")}
-                      </FormLabel>
-                      <FormInput
-                        {...register("name_of_products")}
-                        id="validation-form-1"
-                        type="text"
-                        name="name_of_products"
-                        className={clsx({
-                          "border-danger": errors.name_of_products,
-                        })}
-                        placeholder={t("Enter name_of_products")}
-                      />
-                      {errors.name_of_products && (
-                        <div className="mt-2 text-danger">
-                          {typeof errors.name_of_products.message === "string" &&
-                            errors.name_of_products.message}
-                        </div>
-                      )}
-                    </div>
-
-
-<div className="mt-3 input-form">
+<div className="mt-3 input-form md:col-span-2">
                       <FormLabel
                         htmlFor="validation-form-1"
                         className="flex justify-start items-start flex-col w-full sm:flex-row"
@@ -873,7 +863,7 @@ return (
                     </div>
                   </div>
                 ) : (
-                  <div className=" w-full grid grid-cols-1  gap-4 gap-y-3">
+                  <div className="w-full grid grid-cols-1 md:grid-cols-2 gap-4 gap-y-3">
                     
 <div className="mt-3 input-form">
                       <FormLabel
@@ -1109,7 +1099,7 @@ return (
                     </div>
 
 
-          <div className="w-full ">
+          <div className="w-full md:col-span-2">
               <FileUpload endpoint={upload_url} type="image/*" className="w-full " setUploadedURL={setUploadImage}/>
           </div>
         
@@ -1139,59 +1129,7 @@ return (
                     </div>
 
 
-<div className="mt-3 input-form">
-                      <FormLabel
-                        htmlFor="validation-form-1"
-                        className="flex justify-start items-start flex-col w-full sm:flex-row"
-                      >
-                        {t("Category Of Products")}
-                      </FormLabel>
-                      <FormInput
-                        {...register("category_of_products")}
-                        id="validation-form-1"
-                        type="text"
-                        name="category_of_products"
-                        className={clsx({
-                          "border-danger": errors.category_of_products,
-                        })}
-                        placeholder={t("Enter category_of_products")}
-                      />
-                      {errors.category_of_products && (
-                        <div className="mt-2 text-danger">
-                          {typeof errors.category_of_products.message === "string" &&
-                            errors.category_of_products.message}
-                        </div>
-                      )}
-                    </div>
-
-
-<div className="mt-3 input-form">
-                      <FormLabel
-                        htmlFor="validation-form-1"
-                        className="flex justify-start items-start flex-col w-full sm:flex-row"
-                      >
-                        {t("Name Of Products")}
-                      </FormLabel>
-                      <FormInput
-                        {...register("name_of_products")}
-                        id="validation-form-1"
-                        type="text"
-                        name="name_of_products"
-                        className={clsx({
-                          "border-danger": errors.name_of_products,
-                        })}
-                        placeholder={t("Enter name_of_products")}
-                      />
-                      {errors.name_of_products && (
-                        <div className="mt-2 text-danger">
-                          {typeof errors.name_of_products.message === "string" &&
-                            errors.name_of_products.message}
-                        </div>
-                      )}
-                    </div>
-
-
-<div className="mt-3 input-form">
+<div className="mt-3 input-form md:col-span-2">
                       <FormLabel
                         htmlFor="validation-form-1"
                         className="flex justify-start items-start flex-col w-full sm:flex-row"
@@ -1243,6 +1181,7 @@ return (
         getRef={(el) => {
           basicStickyNotification.current = el;
         }}
+        options={{ duration: 3000, close: true }}
         className="flex flex-col sm:flex-row"
       >
         <div className="font-medium">{toastMessage}</div>
@@ -1258,6 +1197,48 @@ return (
           permission={"Supplier"}
         />
       </Can>
+
+      {/* Categories viewer */}
+      <Slideover
+        open={showCategoriesDialog}
+        onClose={() => setShowCategoriesDialog(false)}
+        size="md"
+      >
+        <Slideover.Panel>
+          <div className="p-5">
+            <h2 className="text-base font-medium mb-3">{t('Categories')}</h2>
+            <div className="flex flex-wrap gap-2">
+              {categoriesDialogContent.map((c, idx) => (
+                <span key={idx} className="px-2 py-0.5 rounded-full bg-slate-200 text-slate-700 text-xs">{c}</span>
+              ))}
+            </div>
+            <div className="mt-5 text-right">
+              <Button variant="primary" onClick={() => setShowCategoriesDialog(false)}>{t('Close')}</Button>
+            </div>
+          </div>
+        </Slideover.Panel>
+      </Slideover>
+
+      {/* Product names viewer */}
+      <Slideover
+        open={showNamesDialog}
+        onClose={() => setShowNamesDialog(false)}
+        size="md"
+      >
+        <Slideover.Panel>
+          <div className="p-5">
+            <h2 className="text-base font-medium mb-3">{t('Product Names')}</h2>
+            <div className="flex flex-wrap gap-2">
+              {namesDialogContent.map((n, idx) => (
+                <span key={idx} className="px-2 py-0.5 rounded-full bg-success/10 text-success text-xs">{n}</span>
+              ))}
+            </div>
+            <div className="mt-5 text-right">
+              <Button variant="primary" onClick={() => setShowNamesDialog(false)}>{t('Close')}</Button>
+            </div>
+          </div>
+        </Slideover.Panel>
+      </Slideover>
     </div>
   );
 }

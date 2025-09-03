@@ -7,7 +7,7 @@ use App\Models\Brandname;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
-use Illuminate\Support\Facades\Log; // 👈 Added for logging
+use Illuminate\Support\Facades\Log; 
 
 class BrandnameController extends BaseController
 {
@@ -125,7 +125,7 @@ class BrandnameController extends BaseController
 
         $brandname = Brandname::findOrFail($id);
         $validationRules = [
-            "brand_code" => "required|string|unique:brand_names,brand_code," . $id . "|max:255",
+            "brand_code" => "required|string|unique:brandnames,brand_code," . $id . "|max:255",
             "brand_name" => "required|string|max:255",
             "name_az" => "nullable|string|max:255",
             "name_ru" => "nullable|string|max:255",

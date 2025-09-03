@@ -23,7 +23,8 @@ class SupplierController extends BaseController
         }
         $perPage = $request->query('size', 10); 
         $filters = $request['filter'];
-        $query = Supplier::orderBy($sortBy, $sortDir);
+        $query = Supplier::with(['products.ProductInformation.productname'])
+            ->orderBy($sortBy, $sortDir);
         if($filters){
             foreach ($filters as $filter) {
                 $field = $filter['field'];
@@ -35,12 +36,40 @@ class SupplierController extends BaseController
                 $query->where($field, $operator, $searchTerm);
             }
         }
-        $supplier = $query->paginate($perPage); 
+        $supplier = $query->paginate($perPage);
+
+        // Compute derived fields from related products
+        $supplier->getCollection()->transform(function ($s) {
+            $products = $s->products ?? collect();
+            $names = collect($products)->map(function ($p) {
+                $pi = $p->ProductInformation ?? null;
+                return $pi && $pi->productname ? $pi->productname->name_az : null;
+            })->filter()->unique()->values();
+
+            $categories = collect($products)->map(function ($p) {
+                $pi = $p->ProductInformation ?? null;
+                return $pi && $pi->productname ? $pi->productname->categories : null;
+            })->filter()
+              ->flatMap(function ($c) {
+                  // categories might be a comma-separated string
+                  return collect(explode(',', (string) $c))->map(fn($v) => trim($v));
+              })
+              ->filter()
+              ->unique()
+              ->values();
+
+            // Set computed attributes for response
+            $s->setAttribute('name_of_products', $names->join(', '));
+            $s->setAttribute('category_of_products', $categories->join(', '));
+            $s->setAttribute('number_of_products', collect($products)->count());
+            return $s;
+        });
+
         $data = [
-            "data" => $supplier->toArray(), 
+            'data' => $supplier->toArray(),
             'current_page' => $supplier->currentPage(),
             'total_pages' => $supplier->lastPage(),
-            'per_page' => $perPage
+            'per_page' => $perPage,
         ];
         return response()->json($data);
     }
@@ -116,7 +145,7 @@ class SupplierController extends BaseController
     {
         $supplier = Supplier::findOrFail($id);
          $validationRules = [
-            //for update
+          
 
           
           "supplier"=>"required|string|max:255",
@@ -124,7 +153,7 @@ class SupplierController extends BaseController
           "occupation"=>"nullable|string|max:255",
           "code"=>"nullable|string|max:255",
           "address"=>"nullable|string|max:255",
-          "email"=>"required|email|unique:suppliers,email",
+          "email"=>"required|email|unique:suppliers,email,{$supplier->id}",
           "phone_number"=>"nullable|string|max:20",
           "whatsapp"=>"nullable|string|max:20",
           "wechat_id"=>"nullable|string|max:255",
@@ -158,7 +187,7 @@ class SupplierController extends BaseController
 
 
 
-$this->deleteFile($supplier->image);
+        $this->deleteFile($supplier->image);
 
         //delete files uploaded
         return $this->sendResponse(1, "supplier deleted succesfully");

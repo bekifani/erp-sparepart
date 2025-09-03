@@ -81,7 +81,8 @@ class CategorController extends BaseController
 
         $validation = Validator::make($request->all() , $validationRules);
         if($validation->fails()){
-            return $this->sendError("Invalid Values", ['errors' => $validation->errors()]);
+            // Return first validation error as message and use 422 status
+            return $this->sendError($validation->errors()->first(), ['errors' => $validation->errors()], 422);
         }
         $validated=$validation->validated();
 
@@ -113,13 +114,15 @@ class CategorController extends BaseController
           "category_ru"=>"required|string|max:255",
           "category_cn"=>"required|string|max:255",
           "category_az"=>"required|string|max:255",
-          "category_code"=>"required|string|unique:categors,category_code|max:255",
+          // ignore current record's id for unique check
+          "category_code"=>"required|string|unique:categors,category_code,".$id."|max:255",
           
         ];
 
         $validation = Validator::make($request->all() , $validationRules);
         if($validation->fails()){
-            return $this->sendError("Invalid Values", ['errors' => $validation->errors()]);
+            // Return first validation error as message and use 422 status
+            return $this->sendError($validation->errors()->first(), ['errors' => $validation->errors()], 422);
         }
         $validated=$validation->validated();
 
