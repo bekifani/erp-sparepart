@@ -13,7 +13,7 @@ use Illuminate\Notifications\Notifiable;
 class Crosscode extends Model
 {
     use HasFactory, LogsActivity, Notifiable;
-    public $fillable = ['product_id', 'car_model_id', 'show'];
+    public $fillable = ['product_id', 'cross_band', 'cross_code', 'show'];
     protected static $logAttributes = ['*'];
     public $guarded = [];
 
@@ -33,8 +33,5 @@ class Crosscode extends Model
 
  public function product() { 
  return $this->belongsTo(Product::class, 'product_id', 'id');
- }
- public function carmodel() { 
- return $this->belongsTo(CarModel::class, 'car_model_id', 'id');
  }
 }

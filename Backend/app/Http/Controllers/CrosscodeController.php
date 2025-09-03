@@ -9,11 +9,17 @@ use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
 class CrosscodeController extends BaseController
 {
-    protected $searchableColumns = ['product_id', 'car_model_id', 'show'];
+    protected $searchableColumns = [
+        'brandnames.brand_name',
+        'brandnames.brand_code',
+        'crosscodes.cross_band',
+        'crosscodes.cross_code',
+        'crosscodes.show'
+    ];
 
     public function index(Request $request)
     {
-        $sortBy = 'id';
+        $sortBy = 'brand_name';
         $sortDir = 'desc';
         if($request['sort']){
             $sortBy = $request['sort'][0]['field'];
@@ -21,7 +27,18 @@ class CrosscodeController extends BaseController
         }
         $perPage = $request->query('size', 10); 
         $filters = $request['filter'];
-        $query = Crosscode::orderBy($sortBy, $sortDir);
+        $query = Crosscode::leftJoin('products', 'crosscodes.product_id', '=', 'products.id')
+            ->leftJoin('product_information', 'products.product_information_id', '=', 'product_information.id')
+            ->leftJoin('brandnames', 'product_information.brand_code', '=', 'brandnames.id')
+            ->select(
+                'brandnames.brand_name',
+                'brandnames.brand_code',
+                'crosscodes.cross_band',
+                'crosscodes.cross_code',
+                'crosscodes.show'
+            )
+            ->distinct()
+            ->orderBy($sortBy, $sortDir);
         if($filters){
             foreach ($filters as $filter) {
                 $field = $filter['field'];
@@ -44,7 +61,18 @@ class CrosscodeController extends BaseController
     }
 
     public function all_crosscodes(){
-        $data = Crosscode::all();
+        $data = Crosscode::leftJoin('products', 'crosscodes.product_id', '=', 'products.id')
+            ->leftJoin('product_information', 'products.product_information_id', '=', 'product_information.id')
+            ->leftJoin('brandnames', 'product_information.brand_code', '=', 'brandnames.id')
+            ->select(
+                'brandnames.brand_name',
+                'brandnames.brand_code',
+                'crosscodes.cross_band',
+                'crosscodes.cross_code',
+                'crosscodes.show'
+            )
+            ->distinct()
+            ->get();
         return $this->sendResponse($data, 1);
     }
 
@@ -55,11 +83,22 @@ class CrosscodeController extends BaseController
                 'message' => 'Please enter a search term.'
             ], 400);
         }
-        $results = Crosscode::where(function ($query) use ($searchTerm) {
-            foreach ($this->searchableColumns as $column) {
-                $query->orWhere($column, 'like', "%$searchTerm%");
-            }
-        })->paginate(20);
+        $results = Crosscode::leftJoin('products', 'crosscodes.product_id', '=', 'products.id')
+            ->leftJoin('product_information', 'products.product_information_id', '=', 'product_information.id')
+            ->leftJoin('brandnames', 'product_information.brand_code', '=', 'brandnames.id')
+            ->select(
+                'brandnames.brand_name',
+                'brandnames.brand_code',
+                'crosscodes.cross_band',
+                'crosscodes.cross_code',
+                'crosscodes.show'
+            )
+            ->distinct()
+            ->where(function ($query) use ($searchTerm) {
+                foreach ($this->searchableColumns as $column) {
+                    $query->orWhere($column, 'like', "%$searchTerm%");
+                }
+            })->paginate(20);
         return $this->sendResponse($results , 'search resutls for crosscode');
     }
 
@@ -67,12 +106,10 @@ class CrosscodeController extends BaseController
     public function store(Request $request)
     {
         $validationRules = [
-          
           "product_id"=>"required|exists:products,id",
-          "car_model_id"=>"required|exists:car_models,id",
+          "cross_band"=>"required|string|max:255",
+          "cross_code"=>"required|string|max:255",
           "show"=>"required|boolean",
-          
-
         ];
 
         $validation = Validator::make($request->all() , $validationRules);
@@ -92,7 +129,16 @@ class CrosscodeController extends BaseController
 
     public function show($id)
     {
-        $crosscode = Crosscode::findOrFail($id);
+        $crosscode = Crosscode::leftJoin('products', 'crosscodes.product_id', '=', 'products.id')
+            ->leftJoin('product_information', 'products.product_information_id', '=', 'product_information.id')
+            ->leftJoin('brandnames', 'product_information.brand_code', '=', 'brandnames.id')
+            ->select(
+                'crosscodes.*',
+                'brandnames.brand_name',
+                'brandnames.brand_code'
+            )
+            ->where('crosscodes.id', $id)
+            ->first();
         return $this->sendResponse($crosscode, "");
     }
 
@@ -102,12 +148,10 @@ class CrosscodeController extends BaseController
         $crosscode = Crosscode::findOrFail($id);
          $validationRules = [
             //for update
-
-          
           "product_id"=>"required|exists:products,id",
-          "car_model_id"=>"required|exists:car_models,id",
+          "cross_band"=>"required|string|max:255",
+          "cross_code"=>"required|string|max:255",
           "show"=>"required|boolean",
-          
         ];
 
         $validation = Validator::make($request->all() , $validationRules);
