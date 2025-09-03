@@ -9,14 +9,15 @@ use Spatie\Activitylog\Traits\LogsActivity;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Notifications\Notifiable;
-use App\Models\Product;
-use App\Models\SupplierImage;
 
-class Supplier extends Model
+class SupplierImage extends Model
 {
     use HasFactory, LogsActivity, Notifiable;
-    public $fillable = ['supplier', 'name_surname', 'occupation', 'code', 'address', 'email', 'phone_number', 'whatsapp', 'wechat_id', 'image', 'number_of_products', 'category_of_products', 'name_of_products', 'additional_note'];
-    protected static $logAttributes = ['*'];
+    protected $fillable = [
+        'supplier_id',
+        'image',
+    ];
+        protected static $logAttributes = ['*'];
     public $guarded = [];
 
     public function getDescriptionForEvent(string $eventName): string
@@ -30,16 +31,11 @@ class Supplier extends Model
     {
         return LogOptions::defaults()
             ->logOnly(['*'])
-            ->useLogName("Supplier");
+            ->useLogName("SupplierImage");
+    }
+    public function supplier()
+    {
+        return $this->belongsTo(Supplier::class);
     }
 
-    // A supplier has many products
-    public function products()
-    {
-        return $this->hasMany(Product::class, 'supplier_id', 'id');
-    }
-    public function images()
-{
-    return $this->hasMany(SupplierImage::class, 'supplier_id', 'id');
-}
 }
