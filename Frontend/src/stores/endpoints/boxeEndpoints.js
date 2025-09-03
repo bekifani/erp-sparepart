@@ -26,4 +26,7 @@
               method: "DELETE",
           }),
       }),
+      searchBoxe: builder.query({
+          query: (searchTerm) => `search_boxe/${searchTerm}`,
+      }),
   });

@@ -4,7 +4,7 @@ import axios from "axios";
 import { useSelector } from "react-redux";
 import { useTranslation } from "react-i18next";
 
-const TomSelectSearch = ({ apiUrl, setValue , variable, defaultValue, customDataMapping}) => {
+const TomSelectSearch = ({ apiUrl, setValue , variable, defaultValue, customDataMapping, onSelectionChange}) => {
   const {t,i18n} = useTranslation()
   const tomSelectRef = useRef(null);
   const token = useSelector((state)=> state.auth.token)
@@ -45,6 +45,9 @@ const TomSelectSearch = ({ apiUrl, setValue , variable, defaultValue, customData
               text: item.name,
             };
           });
+          
+          // Store items for later use in onChange
+          tomSelectInstance.itemsData = items;
           callback(options);  // Return options for the dropdown
         } catch (error) {
           console.error("Error fetching data:", error);
@@ -53,6 +56,15 @@ const TomSelectSearch = ({ apiUrl, setValue , variable, defaultValue, customData
       create: false, // Disable create option (optional)
       onChange: (value) => {
         setValue(variable, value);  // Update selected value on change
+        
+        // Call onSelectionChange callback if provided
+        if (onSelectionChange && tomSelectInstance.itemsData) {
+          const selectedItem = tomSelectInstance.itemsData.find(item => item.id == value);
+          if (selectedItem) {
+            console.log('Selected item:', selectedItem);
+            onSelectionChange(selectedItem);
+          }
+        }
       },
     });
 
