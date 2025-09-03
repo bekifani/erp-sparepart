@@ -1,4 +1,3 @@
-
 import "@/assets/css/vendors/tabulator.css";
 import Lucide from "@/components/Base/Lucide";
 import ReactDOMServer from 'react-dom/server';
@@ -73,9 +72,9 @@ function index_main() {
     },
    
     {
-      title: t("Product Information Id"),
+      title: t("Product Code"),
       minWidth: 200,
-      field: "product_information_id",
+      field: "product_code",
       hozAlign: "center",
       headerHozAlign: "center",
       vertAlign: "middle",
@@ -86,9 +85,9 @@ function index_main() {
     
 
     {
-      title: t("Supplier Id"),
+      title: t("Supplier"),
       minWidth: 200,
-      field: "supplier_id",
+      field: "supplier",
       hozAlign: "center",
       headerHozAlign: "center",
       vertAlign: "middle",
@@ -252,7 +251,30 @@ function index_main() {
       },
     },
 ]);
-  const [searchColumns, setSearchColumns] = useState(['product_information_id', 'supplier_id', 'qty', 'min_qty', 'purchase_price', 'extra_cost', 'cost_basis', 'selling_price', 'additional_note', 'status', ]);
+  const [searchColumns, setSearchColumns] = useState([
+    // product fields
+    'id',
+    'qty',
+    'min_qty',
+    'purchase_price',
+    'extra_cost',
+    'cost_basis',
+    'selling_price',
+    'additional_note',
+    'status',
+    // product_information joined fields (aliases from backend select)
+    'product_code',
+    'oe_code',
+    'description',
+    'product_name',
+    'product_name_code',
+    'brand_name',
+    'brand_code_name',
+    'box_name',
+    'label_name',
+    'unit_name',
+    'supplier',
+  ]);
 
   // schema
   const schema = yup
@@ -420,7 +442,15 @@ return (
       >
         {t("Product Information Id")}
       </FormLabel>
-      <TomSelectSearch apiUrl={`${app_url}/api/search_product information`} setValue={setValue} variable="product_information_id"/>
+      <TomSelectSearch
+        apiUrl={`${app_url}/api/search_ProductInformation`}
+        setValue={setValue}
+        variable="product_information_id"
+        customDataMapping={(item) => ({
+          value: item.id,
+          text: `${item.product_name ?? ''} (${item.product_name_code ?? ''}) - ${item.product_code ?? ''}`.trim(),
+        })}
+      />
       {errors.product_information_id && (
         <div className="mt-2 text-danger">
           {typeof errors.product_information_id.message === "string" &&
@@ -436,7 +466,12 @@ return (
       >
         {t("Supplier Id")}
       </FormLabel>
-      <TomSelectSearch apiUrl={`${app_url}/api/search_supplier`} setValue={setValue} variable="supplier_id"/>
+      <TomSelectSearch
+        apiUrl={`${app_url}/api/search_supplier`}
+        setValue={setValue}
+        variable="supplier_id"
+        customDataMapping={(item) => ({ value: item.id, text: item.supplier })}
+      />
       {errors.supplier_id && (
         <div className="mt-2 text-danger">
           {typeof errors.supplier_id.message === "string" &&
@@ -706,7 +741,15 @@ return (
       >
         {t("Product Information Id")}
       </FormLabel>
-      <TomSelectSearch apiUrl={`${app_url}/api/search_product information`} setValue={setValue} variable="product_information_id"/>
+      <TomSelectSearch
+        apiUrl={`${app_url}/api/search_ProductInformation`}
+        setValue={setValue}
+        variable="product_information_id"
+        customDataMapping={(item) => ({
+          value: item.id,
+          text: `${item.product_name ?? ''} (${item.product_name_code ?? ''}) - ${item.product_code ?? ''}`.trim(),
+        })}
+      />
       {errors.product_information_id && (
         <div className="mt-2 text-danger">
           {typeof errors.product_information_id.message === "string" &&
@@ -722,7 +765,12 @@ return (
       >
         {t("Supplier Id")}
       </FormLabel>
-      <TomSelectSearch apiUrl={`${app_url}/api/search_supplier`} setValue={setValue} variable="supplier_id"/>
+      <TomSelectSearch
+        apiUrl={`${app_url}/api/search_supplier`}
+        setValue={setValue}
+        variable="supplier_id"
+        customDataMapping={(item) => ({ value: item.id, text: item.supplier })}
+      />
       {errors.supplier_id && (
         <div className="mt-2 text-danger">
           {typeof errors.supplier_id.message === "string" &&
