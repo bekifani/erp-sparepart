@@ -17,6 +17,12 @@ class Brandname extends Model
     protected static $logAttributes = ['*'];
     public $guarded = [];
 
+    // Relationship with boxes (based on brand name matching)
+    public function boxes()
+    {
+        return $this->hasMany(Boxe::class, 'brand', 'brand_name');
+    }
+
     public function getDescriptionForEvent(string $eventName): string
     {
         //$user = Auth::user()->name;

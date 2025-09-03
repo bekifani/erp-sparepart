@@ -75,7 +75,8 @@ class BrandnameController extends BaseController
             foreach ($this->searchableColumns as $column) {
                 $query->orWhere($column, 'like', "%$searchTerm%");
             }
-        })->paginate(20);
+        })->select('id', 'brand_code', 'brand_name', 'name_az', 'name_ru', 'name_cn', 'number_of_products')
+        ->paginate(20);
         return $this->sendResponse($results, 'search results for brandname');
     }
 
@@ -125,7 +126,7 @@ class BrandnameController extends BaseController
 
         $brandname = Brandname::findOrFail($id);
         $validationRules = [
-            "brand_code" => "required|string|unique:brand_names,brand_code," . $id . "|max:255",
+            "brand_code" => "required|string|unique:brandnames,brand_code," . $id . "|max:255",
             "brand_name" => "required|string|max:255",
             "name_az" => "nullable|string|max:255",
             "name_ru" => "nullable|string|max:255",
