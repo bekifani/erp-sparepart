@@ -59,8 +59,9 @@ class ProductnameController extends BaseController
             foreach ($this->searchableColumns as $column) {
                 $query->orWhere($column, 'like', "%$searchTerm%");
             }
-        })->paginate(20);
-        return $this->sendResponse($results , 'search resutls for productname');
+        })->select('id', 'hs_code', 'name_az', 'description_en', 'name_ru', 'name_cn', 'categories', 'product_name_code', 'additional_note', 'product_qty')
+        ->paginate(20);
+        return $this->sendResponse($results , 'search results for productname');
     }
 
 
@@ -74,7 +75,7 @@ class ProductnameController extends BaseController
           "name_ru"=>"required|string|max:255",
           "name_cn"=>"required|string|max:255",
           "categories"=>"required|string|max:255",
-          "product_name_code"=>"required|string|unique:product_names,product_name_code|max:255",
+          "product_name_code"=>"required|string|unique:productnames,product_name_code|max:255",
           "additional_note"=>"nullable|string",
           "product_qty"=>"nullable|numeric",
           
@@ -107,19 +108,15 @@ class ProductnameController extends BaseController
     {
         $productname = Productname::findOrFail($id);
          $validationRules = [
-            //for update
-
-          
           "hs_code"=>"nullable|string|max:255",
           "name_az"=>"required|string|max:255",
           "description_en"=>"required|string|max:255",
           "name_ru"=>"required|string|max:255",
           "name_cn"=>"required|string|max:255",
           "categories"=>"required|string|max:255",
-          "product_name_code"=>"required|string|unique:product_names,product_name_code|max:255",
+          "product_name_code"=>"required|string|unique:productnames,product_name_code,".$id."|max:255",
           "additional_note"=>"nullable|string",
           "product_qty"=>"nullable|numeric",
-          
         ];
 
         $validation = Validator::make($request->all() , $validationRules);
