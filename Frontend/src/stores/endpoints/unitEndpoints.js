@@ -23,6 +23,12 @@ export const unitEndpoints = (builder) => ({
   searchUnit: builder.query({
     query: (searchTerm) => `search_unit/${searchTerm}`,
   }),
+  deleteUnit: builder.mutation({
+    query: (id) => ({
+      url: `unit/${id}`,
+      method: "DELETE",
+    }),
+  }),
 });
 
 export const {
@@ -31,4 +37,5 @@ export const {
   useGetUnitsQuery,
   useGetUnitDetailQuery,
   useSearchUnitQuery,
+  useDeleteUnitMutation,
 } = unitEndpoints;
