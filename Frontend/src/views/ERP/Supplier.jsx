@@ -3,7 +3,7 @@ import Lucide from "@/components/Base/Lucide";
 import ReactDOMServer from 'react-dom/server';
 import { Slideover } from "@/components/Base/Headless";
 import Button from "@/components/Base/Button";
-import React, { useRef, useState } from "react";
+import React, { useRef, useState, useEffect } from "react";
 import { yupResolver } from "@hookform/resolvers/yup";
 import Notification from "@/components/Base/Notification";
 import TableComponent from "@/helpers/ui/TableComponent.jsx";
@@ -189,16 +189,26 @@ function index_main() {
     
 
     {
-      title: t("Image"),
+      title: t("Images"),
       minWidth: 200,
-      field: "image",
+      field: "images",
       hozAlign: "center",
       headerHozAlign: "center",
       vertAlign: "middle",
       print: true,
       download: true,
-      formatter(cell) {
-      return getMiniDisplay(cell.getData().image)
+      formatter: (cell) => {
+        const images = cell.getData().images || [];
+        const container = stringToHTML('<div class="flex items-center justify-center gap-1"></div>');
+        images.slice(0, 3).forEach((url) => {
+          const img = stringToHTML(`<img src="${media_url + url}" class="w-8 h-8 rounded object-cover"/>`);
+          container.append(img);
+        });
+        if (images.length > 3) {
+          const more = stringToHTML(`<span class="text-xs text-slate-600">+${images.length - 3} ${t('more')}</span>`);
+          container.append(more);
+        }
+        return container;
       }
     },
     
@@ -323,6 +333,8 @@ function index_main() {
           Object.keys(data).forEach((key) => {
             setValue(key, data[key]);
           });
+          setUploadedImages(data.images || []);
+          setValue('images', data.images || []);
           setShowUpdateModal(true);
         });
         b.addEventListener("click", function () {
@@ -360,7 +372,7 @@ function index_main() {
       phone_number: yup.string().max(20).nullable(),
       whatsapp: yup.string().max(20).nullable(),
       wechat_id: yup.string().max(255).nullable(),
-      image: yup.string().nullable(),
+      images: yup.array().of(yup.string()).nullable(),
       number_of_products: yup
         .number()
         .typeError(t('The Number Of Products must be a number'))
@@ -375,20 +387,35 @@ function index_main() {
     trigger,
     getValues,
     setValue,
+    reset,
     handleSubmit,
     formState: { errors },
   } = useForm({
     mode: "onChange",
     resolver: yupResolver(schema),
+    defaultValues: { images: [] },
   });
 
-   
-
-          const setUploadImage  = (value) => {
-              setValue('image', value);
-            } 
-
-        
+  // Multiple uploads support
+  const [uploadedImages, setUploadedImages] = useState([]);
+  const addUploadedImage = (url) => {
+    setUploadedImages((prev) => {
+      const next = [...prev, url];
+      setValue('images', next);
+      return next;
+    });
+  };
+  const removeUploadedImage = (index) => {
+    setUploadedImages((prev) => {
+      const next = prev.filter((_, i) => i !== index);
+      setValue('images', next);
+      return next;
+    });
+  };
+  const clearUploadedImages = () => {
+    setUploadedImages([]);
+    setValue('images', []);
+  };
 
   const [refetch, setRefetch] = useState(false);
   const getMiniDisplay = (url) => {
@@ -420,9 +447,13 @@ function index_main() {
 
   const onCreate = async (data) => {
     try {
+      console.log('Supplier create payload:', data);
       const response = await createSupplier(data);
+      console.log('Supplier create response:', response);
       setToastMessage(t("Supplier created successfully."));
+      clearUploadedImages();
     } catch (error) {
+      console.error('Supplier create error:', error);
       setToastMessage(t("Error creating Supplier."));
     }
     basicStickyNotification.current?.showToast();
@@ -433,11 +464,15 @@ function index_main() {
   const onUpdate = async (data) => {
     setShowUpdateModal(false)
     try {
+      console.log('Supplier update payload:', data);
       const response = await updateSupplier(data);
+      console.log('Supplier update response:', response);
       setToastMessage(t('Supplier updated successfully'));
       setRefetch(true)
+      clearUploadedImages();
     } catch (error) {
       setShowUpdateModal(true)
+      console.error('Supplier update error:', error);
       setToastMessage(t('Supplier deletion failed'));
     }
     basicStickyNotification.current?.showToast();
@@ -462,6 +497,14 @@ function index_main() {
   const [categoriesDialogContent, setCategoriesDialogContent] = useState([]);
   const [showNamesDialog, setShowNamesDialog] = useState(false);
   const [namesDialogContent, setNamesDialogContent] = useState([]);
+
+  useEffect(() => {
+    if (showCreateModal) {
+      clearUploadedImages();
+      // Optionally reset only images field, keep other fields intact
+      // reset({ images: [] }, { keepValues: true });
+    }
+  }, [showCreateModal]);
 
   return (
     <div>
@@ -764,7 +807,20 @@ function index_main() {
 
 
           <div className="w-full md:col-span-2">
-              <FileUpload endpoint={upload_url} type="image/*" className="w-full " setUploadedURL={setUploadImage}/>
+              <FileUpload endpoint={upload_url} type="image/*" className="w-full " setUploadedURL={addUploadedImage}/>
+              <div className="flex flex-wrap gap-2 mt-3">
+                {uploadedImages.map((url, idx) => (
+                  <div key={idx} className="relative">
+                    <img src={`${media_url + url}`} alt="" className="w-16 h-16 rounded object-cover" />
+                    <button type="button" className="absolute -top-2 -right-2 bg-danger text-white rounded-full w-6 h-6 flex items-center justify-center text-xs" onClick={() => removeUploadedImage(idx)}>×</button>
+                  </div>
+                ))}
+              </div>
+              {uploadedImages.length > 0 && (
+                <div className="mt-2">
+                  <Button type="button" variant="outline-secondary" onClick={clearUploadedImages}>{t('Clear images')}</Button>
+                </div>
+              )}
           </div>
         
 <div className="mt-3 input-form">
@@ -1100,7 +1156,20 @@ function index_main() {
 
 
           <div className="w-full md:col-span-2">
-              <FileUpload endpoint={upload_url} type="image/*" className="w-full " setUploadedURL={setUploadImage}/>
+              <FileUpload endpoint={upload_url} type="image/*" className="w-full " setUploadedURL={addUploadedImage}/>
+              <div className="flex flex-wrap gap-2 mt-3">
+                {uploadedImages.map((url, idx) => (
+                  <div key={idx} className="relative">
+                    <img src={`${media_url + url}`} alt="" className="w-16 h-16 rounded object-cover" />
+                    <button type="button" className="absolute -top-2 -right-2 bg-danger text-white rounded-full w-6 h-6 flex items-center justify-center text-xs" onClick={() => removeUploadedImage(idx)}>×</button>
+                  </div>
+                ))}
+              </div>
+              {uploadedImages.length > 0 && (
+                <div className="mt-2">
+                  <Button type="button" variant="outline-secondary" onClick={clearUploadedImages}>{t('Clear images')}</Button>
+                </div>
+              )}
           </div>
         
 <div className="mt-3 input-form">
