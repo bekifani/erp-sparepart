@@ -9,11 +9,15 @@ use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
 class CrosscarController extends BaseController
 {
-    protected $searchableColumns = ['product_id', 'car_model_id', 'cross_code', 'is_visible', 'created_at', 'updated_at'];
+    protected $searchableColumns = [
+        'brandnames.brand_name',
+        'brandnames.brand_code',
+        'carmodels.car_model'
+    ];
 
     public function index(Request $request)
     {
-        $sortBy = 'id';
+        $sortBy = 'brand_name';
         $sortDir = 'desc';
         if($request['sort']){
             $sortBy = $request['sort'][0]['field'];
@@ -21,7 +25,17 @@ class CrosscarController extends BaseController
         }
         $perPage = $request->query('size', 10); 
         $filters = $request['filter'];
-        $query = Crosscar::orderBy($sortBy, $sortDir);
+        $query = Crosscar::leftJoin('products', 'crosscars.product_id', '=', 'products.id')
+            ->leftJoin('product_information', 'products.product_information_id', '=', 'product_information.id')
+            ->leftJoin('brandnames', 'product_information.brand_code', '=', 'brandnames.id')
+            ->leftJoin('carmodels', 'crosscars.car_model_id', '=', 'carmodels.id')
+            ->select(
+                'brandnames.brand_name',
+                'brandnames.brand_code',
+                'carmodels.car_model as car_model_name'
+            )
+            ->distinct()
+            ->orderBy($sortBy, $sortDir);
         if($filters){
             foreach ($filters as $filter) {
                 $field = $filter['field'];
@@ -44,7 +58,17 @@ class CrosscarController extends BaseController
     }
 
     public function all_crosscars(){
-        $data = Crosscar::all();
+        $data = Crosscar::leftJoin('products', 'crosscars.product_id', '=', 'products.id')
+            ->leftJoin('product_information', 'products.product_information_id', '=', 'product_information.id')
+            ->leftJoin('brandnames', 'product_information.brand_code', '=', 'brandnames.id')
+            ->leftJoin('carmodels', 'crosscars.car_model_id', '=', 'carmodels.id')
+            ->select(
+                'brandnames.brand_name',
+                'brandnames.brand_code',
+                'carmodels.car_model as car_model_name'
+            )
+            ->distinct()
+            ->get();
         return $this->sendResponse($data, 1);
     }
 
@@ -55,11 +79,21 @@ class CrosscarController extends BaseController
                 'message' => 'Please enter a search term.'
             ], 400);
         }
-        $results = Crosscar::where(function ($query) use ($searchTerm) {
-            foreach ($this->searchableColumns as $column) {
-                $query->orWhere($column, 'like', "%$searchTerm%");
-            }
-        })->paginate(20);
+        $results = Crosscar::leftJoin('products', 'crosscars.product_id', '=', 'products.id')
+            ->leftJoin('product_information', 'products.product_information_id', '=', 'product_information.id')
+            ->leftJoin('brandnames', 'product_information.brand_code', '=', 'brandnames.id')
+            ->leftJoin('carmodels', 'crosscars.car_model_id', '=', 'carmodels.id')
+            ->select(
+                'brandnames.brand_name',
+                'brandnames.brand_code',
+                'carmodels.car_model as car_model_name'
+            )
+            ->distinct()
+            ->where(function ($query) use ($searchTerm) {
+                foreach ($this->searchableColumns as $column) {
+                    $query->orWhere($column, 'like', "%$searchTerm%");
+                }
+            })->paginate(20);
         return $this->sendResponse($results , 'search resutls for crosscar');
     }
 
@@ -67,15 +101,10 @@ class CrosscarController extends BaseController
     public function store(Request $request)
     {
         $validationRules = [
-          
           "product_id"=>"required|exists:products,id",
-          "car_model_id"=>"required|exists:car_models,id",
+          "car_model_id"=>"required|exists:carmodels,id",
           "cross_code"=>"required|string|max:255",
           "is_visible"=>"required|boolean",
-          "created_at"=>"required|date",
-          "updated_at"=>"required|date",
-          
-
         ];
 
         $validation = Validator::make($request->all() , $validationRules);
@@ -95,7 +124,18 @@ class CrosscarController extends BaseController
 
     public function show($id)
     {
-        $crosscar = Crosscar::findOrFail($id);
+        $crosscar = Crosscar::leftJoin('products', 'crosscars.product_id', '=', 'products.id')
+            ->leftJoin('product_information', 'products.product_information_id', '=', 'product_information.id')
+            ->leftJoin('brandnames', 'product_information.brand_code', '=', 'brandnames.id')
+            ->leftJoin('carmodels', 'crosscars.car_model_id', '=', 'carmodels.id')
+            ->select(
+                'crosscars.*',
+                'brandnames.brand_name',
+                'brandnames.brand_code',
+                'carmodels.car_model as car_model_name'
+            )
+            ->where('crosscars.id', $id)
+            ->first();
         return $this->sendResponse($crosscar, "");
     }
 
@@ -104,16 +144,10 @@ class CrosscarController extends BaseController
     {
         $crosscar = Crosscar::findOrFail($id);
          $validationRules = [
-            //for update
-
-          
           "product_id"=>"required|exists:products,id",
-          "car_model_id"=>"required|exists:car_models,id",
+          "car_model_id"=>"required|exists:carmodels,id",
           "cross_code"=>"required|string|max:255",
           "is_visible"=>"required|boolean",
-          "created_at"=>"required|date",
-          "updated_at"=>"required|date",
-          
         ];
 
         $validation = Validator::make($request->all() , $validationRules);
