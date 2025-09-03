@@ -74,9 +74,21 @@ const [
     },
    
     {
-      title: t("Product Name Id"),
+      title: t("Product Name"),
       minWidth: 200,
-      field: "product_name_id",
+      field: "product_name",
+      hozAlign: "center",
+      headerHozAlign: "center",
+      vertAlign: "middle",
+      print: true,
+      download: true,
+      
+    },
+    
+    {
+      title: t("Product Name Code"),
+      minWidth: 200,
+      field: "product_name_code",
       hozAlign: "center",
       headerHozAlign: "center",
       vertAlign: "middle",
@@ -100,9 +112,21 @@ const [
     
 
     {
+      title: t("Brand Name"),
+      minWidth: 200,
+      field: "brand_name",
+      hozAlign: "center",
+      headerHozAlign: "center",
+      vertAlign: "middle",
+      print: true,
+      download: true,
+      
+    },
+    
+    {
       title: t("Brand Code"),
       minWidth: 200,
-      field: "brand_code",
+      field: "brand_code_name",
       hozAlign: "center",
       headerHozAlign: "center",
       vertAlign: "middle",
@@ -165,9 +189,9 @@ const [
     
 
     {
-      title: t("Unit Id"),
+      title: t("Unit Name"),
       minWidth: 200,
-      field: "unit_id",
+      field: "unit_name",
       hozAlign: "center",
       headerHozAlign: "center",
       vertAlign: "middle",
@@ -178,9 +202,9 @@ const [
     
 
     {
-      title: t("Box Id"),
+      title: t("Box Name"),
       minWidth: 200,
-      field: "box_id",
+      field: "box_name",
       hozAlign: "center",
       headerHozAlign: "center",
       vertAlign: "middle",
@@ -243,9 +267,9 @@ const [
     
 
     {
-      title: t("Label Id"),
+      title: t("Label Name"),
       minWidth: 200,
-      field: "label_id",
+      field: "label_name",
       hozAlign: "center",
       headerHozAlign: "center",
       vertAlign: "middle",
@@ -387,7 +411,11 @@ const [
       },
     },
 ]);
-  const [searchColumns, setSearchColumns] = useState(['product_name_id', 'product_code', 'brand_code', 'oe_code', 'description', 'net_weight', 'gross_weight', 'unit_id', 'box_id', 'product_size_a', 'product_size_b', 'product_size_c', 'volume', 'label_id', 'qr_code', 'properties', 'size_mode', 'additional_note', ]);
+  const [searchColumns, setSearchColumns] = useState(['product_name', 'product_name_code', 'product_code', 'brand_name', 'brand_code_name', 'oe_code', 'description', 'box_name', 'label_name', 'unit_name']);
+
+  // Debug logging for frontend
+  console.log('ProductInformation Frontend Debug - searchColumns:', searchColumns);
+  console.log('ProductInformation Frontend Debug - data columns:', data.map(col => col.field));
 
   // schema
   const schema = yup
@@ -483,21 +511,27 @@ additional_note : yup.string().required(t('The Additional Note field is required
       setRefetch(true)
     } catch (error) {
       setShowUpdateModal(true)
-      setToastMessage(t('ProductInformation deletion failed'));
-    }
-    basicStickyNotification.current?.showToast();
-  };
 
-  const onDelete = async () => {
-    let id = getValues("id");
-    setShowDeleteModal(false)
-    try {
-        const response = deleteProductinformation(id);
-        setToastMessage(t("ProductInformation deleted successfully."));
-        setRefetch(true);
-      }
-    catch (error) {
-      setToastMessage(t("Error deleting ProductInformation."));
+const onDelete = async () => {
+let id = getValues("id");
+setShowDeleteModal(false)
+try {
+const response = await deleteProductinformation(id);
+setToastMessage(t("ProductInformation deleted successfully."));
+setRefetch(true);
+} catch (error) {
+setToastMessage(t("Error deleting ProductInformation."));
+}
+basicStickyNotification.current?.showToast();
+};    
+
+const initTabulator = () => {
+if (tableRef.current) {
+tabulator.current = new Tabulator(tableRef.current, {
+ajaxURL: endpoint,
+});
+}
+};
     }
     basicStickyNotification.current?.showToast();
   };    
@@ -575,7 +609,15 @@ return (
       >
         {t("Product Name Id")}
       </FormLabel>
-      <TomSelectSearch apiUrl={`${app_url}/api/search_productname`} setValue={setValue} variable="product_name_id"/>
+      <TomSelectSearch 
+        apiUrl={`${app_url}/api/search_productname`} 
+        setValue={setValue} 
+        variable="product_name_id"
+        customDataMapping={(item) => ({
+          value: item.id,
+          text: item.name_az
+        })}
+      />
       {errors.product_name_id && (
         <div className="mt-2 text-danger">
           {typeof errors.product_name_id.message === "string" &&
@@ -1079,7 +1121,15 @@ return (
       >
         {t("Product Name Id")}
       </FormLabel>
-      <TomSelectSearch apiUrl={`${app_url}/api/search_productname`} setValue={setValue} variable="product_name_id"/>
+      <TomSelectSearch 
+        apiUrl={`${app_url}/api/search_productname`} 
+        setValue={setValue} 
+        variable="product_name_id"
+        customDataMapping={(item) => ({
+          value: item.id,
+          text: item.name_az
+        })}
+      />
       {errors.product_name_id && (
         <div className="mt-2 text-danger">
           {typeof errors.product_name_id.message === "string" &&

@@ -9,7 +9,7 @@ use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
 class ProductnameController extends BaseController
 {
-    protected $searchableColumns = ['hs_code', 'name_az', 'description_en', 'name_ru', 'name_cn', 'categories', 'product_name_code', 'additional_note', 'product_qty'];
+    protected $searchableColumns = ['product_name', 'hs_code', 'name_az', 'description_en', 'name_ru', 'name_cn', 'category_id', 'product_name_code', 'additional_note', 'product_qty'];
 
     public function index(Request $request)
     {
@@ -59,7 +59,7 @@ class ProductnameController extends BaseController
             foreach ($this->searchableColumns as $column) {
                 $query->orWhere($column, 'like', "%$searchTerm%");
             }
-        })->select('id', 'hs_code', 'name_az', 'description_en', 'name_ru', 'name_cn', 'categories', 'product_name_code', 'additional_note', 'product_qty')
+        })->select('id', 'product_name', 'hs_code', 'name_az', 'description_en', 'name_ru', 'name_cn', 'category_id', 'product_name_code', 'additional_note', 'product_qty')
         ->paginate(20);
         return $this->sendResponse($results , 'search results for productname');
     }
@@ -67,34 +67,50 @@ class ProductnameController extends BaseController
 
     public function store(Request $request)
     {
+        \Log::info('ProductnameController@store called', [
+            'method' => $request->method(),
+            'data' => $request->all()
+        ]);
+
         $validationRules = [
-          
+          "product_name"=>"required|string|max:255",
           "hs_code"=>"nullable|string|max:255",
           "name_az"=>"required|string|max:255",
           "description_en"=>"required|string|max:255",
           "name_ru"=>"required|string|max:255",
           "name_cn"=>"required|string|max:255",
-          "categories"=>"required|string|max:255",
+          "category_id"=>"required|integer|exists:categors,id",
           "product_name_code"=>"required|string|unique:productnames,product_name_code|max:255",
           "additional_note"=>"nullable|string",
           "product_qty"=>"nullable|numeric",
-          
-
         ];
 
         $validation = Validator::make($request->all() , $validationRules);
         if($validation->fails()){
+            \Log::error('Validation failed in ProductnameController@store', [
+                'errors' => $validation->errors()->toArray()
+            ]);
             return $this->sendError("Invalid Values", ['errors' => $validation->errors()]);
         }
         $validated=$validation->validated();
 
+        \Log::info('Validation passed, creating productname', [
+            'validated_data' => $validated
+        ]);
 
-
-        
-        //file uploads
-
-        $productname = Productname::create($validated);
-        return $this->sendResponse($productname, "productname created succesfully");
+        try {
+            $productname = Productname::create($validated);
+            \Log::info('Productname created successfully', [
+                'productname_id' => $productname->id
+            ]);
+            return $this->sendResponse($productname, "productname created succesfully");
+        } catch (\Exception $e) {
+            \Log::error('Error creating productname', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            return $this->sendError("Error creating productname", ['error' => $e->getMessage()]);
+        }
     }
 
     public function show($id)
@@ -108,12 +124,13 @@ class ProductnameController extends BaseController
     {
         $productname = Productname::findOrFail($id);
          $validationRules = [
+          "product_name"=>"required|string|max:255",
           "hs_code"=>"nullable|string|max:255",
           "name_az"=>"required|string|max:255",
           "description_en"=>"required|string|max:255",
           "name_ru"=>"required|string|max:255",
           "name_cn"=>"required|string|max:255",
-          "categories"=>"required|string|max:255",
+          "category_id"=>"required|integer|exists:categors,id",
           "product_name_code"=>"required|string|unique:productnames,product_name_code,".$id."|max:255",
           "additional_note"=>"nullable|string",
           "product_qty"=>"nullable|numeric",

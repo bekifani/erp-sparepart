@@ -73,6 +73,18 @@ function index_main() {
     },
    
     {
+      title: t("Product Name"),
+      minWidth: 200,
+      field: "product_name",
+      hozAlign: "center",
+      headerHozAlign: "center",
+      vertAlign: "middle",
+      print: true,
+      download: true,
+      
+    },
+    
+    {
       title: t("Hs Code"),
       minWidth: 200,
       field: "hs_code",
@@ -138,9 +150,9 @@ function index_main() {
     
 
     {
-      title: t("Categories"),
+      title: t("Category"),
       minWidth: 200,
-      field: "categories",
+      field: "category_id",
       hozAlign: "center",
       headerHozAlign: "center",
       vertAlign: "middle",
@@ -239,17 +251,18 @@ function index_main() {
       },
     },
 ]);
-  const [searchColumns, setSearchColumns] = useState(['hs_code', 'name_az', 'description_en', 'name_ru', 'name_cn', 'categories', 'product_name_code', 'additional_note', 'product_qty', ]);
+  const [searchColumns, setSearchColumns] = useState(['product_name', 'hs_code', 'name_az', 'description_en', 'name_ru', 'name_cn', 'category_id', 'product_name_code', 'additional_note', 'product_qty', ]);
 
   // schema
   const schema = yup
     .object({
-     hs_code : yup.string().required(t('The Hs Code field is required')), 
+     product_name : yup.string().required(t('The Product Name field is required')), 
+hs_code : yup.string().required(t('The Hs Code field is required')), 
 name_az : yup.string().required(t('The Name Az field is required')), 
 description_en : yup.string().required(t('The Description En field is required')), 
 name_ru : yup.string().required(t('The Name Ru field is required')), 
 name_cn : yup.string().required(t('The Name Cn field is required')), 
-categories : yup.string().required(t('The Categories field is required')), 
+category_id : yup.string().required(t('The Category field is required')), 
 product_name_code : yup.string().required(t('The Product Name Code field is required')), 
 additional_note : yup.string().required(t('The Additional Note field is required')), 
 
@@ -300,26 +313,76 @@ additional_note : yup.string().required(t('The Additional Note field is required
   };
 
   const onCreate = async (data) => {
+    // Filter out unwanted fields and only send necessary data
+    const cleanData = {
+      product_name: data.product_name,
+      hs_code: data.hs_code,
+      name_az: data.name_az,
+      description_en: data.description_en,
+      name_ru: data.name_ru,
+      name_cn: data.name_cn,
+      category_id: data.category_id,
+      product_name_code: data.product_name_code,
+      additional_note: data.additional_note,
+      product_qty: data.product_qty,
+    };
+    
+    console.log('Frontend sending clean data:', cleanData);
+    console.log('Category ID:', cleanData.category_id);
+    
     try {
-      const response = await createProductname(data);
-      setToastMessage(t("Productname created successfully."));
+      const response = await createProductname(cleanData);
+      console.log('Backend response:', response);
+      if (response.error) {
+        console.error('Backend error:', response.error);
+        setToastMessage(t("Error creating Productname: ") + (response.error.data?.message || "Unknown error"));
+      } else {
+        setToastMessage(t("Productname created successfully."));
+        setRefetch(true);
+        setShowCreateModal(false);
+      }
     } catch (error) {
+      console.error('Frontend error:', error);
       setToastMessage(t("Error creating Productname."));
     }
     basicStickyNotification.current?.showToast();
-    setRefetch(true);
-    setShowCreateModal(false);
   };
 
   const onUpdate = async (data) => {
+    // Filter out unwanted fields and only send necessary data
+    const cleanData = {
+      id: data.id,
+      product_name: data.product_name,
+      hs_code: data.hs_code,
+      name_az: data.name_az,
+      description_en: data.description_en,
+      name_ru: data.name_ru,
+      name_cn: data.name_cn,
+      category_id: data.category_id,
+      product_name_code: data.product_name_code,
+      additional_note: data.additional_note,
+      product_qty: data.product_qty,
+    };
+    
+    console.log('Frontend sending clean update data:', cleanData);
+    console.log('Category ID for update:', cleanData.category_id);
+    
     setShowUpdateModal(false)
     try {
-      const response = await updateProductname(data);
-      setToastMessage(t('Productname updated successfully'));
-      setRefetch(true)
+      const response = await updateProductname(cleanData);
+      console.log('Backend update response:', response);
+      if (response.error) {
+        console.error('Backend update error:', response.error);
+        setToastMessage(t("Error updating Productname: ") + (response.error.data?.message || "Unknown error"));
+        setShowUpdateModal(true)
+      } else {
+        setToastMessage(t('Productname updated successfully'));
+        setRefetch(true)
+      }
     } catch (error) {
+      console.error('Frontend update error:', error);
       setShowUpdateModal(true)
-      setToastMessage(t('Productname deletion failed'));
+      setToastMessage(t('Productname update failed'));
     }
     basicStickyNotification.current?.showToast();
   };
@@ -404,6 +467,32 @@ return (
                 ) : (
                   <div className=" w-full grid grid-cols-1 gap-4 gap-y-3">
                     
+<div className="mt-3 input-form">
+                      <FormLabel
+                        htmlFor="validation-form-1"
+                        className="flex justify-start items-start flex-col w-full sm:flex-row"
+                      >
+                        {t("Product Name")}
+                      </FormLabel>
+                      <FormInput
+                        {...register("product_name")}
+                        id="validation-form-1"
+                        type="text"
+                        name="product_name"
+                        className={clsx({
+                          "border-danger": errors.product_name,
+                        })}
+                        placeholder={t("Enter product_name")}
+                      />
+                      {errors.product_name && (
+                        <div className="mt-2 text-danger">
+                          {typeof errors.product_name.message === "string" &&
+                            errors.product_name.message}
+                        </div>
+                      )}
+                    </div>
+
+
 <div className="mt-3 input-form">
                       <FormLabel
                         htmlFor="validation-form-1"
@@ -539,22 +628,25 @@ return (
                         htmlFor="validation-form-1"
                         className="flex justify-start items-start flex-col w-full sm:flex-row"
                       >
-                        {t("Categories")}
+                        {t("Category")}
                       </FormLabel>
-                      <FormInput
-                        {...register("categories")}
-                        id="validation-form-1"
-                        type="text"
-                        name="categories"
-                        className={clsx({
-                          "border-danger": errors.categories,
+                      <TomSelectSearch
+                        apiUrl={`${app_url}/api/search_categor`}
+                        setValue={setValue}
+                        variable="category_id"
+                        customDataMapping={(item) => ({
+                          value: item.id,
+                          text: `${item.category_en} (${item.category_code})`
                         })}
-                        placeholder={t("Enter categories")}
+                        placeholder={t("Search and select category")}
+                        className={clsx({
+                          "border-danger": errors.category_id,
+                        })}
                       />
-                      {errors.categories && (
+                      {errors.category_id && (
                         <div className="mt-2 text-danger">
-                          {typeof errors.categories.message === "string" &&
-                            errors.categories.message}
+                          {typeof errors.category_id.message === "string" &&
+                            errors.category_id.message}
                         </div>
                       )}
                     </div>
@@ -689,6 +781,32 @@ return (
                         htmlFor="validation-form-1"
                         className="flex justify-start items-start flex-col w-full sm:flex-row"
                       >
+                        {t("Product Name")}
+                      </FormLabel>
+                      <FormInput
+                        {...register("product_name")}
+                        id="validation-form-1"
+                        type="text"
+                        name="product_name"
+                        className={clsx({
+                          "border-danger": errors.product_name,
+                        })}
+                        placeholder={t("Enter product_name")}
+                      />
+                      {errors.product_name && (
+                        <div className="mt-2 text-danger">
+                          {typeof errors.product_name.message === "string" &&
+                            errors.product_name.message}
+                        </div>
+                      )}
+                    </div>
+
+
+<div className="mt-3 input-form">
+                      <FormLabel
+                        htmlFor="validation-form-1"
+                        className="flex justify-start items-start flex-col w-full sm:flex-row"
+                      >
                         {t("Hs Code")}
                       </FormLabel>
                       <FormInput
@@ -819,22 +937,25 @@ return (
                         htmlFor="validation-form-1"
                         className="flex justify-start items-start flex-col w-full sm:flex-row"
                       >
-                        {t("Categories")}
+                        {t("Category")}
                       </FormLabel>
-                      <FormInput
-                        {...register("categories")}
-                        id="validation-form-1"
-                        type="text"
-                        name="categories"
-                        className={clsx({
-                          "border-danger": errors.categories,
+                      <TomSelectSearch
+                        apiUrl={`${app_url}/api/search_categor`}
+                        setValue={setValue}
+                        variable="category_id"
+                        customDataMapping={(item) => ({
+                          value: item.id,
+                          text: `${item.category_en} (${item.category_code})`
                         })}
-                        placeholder={t("Enter categories")}
+                        placeholder={t("Search and select category")}
+                        className={clsx({
+                          "border-danger": errors.category_id,
+                        })}
                       />
-                      {errors.categories && (
+                      {errors.category_id && (
                         <div className="mt-2 text-danger">
-                          {typeof errors.categories.message === "string" &&
-                            errors.categories.message}
+                          {typeof errors.category_id.message === "string" &&
+                            errors.category_id.message}
                         </div>
                       )}
                     </div>

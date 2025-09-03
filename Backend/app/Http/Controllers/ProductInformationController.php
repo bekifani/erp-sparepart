@@ -50,6 +50,11 @@ class ProductInformationController extends BaseController
             )
             ->orderBy($sortBy, $sortDir);
             
+        // Debug logging for product_name_id field (commented out to prevent 500 error)
+        // \Log::info('ProductInformation Index Debug - Raw product_name_id from database:', [
+        //     'sample_data' => ProductInformation::select('product_name_id')->take(3)->get()->toArray()
+        // ]);
+            
         if($filters){
             foreach ($filters as $filter) {
                 $field = $filter['field'];
@@ -62,6 +67,12 @@ class ProductInformationController extends BaseController
             }
         }
         $productInformation = $query->paginate($perPage); 
+        
+        // Debug logging for final result (commented out to prevent 500 error)
+        // \Log::info('ProductInformation Index Debug - Final result sample:', [
+        //     'first_item' => $productInformation->items() ? $productInformation->items()[0] : null
+        // ]);
+        
         $data = [
             "data" => $productInformation->toArray(), 
             'current_page' => $productInformation->currentPage(),

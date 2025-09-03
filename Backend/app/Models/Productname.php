@@ -13,7 +13,7 @@ use Illuminate\Notifications\Notifiable;
 class Productname extends Model
 {
     use HasFactory, LogsActivity, Notifiable;
-    public $fillable = ['hs_code', 'name_az', 'description_en', 'name_ru', 'name_cn', 'categories', 'product_name_code', 'additional_note', 'product_qty'];
+    public $fillable = ['product_name', 'hs_code', 'name_az', 'description_en', 'name_ru', 'name_cn', 'category_id', 'product_name_code', 'additional_note', 'product_qty'];
     protected static $logAttributes = ['*'];
     public $guarded = [];
 
