@@ -547,7 +547,7 @@ function index_main() {
         <Slideover.Panel className="text-center overflow-y-auto max-h-[110vh]">
           <form onSubmit={handleSubmit(onCreate)}>
             <Slideover.Title>
-              <h2 className="mr-auto text-base font-medium">{t("Add New Boxe")}</h2>
+              <h2 className="mr-auto text-base font-medium">{t("Add New Box")}</h2>
             </Slideover.Title>
             <Slideover.Description className="relative">
               <div className="relative">
