@@ -19,22 +19,41 @@ const FileUpload = ({endpoint, type, setUploadedURL}) => {
     if (dropzone) {
       dropzone.on("complete", (file) => {
         if (dropzone.getQueuedFiles().length === 0) {
-        
+          console.log('[FileUpload] queue complete for file:', file?.name);
         }
       });
       dropzone.on("queuecomplete", () => {
-        // setUploadComplete(true);
+        console.log('[FileUpload] all uploads completed');
       });
       dropzone.on("success", (file, response) => {
-        if (response && response.url) {
-          setUploadedURL(response.url);
+        console.log('[FileUpload] success:', { file, response });
+        try {
+          const url =
+            (response && response.url)
+            || (response && response.path)
+            || (response && response.file)
+            || (response && response.data && (response.data.url || response.data.path || response.data.file));
+          if (url) {
+            if (typeof setUploadedURL === 'function') {
+              setUploadedURL(url);
+            } else {
+              console.warn('[FileUpload] setUploadedURL prop is not a function');
+            }
+          } else {
+            console.warn('[FileUpload] no URL found in upload response', response);
+          }
+        } catch (e) {
+          console.error('[FileUpload] error parsing upload response', e);
         }
+      });
+      dropzone.on("error", (file, errorMessage, xhr) => {
+        console.error('[FileUpload] error:', { file, errorMessage, xhr });
       });
     }
     
   }, []);
   const handleUpload = () => {
-    console.log(dropzoneRef.current);
+    console.log('[FileUpload] starting upload, dropzoneRef:', dropzoneRef.current);
     dropzoneRef.current.dropzone.processQueue(); // Manually start the upload
   };
   return (
