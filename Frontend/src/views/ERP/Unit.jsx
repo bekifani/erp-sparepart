@@ -16,7 +16,7 @@ import {
   useCreateUnitMutation,
   useDeleteUnitMutation,
   useEditUnitMutation,
-} from "@/stores/endpoints/unitEndpoints";
+} from "@/stores/apiSlice";
 import clsx from "clsx";
 import { Dialog } from "@/components/Base/Headless";
 import Can from "@/helpers/PermissionChecker/index.js";

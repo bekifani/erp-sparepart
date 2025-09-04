@@ -7,9 +7,10 @@ use App\Models\Carmodel;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Facades\DB;
 class CarmodelController extends BaseController
 {
-    protected $searchableColumns = ['car_model', 'additional_note', 'product_qty'];
+    protected $searchableColumns = ['car_model', 'additional_note'];
 
     public function index(Request $request)
     {
@@ -21,7 +22,17 @@ class CarmodelController extends BaseController
         }
         $perPage = $request->query('size', 10); 
         $filters = $request['filter'];
-        $query = Carmodel::orderBy($sortBy, $sortDir);
+        
+        $query = Carmodel::select(
+            'carmodels.*',
+            DB::raw('COALESCE(crosscar_counts.product_qty, 0) as product_qty')
+        )
+        ->leftJoin(
+            DB::raw('(SELECT car_model_id, COUNT(*) as product_qty FROM crosscars GROUP BY car_model_id) as crosscar_counts'),
+            'carmodels.id', '=', 'crosscar_counts.car_model_id'
+        )
+        ->orderBy($sortBy, $sortDir);
+        
         if($filters){
             foreach ($filters as $filter) {
                 $field = $filter['field'];
@@ -44,7 +55,15 @@ class CarmodelController extends BaseController
     }
 
     public function all_carmodels(){
-        $data = Carmodel::all();
+        $data = Carmodel::select(
+            'carmodels.*',
+            DB::raw('COALESCE(crosscar_counts.product_qty, 0) as product_qty')
+        )
+        ->leftJoin(
+            DB::raw('(SELECT car_model_id, COUNT(*) as product_qty FROM crosscars GROUP BY car_model_id) as crosscar_counts'),
+            'carmodels.id', '=', 'crosscar_counts.car_model_id'
+        )
+        ->get();
         return $this->sendResponse($data, 1);
     }
 
@@ -55,12 +74,33 @@ class CarmodelController extends BaseController
                 'message' => 'Please enter a search term.'
             ], 400);
         }
-        $results = Carmodel::where(function ($query) use ($searchTerm) {
-            foreach ($this->searchableColumns as $column) {
-                $query->orWhere($column, 'like', "%$searchTerm%");
-            }
-        })->paginate(20);
-        return $this->sendResponse($results , 'search resutls for carmodel');
+        $results = Carmodel::select(
+                'carmodels.id as value',
+                'carmodels.car_model',
+                'carmodels.additional_note',
+                DB::raw('COALESCE(crosscar_counts.product_qty, 0) as product_qty')
+            )
+            ->leftJoin(
+                DB::raw('(SELECT car_model_id, COUNT(*) as product_qty FROM crosscars GROUP BY car_model_id) as crosscar_counts'),
+                'carmodels.id', '=', 'crosscar_counts.car_model_id'
+            )
+            ->where(function ($query) use ($searchTerm) {
+                foreach ($this->searchableColumns as $column) {
+                    $query->orWhere('carmodels.' . $column, 'like', "%$searchTerm%");
+                }
+            })
+            ->get()
+            ->map(function ($item) {
+                return [
+                    'value' => $item->value,
+                    'text' => $item->car_model,
+                    'car_model' => $item->car_model,
+                    'additional_note' => $item->additional_note,
+                    'product_qty' => $item->product_qty
+                ];
+            });
+
+        return response()->json($results);
     }
 
 
@@ -70,7 +110,6 @@ class CarmodelController extends BaseController
           
           "car_model"=>"required|string|max:255",
           "additional_note"=>"nullable|string",
-          "product_qty"=>"nullable|numeric",
           
 
         ];
@@ -92,7 +131,16 @@ class CarmodelController extends BaseController
 
     public function show($id)
     {
-        $carmodel = Carmodel::findOrFail($id);
+        $carmodel = Carmodel::select(
+            'carmodels.*',
+            DB::raw('COALESCE(crosscar_counts.product_qty, 0) as product_qty')
+        )
+        ->leftJoin(
+            DB::raw('(SELECT car_model_id, COUNT(*) as product_qty FROM crosscars GROUP BY car_model_id) as crosscar_counts'),
+            'carmodels.id', '=', 'crosscar_counts.car_model_id'
+        )
+        ->where('carmodels.id', $id)
+        ->firstOrFail();
         return $this->sendResponse($carmodel, "");
     }
 
@@ -106,7 +154,6 @@ class CarmodelController extends BaseController
           
           "car_model"=>"required|string|max:255",
           "additional_note"=>"nullable|string",
-          "product_qty"=>"nullable|numeric",
           
         ];
 

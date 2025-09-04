@@ -117,7 +117,7 @@ class ProductController extends BaseController
             ->leftJoin('units', 'product_information.unit_id', '=', 'units.id')
             ->leftJoin('suppliers', 'products.supplier_id', '=', 'suppliers.id')
             ->select(
-                'products.*',
+                'products.id as value',
                 'product_information.product_code',
                 'product_information.oe_code',
                 'product_information.description',
@@ -135,9 +135,19 @@ class ProductController extends BaseController
                     $query->orWhere($column, 'like', "%$searchTerm%");
                 }
             })
-            ->paginate(20);
+            ->get()
+            ->map(function ($item) {
+                return [
+                    'value' => $item->value,
+                    'text' => $item->product_name . ' (' . $item->product_code . ')',
+                    'product_code' => $item->product_code,
+                    'product_name' => $item->product_name,
+                    'brand_name' => $item->brand_name,
+                    'description' => $item->description
+                ];
+            });
 
-        return $this->sendResponse($results, 'search results for product');
+        return response()->json($results);
     }
 
     public function store(Request $request)

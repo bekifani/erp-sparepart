@@ -16,6 +16,7 @@ import {
   useCreateCrosscarMutation,
   useDeleteCrosscarMutation,
   useEditCrosscarMutation,
+  useGetProductsQuery,
 } from "@/stores/apiSlice";
 import clsx from "clsx";
 import { Dialog } from "@/components/Base/Headless";
@@ -63,90 +64,36 @@ function index_main() {
   }
   const [data, setData] = useState([
     {
-      title: t("Id"),
-      minWidth: 50,
-      responsive: 0,
-      field: "id",
-      vertAlign: "middle",
-      print: true,
-      download: true,
-    },
-   
-    {
-      title: t("Product Id"),
+      title: t("Brand"),
       minWidth: 200,
-      field: "product_id",
+      field: "brand_name",
       hozAlign: "center",
       headerHozAlign: "center",
       vertAlign: "middle",
       print: true,
       download: true,
-      
     },
     
-
     {
-      title: t("Car Model Id"),
+      title: t("Brand Code"),
       minWidth: 200,
-      field: "car_model_id",
+      field: "brand_code",
       hozAlign: "center",
       headerHozAlign: "center",
       vertAlign: "middle",
       print: true,
       download: true,
-      
     },
-    
 
     {
-      title: t("Cross Code"),
+      title: t("Car Model"),
       minWidth: 200,
-      field: "cross_code",
+      field: "car_model_name",
       hozAlign: "center",
       headerHozAlign: "center",
       vertAlign: "middle",
       print: true,
       download: true,
-      
-    },
-    
-
-    {
-      title: t("Is Visible"),
-      minWidth: 200,
-      field: "is_visible",
-      hozAlign: "center",
-      headerHozAlign: "center",
-      vertAlign: "middle",
-      print: true,
-      download: true,
-      
-    },
-    
-
-    {
-      title: t("Created At"),
-      minWidth: 200,
-      field: "created_at",
-      hozAlign: "center",
-      headerHozAlign: "center",
-      vertAlign: "middle",
-      print: true,
-      download: true,
-      
-    },
-    
-
-    {
-      title: t("Updated At"),
-      minWidth: 200,
-      field: "updated_at",
-      hozAlign: "center",
-      headerHozAlign: "center",
-      vertAlign: "middle",
-      print: true,
-      download: true,
-      
     },
     
 
@@ -200,16 +147,15 @@ function index_main() {
       },
     },
 ]);
-  const [searchColumns, setSearchColumns] = useState(['product_id', 'car_model_id', 'cross_code', 'is_visible', 'created_at', 'updated_at', ]);
+  const [searchColumns, setSearchColumns] = useState(['brand_name', 'brand_code', 'car_model_name']);
 
   // schema
   const schema = yup
     .object({
-     product_id : yup.string().required(t('The Product Id field is required')), 
-car_model_id : yup.string().required(t('The Car Model Id field is required')), 
-cross_code : yup.string().required(t('The Cross Code field is required')), 
-is_visible : yup.string().required(t('The Is Visible field is required')), 
-
+     product_id : yup.string().required(t('The Product field is required')), 
+     car_model_id : yup.string().required(t('The Car Model field is required')), 
+     cross_code : yup.string().required(t('The Cross Code field is required')), 
+     is_visible : yup.string().required(t('The Is Visible field is required')), 
     })
     .required();
 
@@ -384,7 +330,7 @@ return (
       >
         {t("Car Model Id")}
       </FormLabel>
-      <TomSelectSearch apiUrl={`${app_url}/api/search_car model`} setValue={setValue} variable="car_model_id"/>
+      <TomSelectSearch apiUrl={`${app_url}/api/search_carmodel`} setValue={setValue} variable="car_model_id"/>
       {errors.car_model_id && (
         <div className="mt-2 text-danger">
           {typeof errors.car_model_id.message === "string" &&
@@ -429,17 +375,17 @@ return (
           <div className="flex flex-col mt-2 sm:flex-row">
               <div>
             <input
-              {...register('is_active')}
+              {...register('is_visible')}
               type="radio"
               value={1}
               className="mx-2"
-            /> Active
+            /> Visible
             <input
-              {...register('is_active')}
+              {...register('is_visible')}
               type="radio"
               value={0}
               className="mx-2"
-            /> Inactive
+            /> Hidden
       </div>
           </div>
       {errors.is_visible && (
@@ -451,56 +397,6 @@ return (
     </div>
     
 
-<div className="mt-3 input-form">
-                      <FormLabel
-                        htmlFor="validation-form-1"
-                        className="flex justify-start items-start flex-col w-full sm:flex-row"
-                      >
-                        {t("Created At")}
-                      </FormLabel>
-                      <FormInput
-                        {...register("created_at")}
-                        id="validation-form-1"
-                        type="date"
-                        name="created_at"
-                        className={clsx({
-                          "border-danger": errors.created_at,
-                        })}
-                        placeholder={t("Enter created_at")}
-                      />
-                      {errors.created_at && (
-                        <div className="mt-2 text-danger">
-                          {typeof errors.created_at.message === "string" &&
-                            errors.created_at.message}
-                        </div>
-                      )}
-                    </div>
-
-
-<div className="mt-3 input-form">
-                      <FormLabel
-                        htmlFor="validation-form-1"
-                        className="flex justify-start items-start flex-col w-full sm:flex-row"
-                      >
-                        {t("Updated At")}
-                      </FormLabel>
-                      <FormInput
-                        {...register("updated_at")}
-                        id="validation-form-1"
-                        type="date"
-                        name="updated_at"
-                        className={clsx({
-                          "border-danger": errors.updated_at,
-                        })}
-                        placeholder={t("Enter updated_at")}
-                      />
-                      {errors.updated_at && (
-                        <div className="mt-2 text-danger">
-                          {typeof errors.updated_at.message === "string" &&
-                            errors.updated_at.message}
-                        </div>
-                      )}
-                    </div>
 
 
                   </div>
@@ -572,7 +468,7 @@ return (
       >
         {t("Car Model Id")}
       </FormLabel>
-      <TomSelectSearch apiUrl={`${app_url}/api/search_car model`} setValue={setValue} variable="car_model_id"/>
+      <TomSelectSearch apiUrl={`${app_url}/api/search_carmodel`} setValue={setValue} variable="car_model_id"/>
       {errors.car_model_id && (
         <div className="mt-2 text-danger">
           {typeof errors.car_model_id.message === "string" &&
@@ -617,17 +513,17 @@ return (
           <div className="flex flex-col mt-2 sm:flex-row">
               <div>
             <input
-              {...register('is_active')}
+              {...register('is_visible')}
               type="radio"
               value={1}
               className="mx-2"
-            /> Active
+            /> Visible
             <input
-              {...register('is_active')}
+              {...register('is_visible')}
               type="radio"
               value={0}
               className="mx-2"
-            /> Inactive
+            /> Hidden
       </div>
           </div>
       {errors.is_visible && (
@@ -639,56 +535,6 @@ return (
     </div>
     
 
-<div className="mt-3 input-form">
-                      <FormLabel
-                        htmlFor="validation-form-1"
-                        className="flex justify-start items-start flex-col w-full sm:flex-row"
-                      >
-                        {t("Created At")}
-                      </FormLabel>
-                      <FormInput
-                        {...register("created_at")}
-                        id="validation-form-1"
-                        type="date"
-                        name="created_at"
-                        className={clsx({
-                          "border-danger": errors.created_at,
-                        })}
-                        placeholder={t("Enter created_at")}
-                      />
-                      {errors.created_at && (
-                        <div className="mt-2 text-danger">
-                          {typeof errors.created_at.message === "string" &&
-                            errors.created_at.message}
-                        </div>
-                      )}
-                    </div>
-
-
-<div className="mt-3 input-form">
-                      <FormLabel
-                        htmlFor="validation-form-1"
-                        className="flex justify-start items-start flex-col w-full sm:flex-row"
-                      >
-                        {t("Updated At")}
-                      </FormLabel>
-                      <FormInput
-                        {...register("updated_at")}
-                        id="validation-form-1"
-                        type="date"
-                        name="updated_at"
-                        className={clsx({
-                          "border-danger": errors.updated_at,
-                        })}
-                        placeholder={t("Enter updated_at")}
-                      />
-                      {errors.updated_at && (
-                        <div className="mt-2 text-danger">
-                          {typeof errors.updated_at.message === "string" &&
-                            errors.updated_at.message}
-                        </div>
-                      )}
-                    </div>
 
 
                   </div>

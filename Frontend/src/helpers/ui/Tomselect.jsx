@@ -52,8 +52,8 @@ const TomSelectSearch = ({ apiUrl, setValue , variable, defaultValue, customData
               return mapped;
             }
             return {
-              value: item.id,  
-              text: item.name,
+              value: item.value || item.id,  
+              text: item.text || item.name,
             };
           });
           
@@ -73,7 +73,7 @@ const TomSelectSearch = ({ apiUrl, setValue , variable, defaultValue, customData
         
         // Call onSelectionChange callback if provided
         if (onSelectionChange && tomSelectInstance.itemsData) {
-          const selectedItem = tomSelectInstance.itemsData.find(item => item.id == value);
+          const selectedItem = tomSelectInstance.itemsData.find(item => (item.value || item.id) == value);
           if (selectedItem) {
             console.log('Selected item:', selectedItem);
             onSelectionChange(selectedItem);

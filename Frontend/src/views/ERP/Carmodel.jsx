@@ -161,13 +161,13 @@ function index_main() {
       },
     },
 ]);
-  const [searchColumns, setSearchColumns] = useState(['car_model', 'additional_note', 'product_qty', ]);
+  const [searchColumns, setSearchColumns] = useState(['car_model', 'additional_note']);
 
   // schema
   const schema = yup
     .object({
      car_model : yup.string().required(t('The Car Model field is required')), 
-additional_note : yup.string().required(t('The Additional Note field is required')), 
+     additional_note : yup.string().nullable(), 
 
     })
     .required();
@@ -372,32 +372,6 @@ return (
                     </div>
 
 
-<div className="mt-3 input-form">
-                      <FormLabel
-                        htmlFor="validation-form-1"
-                        className="flex justify-start items-start flex-col w-full sm:flex-row"
-                      >
-                        {t("Product Qty")}
-                      </FormLabel>
-                      <FormInput
-                        {...register("product_qty")}
-                        id="validation-form-1"
-                        type="number"
-                        name="product_qty"
-                        className={clsx({
-                          "border-danger": errors.product_qty,
-                        })}
-                        placeholder={t("Enter product_qty")}
-                      />
-                      {errors.product_qty && (
-                        <div className="mt-2 text-danger">
-                          {typeof errors.product_qty.message === "string" &&
-                            errors.product_qty.message}
-                        </div>
-                      )}
-                    </div>
-
-
                   </div>
                       )}
               </div>
@@ -491,32 +465,6 @@ return (
                         <div className="mt-2 text-danger">
                           {typeof errors.additional_note.message === "string" &&
                             errors.additional_note.message}
-                        </div>
-                      )}
-                    </div>
-
-
-<div className="mt-3 input-form">
-                      <FormLabel
-                        htmlFor="validation-form-1"
-                        className="flex justify-start items-start flex-col w-full sm:flex-row"
-                      >
-                        {t("Product Qty")}
-                      </FormLabel>
-                      <FormInput
-                        {...register("product_qty")}
-                        id="validation-form-1"
-                        type="number"
-                        name="product_qty"
-                        className={clsx({
-                          "border-danger": errors.product_qty,
-                        })}
-                        placeholder={t("Enter product_qty")}
-                      />
-                      {errors.product_qty && (
-                        <div className="mt-2 text-danger">
-                          {typeof errors.product_qty.message === "string" &&
-                            errors.product_qty.message}
                         </div>
                       )}
                     </div>

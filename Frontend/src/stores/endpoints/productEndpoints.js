@@ -26,4 +26,7 @@
               method: "DELETE",
           }),
       }),
+      searchProduct: builder.query({
+          query: (searchTerm) => `search_product/${searchTerm}`,
+      }),
   });

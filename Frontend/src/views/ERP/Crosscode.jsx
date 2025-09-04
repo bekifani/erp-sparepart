@@ -63,51 +63,62 @@ function index_main() {
   }
   const [data, setData] = useState([
     {
-      title: t("Id"),
-      minWidth: 50,
-      responsive: 0,
-      field: "id",
-      vertAlign: "middle",
-      print: true,
-      download: true,
-    },
-   
-    {
-      title: t("Product Id"),
+      title: t("Brand"),
       minWidth: 200,
-      field: "product_id",
+      field: "brand_name",
       hozAlign: "center",
       headerHozAlign: "center",
       vertAlign: "middle",
       print: true,
       download: true,
-      
     },
     
-
     {
-      title: t("Car Model Id"),
+      title: t("Brand Code"),
       minWidth: 200,
-      field: "car_model_id",
+      field: "brand_code",
       hozAlign: "center",
       headerHozAlign: "center",
       vertAlign: "middle",
       print: true,
       download: true,
-      
+    },
+
+    {
+      title: t("Cross Band"),
+      minWidth: 200,
+      field: "cross_band",
+      hozAlign: "center",
+      headerHozAlign: "center",
+      vertAlign: "middle",
+      print: true,
+      download: true,
     },
     
-
+    {
+      title: t("Cross Code"),
+      minWidth: 200,
+      field: "cross_code",
+      hozAlign: "center",
+      headerHozAlign: "center",
+      vertAlign: "middle",
+      print: true,
+      download: true,
+    },
+    
     {
       title: t("Show"),
-      minWidth: 200,
+      minWidth: 100,
       field: "show",
       hozAlign: "center",
       headerHozAlign: "center",
       vertAlign: "middle",
       print: true,
       download: true,
-      
+      formatter(cell) {
+        const value = cell.getValue();
+        return value == 1 ? "Yes" : "No";
+      },
     },
     
 
@@ -161,15 +172,15 @@ function index_main() {
       },
     },
 ]);
-  const [searchColumns, setSearchColumns] = useState(['product_id', 'car_model_id', 'show', ]);
+  const [searchColumns, setSearchColumns] = useState(['brand_name', 'brand_code', 'cross_band', 'cross_code', 'show']);
 
   // schema
   const schema = yup
     .object({
-     product_id : yup.string().required(t('The Product Id field is required')), 
-car_model_id : yup.string().required(t('The Car Model Id field is required')), 
-show : yup.string().required(t('The Show field is required')), 
-
+     product_id : yup.string().required(t('The Product field is required')), 
+     cross_band : yup.string().required(t('The Cross Band field is required')), 
+     cross_code : yup.string().required(t('The Cross Code field is required')), 
+     show : yup.string().required(t('The Show field is required')), 
     })
     .required();
 
@@ -326,7 +337,7 @@ return (
         htmlFor="validation-form-1"
         className="flex flex-col w-full sm:flex-row"
       >
-        {t("Product Id")}
+        {t("Product")}
       </FormLabel>
       <TomSelectSearch apiUrl={`${app_url}/api/search_product`} setValue={setValue} variable="product_id"/>
       {errors.product_id && (
@@ -337,21 +348,55 @@ return (
       )}
     </div>
 
-   <div className="mt-3 input-form">
-      <FormLabel
-        htmlFor="validation-form-1"
-        className="flex flex-col w-full sm:flex-row"
-      >
-        {t("Car Model Id")}
-      </FormLabel>
-      <TomSelectSearch apiUrl={`${app_url}/api/search_car model`} setValue={setValue} variable="car_model_id"/>
-      {errors.car_model_id && (
-        <div className="mt-2 text-danger">
-          {typeof errors.car_model_id.message === "string" &&
-            errors.car_model_id.message}
-        </div>
-      )}
-    </div>
+<div className="mt-3 input-form">
+                      <FormLabel
+                        htmlFor="validation-form-1"
+                        className="flex justify-start items-start flex-col w-full sm:flex-row"
+                      >
+                        {t("Cross Band")}
+                      </FormLabel>
+                      <FormInput
+                        {...register("cross_band")}
+                        id="validation-form-1"
+                        type="text"
+                        name="cross_band"
+                        className={clsx({
+                          "border-danger": errors.cross_band,
+                        })}
+                        placeholder={t("Enter cross band")}
+                      />
+                      {errors.cross_band && (
+                        <div className="mt-2 text-danger">
+                          {typeof errors.cross_band.message === "string" &&
+                            errors.cross_band.message}
+                        </div>
+                      )}
+                    </div>
+
+<div className="mt-3 input-form">
+                      <FormLabel
+                        htmlFor="validation-form-1"
+                        className="flex justify-start items-start flex-col w-full sm:flex-row"
+                      >
+                        {t("Cross Code")}
+                      </FormLabel>
+                      <FormInput
+                        {...register("cross_code")}
+                        id="validation-form-1"
+                        type="text"
+                        name="cross_code"
+                        className={clsx({
+                          "border-danger": errors.cross_code,
+                        })}
+                        placeholder={t("Enter cross code")}
+                      />
+                      {errors.cross_code && (
+                        <div className="mt-2 text-danger">
+                          {typeof errors.cross_code.message === "string" &&
+                            errors.cross_code.message}
+                        </div>
+                      )}
+                    </div>
 
  <div className="mt-3 input-form">
       <FormLabel
@@ -363,17 +408,17 @@ return (
           <div className="flex flex-col mt-2 sm:flex-row">
               <div>
             <input
-              {...register('is_active')}
+              {...register('show')}
               type="radio"
               value={1}
               className="mx-2"
-            /> Active
+            /> Yes
             <input
-              {...register('is_active')}
+              {...register('show')}
               type="radio"
               value={0}
               className="mx-2"
-            /> Inactive
+            /> No
       </div>
           </div>
       {errors.show && (
@@ -436,7 +481,7 @@ return (
         htmlFor="validation-form-1"
         className="flex flex-col w-full sm:flex-row"
       >
-        {t("Product Id")}
+        {t("Product")}
       </FormLabel>
       <TomSelectSearch apiUrl={`${app_url}/api/search_product`} setValue={setValue} variable="product_id"/>
       {errors.product_id && (
@@ -447,21 +492,55 @@ return (
       )}
     </div>
 
-   <div className="mt-3 input-form">
-      <FormLabel
-        htmlFor="validation-form-1"
-        className="flex flex-col w-full sm:flex-row"
-      >
-        {t("Car Model Id")}
-      </FormLabel>
-      <TomSelectSearch apiUrl={`${app_url}/api/search_car model`} setValue={setValue} variable="car_model_id"/>
-      {errors.car_model_id && (
-        <div className="mt-2 text-danger">
-          {typeof errors.car_model_id.message === "string" &&
-            errors.car_model_id.message}
-        </div>
-      )}
-    </div>
+<div className="mt-3 input-form">
+                      <FormLabel
+                        htmlFor="validation-form-1"
+                        className="flex justify-start items-start flex-col w-full sm:flex-row"
+                      >
+                        {t("Cross Band")}
+                      </FormLabel>
+                      <FormInput
+                        {...register("cross_band")}
+                        id="validation-form-1"
+                        type="text"
+                        name="cross_band"
+                        className={clsx({
+                          "border-danger": errors.cross_band,
+                        })}
+                        placeholder={t("Enter cross band")}
+                      />
+                      {errors.cross_band && (
+                        <div className="mt-2 text-danger">
+                          {typeof errors.cross_band.message === "string" &&
+                            errors.cross_band.message}
+                        </div>
+                      )}
+                    </div>
+
+<div className="mt-3 input-form">
+                      <FormLabel
+                        htmlFor="validation-form-1"
+                        className="flex justify-start items-start flex-col w-full sm:flex-row"
+                      >
+                        {t("Cross Code")}
+                      </FormLabel>
+                      <FormInput
+                        {...register("cross_code")}
+                        id="validation-form-1"
+                        type="text"
+                        name="cross_code"
+                        className={clsx({
+                          "border-danger": errors.cross_code,
+                        })}
+                        placeholder={t("Enter cross code")}
+                      />
+                      {errors.cross_code && (
+                        <div className="mt-2 text-danger">
+                          {typeof errors.cross_code.message === "string" &&
+                            errors.cross_code.message}
+                        </div>
+                      )}
+                    </div>
 
  <div className="mt-3 input-form">
       <FormLabel
@@ -473,17 +552,17 @@ return (
           <div className="flex flex-col mt-2 sm:flex-row">
               <div>
             <input
-              {...register('is_active')}
+              {...register('show')}
               type="radio"
               value={1}
               className="mx-2"
-            /> Active
+            /> Yes
             <input
-              {...register('is_active')}
+              {...register('show')}
               type="radio"
               value={0}
               className="mx-2"
-            /> Inactive
+            /> No
       </div>
           </div>
       {errors.show && (
