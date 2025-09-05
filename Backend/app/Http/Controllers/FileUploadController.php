@@ -152,7 +152,7 @@ class FileUploadController extends Controller
             fclose($output);
             array_map('unlink', glob("$tempDir/*"));
             rmdir($tempDir);
-            return response()->json(['url' => 'storage/uploads/' . $location . '/'. $filename], 200);
+            return response()->json(['url' => 'uploads/' . $location . '/'. $filename], 200);
         }
 
         return response()->json(['message' => 'Chunk uploaded successfully.']);
