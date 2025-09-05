@@ -23,6 +23,7 @@ import Can from "@/helpers/PermissionChecker/index.js";
 import { useTranslation } from "react-i18next";
 import LoadingIcon from "@/components/Base/LoadingIcon/index.tsx";
 import FileUpload from "@/helpers/ui/FileUpload.jsx";
+import CameraCapture from "@/helpers/ui/CameraCapture.jsx";
 import TomSelectSearch from "@/helpers/ui/Tomselect.jsx";
 import { useSelector } from "react-redux";
 import { ClassicEditor } from "@/components/Base/Ckeditor";
@@ -37,6 +38,7 @@ function index_main() {
   const [showUpdateModal, setShowUpdateModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [editorData, setEditorData] = useState("")
+  const [capturedImage, setCapturedImage] = useState(null);
   const [confirmationMessage, setConfirmationMessage] =
     useState(t("Are you Sure Do You want to Delete Customer"));
 
@@ -73,7 +75,7 @@ function index_main() {
     },
    
     {
-      title: t("Name Surname"),
+      title: t("Name & Surname"),
       minWidth: 200,
       field: "name_surname",
       hozAlign: "center",
@@ -81,51 +83,30 @@ function index_main() {
       vertAlign: "middle",
       print: true,
       download: true,
-      
     },
-    
-
+    {
+      title: t("Image"),
+      minWidth: 100,
+      field: "image",
+      hozAlign: "center",
+      headerHozAlign: "center",
+      vertAlign: "middle",
+      print: true,
+      download: true,
+      formatter(cell) {
+        return getMiniDisplay(cell.getData().image)
+      }
+    },
     {
       title: t("Shipping Mark"),
-      minWidth: 200,
+      minWidth: 150,
       field: "shipping_mark",
       hozAlign: "center",
       headerHozAlign: "center",
       vertAlign: "middle",
       print: true,
       download: true,
-      
     },
-    
-
-    
-
-    {
-      title: t("Country"),
-      minWidth: 200,
-      field: "country",
-      hozAlign: "center",
-      headerHozAlign: "center",
-      vertAlign: "middle",
-      print: true,
-      download: true,
-      
-    },
-    
-
-    {
-      title: t("Address"),
-      minWidth: 200,
-      field: "address",
-      hozAlign: "center",
-      headerHozAlign: "center",
-      vertAlign: "middle",
-      print: true,
-      download: true,
-      
-    },
-    
-
     {
       title: t("Email"),
       minWidth: 200,
@@ -135,64 +116,85 @@ function index_main() {
       vertAlign: "middle",
       print: true,
       download: true,
-      
     },
-    
-
     {
-      title: t("Phone Number"),
-      minWidth: 200,
+      title: t("Phone"),
+      minWidth: 150,
       field: "phone_number",
       hozAlign: "center",
       headerHozAlign: "center",
       vertAlign: "middle",
       print: true,
       download: true,
-      
     },
-    
-
     {
-      title: t("Whatsapp"),
-      minWidth: 200,
-      field: "whatsapp",
+      title: t("Position"),
+      minWidth: 150,
+      field: "position",
       hozAlign: "center",
       headerHozAlign: "center",
       vertAlign: "middle",
       print: true,
       download: true,
-      
     },
-    
-
     {
-      title: t("Wechat Id"),
-      minWidth: 200,
-      field: "wechat_id",
-      hozAlign: "center",
-      headerHozAlign: "center",
-      vertAlign: "middle",
-      print: true,
-      download: true,
-      
-    },
-    
-
-    {
-      title: t("Image"),
-      minWidth: 200,
-      field: "image",
+      title: t("Birth Date"),
+      minWidth: 120,
+      field: "birth_date",
       hozAlign: "center",
       headerHozAlign: "center",
       vertAlign: "middle",
       print: true,
       download: true,
       formatter(cell) {
-      return getMiniDisplay(cell.getData().image)
+        const birthDate = cell.getData().birth_date;
+        if (birthDate) {
+          // Extract just the date part (YYYY-MM-DD) from ISO timestamp
+          return birthDate.split('T')[0];
+        }
+        return '';
       }
     },
-    
-
+    {
+      title: t("WhatsApp"),
+      minWidth: 150,
+      field: "whatsapp",
+      hozAlign: "center",
+      headerHozAlign: "center",
+      vertAlign: "middle",
+      print: true,
+      download: true,
+    },
+    {
+      title: t("WeChat"),
+      minWidth: 150,
+      field: "wechat_id",
+      hozAlign: "center",
+      headerHozAlign: "center",
+      vertAlign: "middle",
+      print: true,
+      download: true,
+    },
+    {
+      title: t("Country"),
+      minWidth: 150,
+      field: "country",
+      hozAlign: "center",
+      headerHozAlign: "center",
+      vertAlign: "middle",
+      print: true,
+      download: true,
+    },
+    {
+      title: t("Address"),
+      minWidth: 200,
+      field: "address",
+      hozAlign: "center",
+      headerHozAlign: "center",
+      vertAlign: "middle",
+      print: true,
+      download: true,
+    },
     {
       title: t("Additional Note"),
       minWidth: 200,
@@ -202,7 +204,6 @@ function index_main() {
       vertAlign: "middle",
       print: true,
       download: true,
-      
     },
     
 
@@ -233,9 +234,27 @@ function index_main() {
             </div>`);
         a.addEventListener("click", function () {
           const data = cell.getData();
+          console.log("Edit button clicked - Customer data:", data);
           Object.keys(data).forEach((key) => {
             setValue(key, data[key]);
           });
+          
+          // Handle image field (unified for both upload and camera)
+          if (data.image) {
+            console.log('🟢 Edit form - Loading existing image:', data.image);
+            console.log('🟢 Edit form - media_url:', media_url);
+            const imageUrl = media_url + data.image;
+            console.log('🟢 Edit form - Final imageUrl:', imageUrl);
+            setUploadedImage(imageUrl);
+            setCapturedImage({ url: imageUrl, blob: null });
+            setImageSource('upload'); // Default to upload for existing images
+          } else {
+            console.log('🟢 Edit form - No image found in data');
+            setUploadedImage(null);
+            setCapturedImage(null);
+            setImageSource(null);
+          }
+          
           setShowUpdateModal(true);
         });
         b.addEventListener("click", function () {
@@ -256,21 +275,24 @@ function index_main() {
       },
     },
 ]);
-  const [searchColumns, setSearchColumns] = useState(['name_surname', 'shipping_mark', 'country', 'address', 'email', 'phone_number', 'whatsapp', 'wechat_id', 'additional_note', ]);
+  const [searchColumns, setSearchColumns] = useState(['name_surname', 'shipping_mark', 'email', 'phone_number', 'position', 'birth_date', 'whatsapp', 'wechat_id', 'country', 'address', 'additional_note']);
 
   // schema
   const schema = yup
     .object({
-     name_surname : yup.string().required(t('The Name Surname field is required')), 
-shipping_mark : yup.string().required(t('The Shipping Mark field is required')), 
-country : yup.string().required(t('The Country field is required')), 
-address : yup.string().required(t('The Address field is required')), 
+     name_surname : yup.string().required(t('The Name & Surname field is required')), 
+shipping_mark : yup.string().nullable(), 
 email : yup.string().email(t('Please enter a valid email')).required(t('The Email field is required')), 
-phone_number : yup.string().required(t('The Phone Number field is required')), 
-whatsapp : yup.string().required(t('The Whatsapp field is required')), 
-wechat_id : yup.string().required(t('The Wechat Id field is required')), 
-image : yup.string().required(t('The Image field is required')), 
-additional_note : yup.string().required(t('The Additional Note field is required')), 
+phone_number : yup.string().nullable(), 
+position : yup.string().nullable(), 
+birth_date : yup.date().nullable(), 
+whatsapp : yup.string().nullable(), 
+wechat_id : yup.string().nullable(), 
+country : yup.string().nullable(), 
+address : yup.string().nullable(), 
+image : yup.string().nullable(), 
+ 
+additional_note : yup.string().nullable(), 
 
     })
     .required();
@@ -289,11 +311,50 @@ additional_note : yup.string().required(t('The Additional Note field is required
 
    
 
+          const [uploadedImage, setUploadedImage] = useState(null);
+          const [imageSource, setImageSource] = useState(null); // 'upload' or 'camera'
+          
           const setUploadImage  = (value) => {
+              console.log('🔵 setUploadImage called with:', value);
+              console.log('🔵 media_url:', media_url);
               setValue('image', value);
-            } 
-
-        
+              trigger('image'); // Trigger validation for image field
+              // Check if value is already a full URL or just a filename
+              const imageUrl = value.startsWith('http') ? value : media_url + value;
+              console.log('🔵 Final imageUrl constructed:', imageUrl);
+              setUploadedImage(imageUrl);
+              setImageSource('upload');
+              // Clear camera image when uploading
+              setCapturedImage(null);
+            }
+            
+          const handleImageCapture = (blob, imageUrl) => {
+            console.log('🟡 handleImageCapture called with:', { blob, imageUrl });
+            if (blob && imageUrl) {
+              // Convert blob to base64 string for form validation
+              const base64String = blob.data || blob;
+              setValue('image', base64String);
+              trigger('image'); // Trigger validation for image field
+              setCapturedImage({
+                blob: imageUrl,
+                url: imageUrl
+              });
+              setImageSource('camera');
+              // Clear uploaded image when capturing
+              setUploadedImage(null);
+              console.log('🟡 Image captured and set in form as string:', typeof base64String);
+            } else {
+              console.error('🔴 Invalid capture data:', { blob, imageUrl });
+            }
+          }
+          
+          const clearImage = () => {
+            setCapturedImage(null);
+            setUploadedImage(null);
+            setImageSource(null);
+            setValue('image', null);
+            trigger('image'); // Trigger validation for image field
+          }
 
   const [refetch, setRefetch] = useState(false);
   const getMiniDisplay = (url) => {
@@ -324,42 +385,181 @@ additional_note : yup.string().required(t('The Additional Note field is required
   };
 
   const onCreate = async (data) => {
+    console.log('🟡 onCreate called with data:', data);
+    console.log('🟡 Form errors:', errors);
+    console.log('🟡 Current form values:', getValues());
+    console.log('🟡 Form is valid:', Object.keys(errors).length === 0);
+    
+    // Check if form has validation errors
+    if (Object.keys(errors).length > 0) {
+      console.error('🔴 Form has validation errors:', errors);
+      setToastMessage(t("Please fix the form errors before submitting"));
+      basicStickyNotification.current?.showToast();
+      return;
+    }
+    
     try {
       const response = await createCustomer(data);
-      setToastMessage(t("Customer created successfully."));
+      console.log('🟡 API response:', response);
+      
+      if (response && (response.success === true || response.data?.success === true)) {
+        setToastMessage(t("Customer created successfully."));
+        setRefetch(true);
+        setShowCreateModal(false);
+        basicStickyNotification.current?.showToast();
+      } else {
+        console.error('🔴 API returned error:', response);
+        const errorMessage = response?.data?.message || response?.message || 'Unknown error';
+        
+        if (response?.data?.errors) {
+          const validationErrors = Object.values(response.data.errors).flat();
+          setToastMessage(validationErrors.join(', '));
+        } else {
+          setToastMessage(errorMessage);
+        }
+        basicStickyNotification.current?.showToast();
+      }
     } catch (error) {
-      setToastMessage(t("Error creating Customer."));
+      console.error('🔴 Exception in onCreate:', error);
+      const errorMessage = error?.response?.data?.message || error?.message || 'Network error occurred';
+      setToastMessage(errorMessage);
+      basicStickyNotification.current?.showToast();
     }
-    basicStickyNotification.current?.showToast();
-    setRefetch(true);
-    setShowCreateModal(false);
   };
 
-  const onUpdate = async (data) => {
-    setShowUpdateModal(false)
-    try {
-      const response = await updateCustomer(data);
+const onUpdate = async (data) => {
+  try {
+    console.log('🟡 Updating customer with data:', data);
+    const response = await updateCustomer(data);
+    console.log('🟡 Update customer response:', response);
+      
+    if (response && (response.success === true || response.data?.success === true)) {
       setToastMessage(t('Customer updated successfully'));
-      setRefetch(true)
-    } catch (error) {
-      setShowUpdateModal(true)
-      setToastMessage(t('Customer deletion failed'));
+      setRefetch(true);
+      setShowUpdateModal(false);
+    } else {
+      // Handle validation errors specifically
+      if (response?.error?.data?.data?.errors) {
+        const validationErrors = response.error.data.data.errors;
+        const errorFields = Object.keys(validationErrors);
+        if (errorFields.length > 0) {
+          const firstError = validationErrors[errorFields[0]][0];
+          setToastMessage(firstError);
+        }
+      } else if (response?.data?.data?.errors) {
+        const validationErrors = response.data.data.errors;
+        const errorFields = Object.keys(validationErrors);
+        if (errorFields.length > 0) {
+          const firstError = validationErrors[errorFields[0]][0];
+          setToastMessage(firstError);
+        }
+      } else {
+        const errorMsg = response?.error?.data?.message || response?.message || response?.error || 'Unknown error occurred';
+        setToastMessage(`${t("Error updating Customer")}: ${errorMsg}`);
+      }
+      console.error('🔴 Update failed with response:', response);
+      setShowUpdateModal(true);
     }
-    basicStickyNotification.current?.showToast();
-  };
+  } catch (error) {
+    console.error('🔴 Update customer error:', error);
+    let errorMessage = t("Error updating Customer");
+      
+    if (error?.error?.data?.data?.errors) {
+      // Handle validation errors from error.error.data.data.errors structure
+      const validationErrors = error.error.data.data.errors;
+      const errorFields = Object.keys(validationErrors);
+      if (errorFields.length > 0) {
+        const firstError = validationErrors[errorFields[0]][0];
+        errorMessage = firstError;
+      }
+    } else if (error?.error?.data?.errors) {
+      // Handle validation errors from error.error.data.errors structure
+      const validationErrors = error.error.data.errors;
+      const errorFields = Object.keys(validationErrors);
+      if (errorFields.length > 0) {
+        const firstError = validationErrors[errorFields[0]][0];
+        errorMessage = firstError;
+      }
+    } else if (error.response?.data?.data?.errors) {
+      // Handle validation errors from error.response.data.data.errors structure
+      const validationErrors = error.response.data.data.errors;
+      const errorFields = Object.keys(validationErrors);
+      if (errorFields.length > 0) {
+        const firstError = validationErrors[errorFields[0]][0];
+        errorMessage = firstError;
+      }
+    } else if (error.response?.data?.message) {
+      errorMessage = error.response.data.message;
+    } else if (error.message) {
+      errorMessage = `${t("Error")}: ${error.message}`;
+    }
+      
+    setToastMessage(errorMessage);
+    setShowUpdateModal(true);
+  }
+    
+  basicStickyNotification.current?.showToast();
+  // Auto-hide toast after 7 seconds
+  setTimeout(() => {
+    basicStickyNotification.current?.hideToast();
+  }, 7000);
+};
 
   const onDelete = async () => {
     let id = getValues("id");
-    setShowDeleteModal(false)
+    setShowDeleteModal(false);
+    
     try {
-        const response = deleteCustomer(id);
+      console.log('🔴 Deleting customer with id:', id);
+      const response = await deleteCustomer(id);
+      console.log('🔴 Delete customer response:', response);
+      
+      if (response && (response.success === true || response.data?.success === true)) {
         setToastMessage(t("Customer deleted successfully."));
         setRefetch(true);
+      } else {
+        // Handle validation errors specifically
+        if (response?.error?.data?.data?.errors) {
+          const validationErrors = response.error.data.data.errors;
+          const errorFields = Object.keys(validationErrors);
+          if (errorFields.length > 0) {
+            const firstError = validationErrors[errorFields[0]][0];
+            setToastMessage(firstError);
+          }
+        } else {
+          const errorMsg = response?.error?.data?.message || response?.message || response?.error || 'Unknown error occurred';
+          setToastMessage(`${t("Error deleting Customer")}: ${errorMsg}`);
+        }
+        console.error('🔴 Delete failed with response:', response);
       }
-    catch (error) {
-      setToastMessage(t("Error deleting Customer."));
+    } catch (error) {
+      console.error('🔴 Delete customer error:', error);
+      let errorMessage = t("Error deleting Customer");
+      
+      if (error?.error?.data?.data?.errors) {
+        // Handle validation errors from error.error.data.data.errors structure
+        const validationErrors = error.error.data.data.errors;
+        const errorFields = Object.keys(validationErrors);
+        if (errorFields.length > 0) {
+          const firstError = validationErrors[errorFields[0]][0];
+          errorMessage = firstError;
+        }
+      } else if (error?.error?.data?.message) {
+        errorMessage = error.error.data.message;
+      } else if (error.response?.data?.message) {
+        errorMessage = error.response.data.message;
+      } else if (error.message) {
+        errorMessage = `${t("Error")}: ${error.message}`;
+      }
+      
+      setToastMessage(errorMessage);
     }
+    
     basicStickyNotification.current?.showToast();
+    // Auto-hide toast after 7 seconds
+    setTimeout(() => {
+      basicStickyNotification.current?.hideToast();
+    }, 7000);
   };    
 
 return (
@@ -427,240 +627,279 @@ return (
                   </div>
                 ) : (
                   <div className=" w-full grid grid-cols-1 gap-4 gap-y-3">
-                    
-<div className="mt-3 input-form">
-                      <FormLabel
-                        htmlFor="validation-form-1"
-                        className="flex justify-start items-start flex-col w-full sm:flex-row"
-                      >
-                        {t("Name Surname")}
+                    {/* Row 1: Name & Surname */}
+                    <div className="grid grid-cols-1 gap-4">
+                      <div className="input-form">
+                        <FormLabel className="flex justify-start items-start flex-col w-full sm:flex-row">
+                          {t("Name & Surname")}
+                        </FormLabel>
+                        <FormInput
+                          {...register("name_surname")}
+                          type="text"
+                          name="name_surname"
+                          className={clsx({"border-danger": errors.name_surname})}
+                          placeholder={t("Enter name & surname")}
+                        />
+                        {errors.name_surname && (
+                          <div className="mt-2 text-danger">
+                            {typeof errors.name_surname.message === "string" && errors.name_surname.message}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Row 2: Image */}
+                    <div className="input-form">
+                      <FormLabel className="flex justify-start items-start flex-col w-full sm:flex-row">
+                        {t("Image")}
                       </FormLabel>
-                      <FormInput
-                        {...register("name_surname")}
-                        id="validation-form-1"
-                        type="text"
-                        name="name_surname"
-                        className={clsx({
-                          "border-danger": errors.name_surname,
-                        })}
-                        placeholder={t("Enter name_surname")}
-                      />
-                      {errors.name_surname && (
-                        <div className="mt-2 text-danger">
-                          {typeof errors.name_surname.message === "string" &&
-                            errors.name_surname.message}
+                      <div className="space-y-4 mb-3">
+                        <div className={imageSource === 'camera' ? 'opacity-50 pointer-events-none' : ''}>
+                          <label className="text-sm font-medium text-gray-700 mb-2 block">{t("Upload Image")}</label>
+                          <FileUpload 
+                            endpoint={upload_url} 
+                            type="image/*" 
+                            className="w-full" 
+                            setUploadedURL={setUploadImage}
+                            disabled={imageSource === 'camera'}
+                          />
+                        </div>
+                        
+                        <div className="flex items-center justify-center py-2">
+                          <div className="flex-grow border-t border-gray-300"></div>
+                          <span className="px-4 text-sm text-gray-500 bg-white">{t("Or")}</span>
+                          <div className="flex-grow border-t border-gray-300"></div>
+                        </div>
+                        
+                        <div className={imageSource === 'upload' ? 'opacity-50 pointer-events-none' : ''}>
+                          <label className="text-sm font-medium text-gray-700 mb-2 block">{t("Take Picture")}</label>
+                          <CameraCapture 
+                            onCapture={handleImageCapture}
+                            capturedImage={capturedImage}
+                            className="w-full"
+                            disabled={imageSource === 'upload'}
+                          />
+                        </div>
+                      </div>
+                      
+                      {(uploadedImage || capturedImage) && (
+                        <div className="mt-2 flex items-start gap-3">
+                          <div className="flex-shrink-0">
+                            <img 
+                              src={uploadedImage || capturedImage?.blob || capturedImage?.url} 
+                              alt="Customer Image" 
+                              className="w-32 h-32 object-cover rounded border shadow-sm"
+                              onError={(e) => {
+                                console.error('🔴 Image failed to load:', e.target.src);
+                                console.error('🔴 uploadedImage state:', uploadedImage);
+                                console.error('🔴 capturedImage state:', capturedImage);
+                                console.error('🔴 imageSource state:', imageSource);
+                                e.target.style.display = 'none';
+                              }}
+                              onLoad={(e) => {
+                                console.log('✅ Image loaded successfully:', e.target.src);
+                                console.log('✅ uploadedImage state:', uploadedImage);
+                                console.log('✅ capturedImage state:', capturedImage);
+                              }}
+                            />
+                          </div>
+                          <button
+                            type="button"
+                            onClick={clearImage}
+                            className="px-3 py-1 text-sm bg-red-500 text-white rounded hover:bg-red-600 transition-colors"
+                          >
+                            {t("Clear Image")}
+                          </button>
                         </div>
                       )}
                     </div>
 
+                    {/* Row 3: Shipping Mark & Email */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="input-form">
+                        <FormLabel className="flex justify-start items-start flex-col w-full sm:flex-row">
+                          {t("Shipping Mark")}
+                        </FormLabel>
+                        <FormInput
+                          {...register("shipping_mark")}
+                          type="text"
+                          name="shipping_mark"
+                          className={clsx({"border-danger": errors.shipping_mark})}
+                          placeholder={t("Enter shipping mark")}
+                        />
+                        {errors.shipping_mark && (
+                          <div className="mt-2 text-danger">
+                            {typeof errors.shipping_mark.message === "string" && errors.shipping_mark.message}
+                          </div>
+                        )}
+                      </div>
+                      <div className="input-form">
+                        <FormLabel className="flex justify-start items-start flex-col w-full sm:flex-row">
+                          {t("Email")}
+                        </FormLabel>
+                        <FormInput
+                          {...register("email")}
+                          type="email"
+                          name="email"
+                          className={clsx({"border-danger": errors.email})}
+                          placeholder={t("Enter email")}
+                        />
+                        {errors.email && (
+                          <div className="mt-2 text-danger">
+                            {typeof errors.email.message === "string" && errors.email.message}
+                          </div>
+                        )}
+                      </div>
+                    </div>
 
-<div className="mt-3 input-form">
-                      <FormLabel
-                        htmlFor="validation-form-1"
-                        className="flex justify-start items-start flex-col w-full sm:flex-row"
-                      >
-                        {t("Shipping Mark")}
+                    {/* Row 4: Phone & Position */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="input-form">
+                        <FormLabel className="flex justify-start items-start flex-col w-full sm:flex-row">
+                          {t("Phone")}
+                        </FormLabel>
+                        <FormInput
+                          {...register("phone_number")}
+                          type="text"
+                          name="phone_number"
+                          className={clsx({"border-danger": errors.phone_number})}
+                          placeholder={t("Enter phone number")}
+                        />
+                        {errors.phone_number && (
+                          <div className="mt-2 text-danger">
+                            {typeof errors.phone_number.message === "string" && errors.phone_number.message}
+                          </div>
+                        )}
+                      </div>
+                      <div className="input-form">
+                        <FormLabel className="flex justify-start items-start flex-col w-full sm:flex-row">
+                          {t("Position")}
+                        </FormLabel>
+                        <FormInput
+                          {...register("position")}
+                          type="text"
+                          name="position"
+                          className={clsx({"border-danger": errors.position})}
+                          placeholder={t("Enter position")}
+                        />
+                        {errors.position && (
+                          <div className="mt-2 text-danger">
+                            {typeof errors.position.message === "string" && errors.position.message}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Row 5: Birth Date */}
+                    <div className="input-form">
+                      <FormLabel className="flex justify-start items-start flex-col w-full sm:flex-row">
+                        {t("Birth Date")}
                       </FormLabel>
                       <FormInput
-                        {...register("shipping_mark")}
-                        id="validation-form-1"
-                        type="text"
-                        name="shipping_mark"
-                        className={clsx({
-                          "border-danger": errors.shipping_mark,
-                        })}
-                        placeholder={t("Enter shipping_mark")}
+                        {...register("birth_date")}
+                        type="date"
+                        name="birth_date"
+                        className={clsx({"border-danger": errors.birth_date})}
                       />
-                      {errors.shipping_mark && (
+                      {errors.birth_date && (
                         <div className="mt-2 text-danger">
-                          {typeof errors.shipping_mark.message === "string" &&
-                            errors.shipping_mark.message}
+                          {typeof errors.birth_date.message === "string" && errors.birth_date.message}
                         </div>
                       )}
                     </div>
 
+                    {/* Row 6: WhatsApp & WeChat */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="input-form">
+                        <FormLabel className="flex justify-start items-start flex-col w-full sm:flex-row">
+                          {t("WhatsApp")}
+                        </FormLabel>
+                        <FormInput
+                          {...register("whatsapp")}
+                          type="text"
+                          name="whatsapp"
+                          className={clsx({"border-danger": errors.whatsapp})}
+                          placeholder={t("Enter WhatsApp number")}
+                        />
+                        {errors.whatsapp && (
+                          <div className="mt-2 text-danger">
+                            {typeof errors.whatsapp.message === "string" && errors.whatsapp.message}
+                          </div>
+                        )}
+                      </div>
+                      <div className="input-form">
+                        <FormLabel className="flex justify-start items-start flex-col w-full sm:flex-row">
+                          {t("WeChat")}
+                        </FormLabel>
+                        <FormInput
+                          {...register("wechat_id")}
+                          type="text"
+                          name="wechat_id"
+                          className={clsx({"border-danger": errors.wechat_id})}
+                          placeholder={t("Enter WeChat ID")}
+                        />
+                        {errors.wechat_id && (
+                          <div className="mt-2 text-danger">
+                            {typeof errors.wechat_id.message === "string" && errors.wechat_id.message}
+                          </div>
+                        )}
+                      </div>
+                    </div>
 
-<div className="mt-3 input-form">
-                      <FormLabel
-                        htmlFor="validation-form-1"
-                        className="flex justify-start items-start flex-col w-full sm:flex-row"
-                      >
-                        {t("Country")}
-                      </FormLabel>
-                      <FormInput
-                        {...register("country")}
-                        id="validation-form-1"
-                        type="text"
-                        name="country"
-                        className={clsx({
-                          "border-danger": errors.country,
-                        })}
-                        placeholder={t("Enter country")}
-                      />
-                      {errors.country && (
-                        <div className="mt-2 text-danger">
-                          {typeof errors.country.message === "string" &&
-                            errors.country.message}
-                        </div>
-                      )}
+                    {/* Row 7: Country & Address */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="input-form">
+                        <FormLabel className="flex justify-start items-start flex-col w-full sm:flex-row">
+                          {t("Country")}
+                        </FormLabel>
+                        <FormInput
+                          {...register("country")}
+                          type="text"
+                          name="country"
+                          className={clsx({"border-danger": errors.country})}
+                          placeholder={t("Enter country")}
+                        />
+                        {errors.country && (
+                          <div className="mt-2 text-danger">
+                            {typeof errors.country.message === "string" && errors.country.message}
+                          </div>
+                        )}
+                      </div>
+                      <div className="input-form">
+                        <FormLabel className="flex justify-start items-start flex-col w-full sm:flex-row">
+                          {t("Address")}
+                        </FormLabel>
+                        <FormInput
+                          {...register("address")}
+                          type="text"
+                          name="address"
+                          className={clsx({"border-danger": errors.address})}
+                          placeholder={t("Enter address")}
+                        />
+                        {errors.address && (
+                          <div className="mt-2 text-danger">
+                            {typeof errors.address.message === "string" && errors.address.message}
+                          </div>
+                        )}
+                      </div>
                     </div>
 
 
-<div className="mt-3 input-form">
-                      <FormLabel
-                        htmlFor="validation-form-1"
-                        className="flex justify-start items-start flex-col w-full sm:flex-row"
-                      >
-                        {t("Address")}
-                      </FormLabel>
-                      <FormInput
-                        {...register("address")}
-                        id="validation-form-1"
-                        type="text"
-                        name="address"
-                        className={clsx({
-                          "border-danger": errors.address,
-                        })}
-                        placeholder={t("Enter address")}
-                      />
-                      {errors.address && (
-                        <div className="mt-2 text-danger">
-                          {typeof errors.address.message === "string" &&
-                            errors.address.message}
-                        </div>
-                      )}
-                    </div>
-
-
-<div className="mt-3 input-form">
-                      <FormLabel
-                        htmlFor="validation-form-1"
-                        className="flex justify-start items-start flex-col w-full sm:flex-row"
-                      >
-                        {t("Email")}
-                      </FormLabel>
-                      <FormInput
-                        {...register("email")}
-                        id="validation-form-1"
-                        type="email"
-                        name="email"
-                        className={clsx({
-                          "border-danger": errors.email,
-                        })}
-                        placeholder={t("Enter email")}
-                      />
-                      {errors.email && (
-                        <div className="mt-2 text-danger">
-                          {typeof errors.email.message === "string" &&
-                            errors.email.message}
-                        </div>
-                      )}
-                    </div>
-
-
-<div className="mt-3 input-form">
-                      <FormLabel
-                        htmlFor="validation-form-1"
-                        className="flex justify-start items-start flex-col w-full sm:flex-row"
-                      >
-                        {t("Phone Number")}
-                      </FormLabel>
-                      <FormInput
-                        {...register("phone_number")}
-                        id="validation-form-1"
-                        type="text"
-                        name="phone_number"
-                        className={clsx({
-                          "border-danger": errors.phone_number,
-                        })}
-                        placeholder={t("Enter phone_number")}
-                      />
-                      {errors.phone_number && (
-                        <div className="mt-2 text-danger">
-                          {typeof errors.phone_number.message === "string" &&
-                            errors.phone_number.message}
-                        </div>
-                      )}
-                    </div>
-
-
-<div className="mt-3 input-form">
-                      <FormLabel
-                        htmlFor="validation-form-1"
-                        className="flex justify-start items-start flex-col w-full sm:flex-row"
-                      >
-                        {t("Whatsapp")}
-                      </FormLabel>
-                      <FormInput
-                        {...register("whatsapp")}
-                        id="validation-form-1"
-                        type="text"
-                        name="whatsapp"
-                        className={clsx({
-                          "border-danger": errors.whatsapp,
-                        })}
-                        placeholder={t("Enter whatsapp")}
-                      />
-                      {errors.whatsapp && (
-                        <div className="mt-2 text-danger">
-                          {typeof errors.whatsapp.message === "string" &&
-                            errors.whatsapp.message}
-                        </div>
-                      )}
-                    </div>
-
-
-<div className="mt-3 input-form">
-                      <FormLabel
-                        htmlFor="validation-form-1"
-                        className="flex justify-start items-start flex-col w-full sm:flex-row"
-                      >
-                        {t("Wechat Id")}
-                      </FormLabel>
-                      <FormInput
-                        {...register("wechat_id")}
-                        id="validation-form-1"
-                        type="text"
-                        name="wechat_id"
-                        className={clsx({
-                          "border-danger": errors.wechat_id,
-                        })}
-                        placeholder={t("Enter wechat_id")}
-                      />
-                      {errors.wechat_id && (
-                        <div className="mt-2 text-danger">
-                          {typeof errors.wechat_id.message === "string" &&
-                            errors.wechat_id.message}
-                        </div>
-                      )}
-                    </div>
-
-
-          <div className="w-full ">
-              <FileUpload endpoint={upload_url} type="image/*" className="w-full " setUploadedURL={setUploadImage}/>
-          </div>
-        
-<div className="mt-3 input-form">
-                      <FormLabel
-                        htmlFor="validation-form-1"
-                        className="flex justify-start items-start flex-col w-full sm:flex-row"
-                      >
+                    {/* Row 9: Additional Note */}
+                    <div className="input-form">
+                      <FormLabel className="flex justify-start items-start flex-col w-full sm:flex-row">
                         {t("Additional Note")}
                       </FormLabel>
-                      <FormInput
+                      <FormTextarea
                         {...register("additional_note")}
-                        id="validation-form-1"
-                        type="text"
                         name="additional_note"
-                        className={clsx({
-                          "border-danger": errors.additional_note,
-                        })}
-                        placeholder={t("Enter additional_note")}
+                        className={clsx({"border-danger": errors.additional_note})}
+                        placeholder={t("Enter additional notes")}
+                        rows={3}
                       />
                       {errors.additional_note && (
                         <div className="mt-2 text-danger">
-                          {typeof errors.additional_note.message === "string" &&
-                            errors.additional_note.message}
+                          {typeof errors.additional_note.message === "string" && errors.additional_note.message}
                         </div>
                       )}
                     </div>
@@ -681,7 +920,16 @@ return (
               >
                 {t("Cancel")}
               </Button>
-              <Button variant="primary" type="submit" className="w-20">
+              <Button 
+                variant="primary" 
+                type="submit" 
+                className="w-20"
+                onClick={() => {
+                  console.log('🟡 Save button clicked');
+                  console.log('🟡 Form errors at click:', errors);
+                  console.log('🟡 Form values at click:', getValues());
+                }}
+              >
                 {t("Save")}
               </Button>
             </Slideover.Footer>
@@ -711,240 +959,279 @@ return (
                   </div>
                 ) : (
                   <div className=" w-full grid grid-cols-1  gap-4 gap-y-3">
-                    
-<div className="mt-3 input-form">
-                      <FormLabel
-                        htmlFor="validation-form-1"
-                        className="flex justify-start items-start flex-col w-full sm:flex-row"
-                      >
-                        {t("Name Surname")}
+                    {/* Row 1: Name & Surname */}
+                    <div className="grid grid-cols-1 gap-4">
+                      <div className="input-form">
+                        <FormLabel className="flex justify-start items-start flex-col w-full sm:flex-row">
+                          {t("Name & Surname")}
+                        </FormLabel>
+                        <FormInput
+                          {...register("name_surname")}
+                          type="text"
+                          name="name_surname"
+                          className={clsx({"border-danger": errors.name_surname})}
+                          placeholder={t("Enter name & surname")}
+                        />
+                        {errors.name_surname && (
+                          <div className="mt-2 text-danger">
+                            {typeof errors.name_surname.message === "string" && errors.name_surname.message}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Row 2: Image */}
+                    <div className="input-form">
+                      <FormLabel className="flex justify-start items-start flex-col w-full sm:flex-row">
+                        {t("Image")}
                       </FormLabel>
-                      <FormInput
-                        {...register("name_surname")}
-                        id="validation-form-1"
-                        type="text"
-                        name="name_surname"
-                        className={clsx({
-                          "border-danger": errors.name_surname,
-                        })}
-                        placeholder={t("Enter name_surname")}
-                      />
-                      {errors.name_surname && (
-                        <div className="mt-2 text-danger">
-                          {typeof errors.name_surname.message === "string" &&
-                            errors.name_surname.message}
+                      <div className="space-y-4 mb-3">
+                        <div className={imageSource === 'camera' ? 'opacity-50 pointer-events-none' : ''}>
+                          <label className="text-sm font-medium text-gray-700 mb-2 block">{t("Upload Image")}</label>
+                          <FileUpload 
+                            endpoint={upload_url} 
+                            type="image/*" 
+                            className="w-full" 
+                            setUploadedURL={setUploadImage}
+                            disabled={imageSource === 'camera'}
+                          />
+                        </div>
+                        
+                        <div className="flex items-center justify-center py-2">
+                          <div className="flex-grow border-t border-gray-300"></div>
+                          <span className="px-4 text-sm text-gray-500 bg-white">{t("Or")}</span>
+                          <div className="flex-grow border-t border-gray-300"></div>
+                        </div>
+                        
+                        <div className={imageSource === 'upload' ? 'opacity-50 pointer-events-none' : ''}>
+                          <label className="text-sm font-medium text-gray-700 mb-2 block">{t("Take Picture")}</label>
+                          <CameraCapture 
+                            onCapture={handleImageCapture}
+                            capturedImage={capturedImage}
+                            className="w-full"
+                            disabled={imageSource === 'upload'}
+                          />
+                        </div>
+                      </div>
+                      
+                      {(uploadedImage || capturedImage) && (
+                        <div className="mt-2 flex items-start gap-3">
+                          <div className="flex-shrink-0">
+                            <img 
+                              src={uploadedImage || capturedImage?.blob || capturedImage?.url} 
+                              alt="Customer Image" 
+                              className="w-32 h-32 object-cover rounded border shadow-sm"
+                              onError={(e) => {
+                                console.error('🔴 Image failed to load:', e.target.src);
+                                console.error('🔴 uploadedImage state:', uploadedImage);
+                                console.error('🔴 capturedImage state:', capturedImage);
+                                console.error('🔴 imageSource state:', imageSource);
+                                e.target.style.display = 'none';
+                              }}
+                              onLoad={(e) => {
+                                console.log('✅ Image loaded successfully:', e.target.src);
+                                console.log('✅ uploadedImage state:', uploadedImage);
+                                console.log('✅ capturedImage state:', capturedImage);
+                              }}
+                            />
+                          </div>
+                          <button
+                            type="button"
+                            onClick={clearImage}
+                            className="px-3 py-1 text-sm bg-red-500 text-white rounded hover:bg-red-600 transition-colors"
+                          >
+                            {t("Clear Image")}
+                          </button>
                         </div>
                       )}
                     </div>
 
+                    {/* Row 3: Shipping Mark & Email */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="input-form">
+                        <FormLabel className="flex justify-start items-start flex-col w-full sm:flex-row">
+                          {t("Shipping Mark")}
+                        </FormLabel>
+                        <FormInput
+                          {...register("shipping_mark")}
+                          type="text"
+                          name="shipping_mark"
+                          className={clsx({"border-danger": errors.shipping_mark})}
+                          placeholder={t("Enter shipping mark")}
+                        />
+                        {errors.shipping_mark && (
+                          <div className="mt-2 text-danger">
+                            {typeof errors.shipping_mark.message === "string" && errors.shipping_mark.message}
+                          </div>
+                        )}
+                      </div>
+                      <div className="input-form">
+                        <FormLabel className="flex justify-start items-start flex-col w-full sm:flex-row">
+                          {t("Email")}
+                        </FormLabel>
+                        <FormInput
+                          {...register("email")}
+                          type="email"
+                          name="email"
+                          className={clsx({"border-danger": errors.email})}
+                          placeholder={t("Enter email")}
+                        />
+                        {errors.email && (
+                          <div className="mt-2 text-danger">
+                            {typeof errors.email.message === "string" && errors.email.message}
+                          </div>
+                        )}
+                      </div>
+                    </div>
 
-<div className="mt-3 input-form">
-                      <FormLabel
-                        htmlFor="validation-form-1"
-                        className="flex justify-start items-start flex-col w-full sm:flex-row"
-                      >
-                        {t("Shipping Mark")}
+                    {/* Row 4: Phone & Position */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="input-form">
+                        <FormLabel className="flex justify-start items-start flex-col w-full sm:flex-row">
+                          {t("Phone")}
+                        </FormLabel>
+                        <FormInput
+                          {...register("phone_number")}
+                          type="text"
+                          name="phone_number"
+                          className={clsx({"border-danger": errors.phone_number})}
+                          placeholder={t("Enter phone number")}
+                        />
+                        {errors.phone_number && (
+                          <div className="mt-2 text-danger">
+                            {typeof errors.phone_number.message === "string" && errors.phone_number.message}
+                          </div>
+                        )}
+                      </div>
+                      <div className="input-form">
+                        <FormLabel className="flex justify-start items-start flex-col w-full sm:flex-row">
+                          {t("Position")}
+                        </FormLabel>
+                        <FormInput
+                          {...register("position")}
+                          type="text"
+                          name="position"
+                          className={clsx({"border-danger": errors.position})}
+                          placeholder={t("Enter position")}
+                        />
+                        {errors.position && (
+                          <div className="mt-2 text-danger">
+                            {typeof errors.position.message === "string" && errors.position.message}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Row 5: Birth Date */}
+                    <div className="input-form">
+                      <FormLabel className="flex justify-start items-start flex-col w-full sm:flex-row">
+                        {t("Birth Date")}
                       </FormLabel>
                       <FormInput
-                        {...register("shipping_mark")}
-                        id="validation-form-1"
-                        type="text"
-                        name="shipping_mark"
-                        className={clsx({
-                          "border-danger": errors.shipping_mark,
-                        })}
-                        placeholder={t("Enter shipping_mark")}
+                        {...register("birth_date")}
+                        type="date"
+                        name="birth_date"
+                        className={clsx({"border-danger": errors.birth_date})}
                       />
-                      {errors.shipping_mark && (
+                      {errors.birth_date && (
                         <div className="mt-2 text-danger">
-                          {typeof errors.shipping_mark.message === "string" &&
-                            errors.shipping_mark.message}
+                          {typeof errors.birth_date.message === "string" && errors.birth_date.message}
                         </div>
                       )}
                     </div>
 
+                    {/* Row 6: WhatsApp & WeChat */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="input-form">
+                        <FormLabel className="flex justify-start items-start flex-col w-full sm:flex-row">
+                          {t("WhatsApp")}
+                        </FormLabel>
+                        <FormInput
+                          {...register("whatsapp")}
+                          type="text"
+                          name="whatsapp"
+                          className={clsx({"border-danger": errors.whatsapp})}
+                          placeholder={t("Enter WhatsApp number")}
+                        />
+                        {errors.whatsapp && (
+                          <div className="mt-2 text-danger">
+                            {typeof errors.whatsapp.message === "string" && errors.whatsapp.message}
+                          </div>
+                        )}
+                      </div>
+                      <div className="input-form">
+                        <FormLabel className="flex justify-start items-start flex-col w-full sm:flex-row">
+                          {t("WeChat")}
+                        </FormLabel>
+                        <FormInput
+                          {...register("wechat_id")}
+                          type="text"
+                          name="wechat_id"
+                          className={clsx({"border-danger": errors.wechat_id})}
+                          placeholder={t("Enter WeChat ID")}
+                        />
+                        {errors.wechat_id && (
+                          <div className="mt-2 text-danger">
+                            {typeof errors.wechat_id.message === "string" && errors.wechat_id.message}
+                          </div>
+                        )}
+                      </div>
+                    </div>
 
-<div className="mt-3 input-form">
-                      <FormLabel
-                        htmlFor="validation-form-1"
-                        className="flex justify-start items-start flex-col w-full sm:flex-row"
-                      >
-                        {t("Country")}
-                      </FormLabel>
-                      <FormInput
-                        {...register("country")}
-                        id="validation-form-1"
-                        type="text"
-                        name="country"
-                        className={clsx({
-                          "border-danger": errors.country,
-                        })}
-                        placeholder={t("Enter country")}
-                      />
-                      {errors.country && (
-                        <div className="mt-2 text-danger">
-                          {typeof errors.country.message === "string" &&
-                            errors.country.message}
-                        </div>
-                      )}
+                    {/* Row 7: Country & Address */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="input-form">
+                        <FormLabel className="flex justify-start items-start flex-col w-full sm:flex-row">
+                          {t("Country")}
+                        </FormLabel>
+                        <FormInput
+                          {...register("country")}
+                          type="text"
+                          name="country"
+                          className={clsx({"border-danger": errors.country})}
+                          placeholder={t("Enter country")}
+                        />
+                        {errors.country && (
+                          <div className="mt-2 text-danger">
+                            {typeof errors.country.message === "string" && errors.country.message}
+                          </div>
+                        )}
+                      </div>
+                      <div className="input-form">
+                        <FormLabel className="flex justify-start items-start flex-col w-full sm:flex-row">
+                          {t("Address")}
+                        </FormLabel>
+                        <FormInput
+                          {...register("address")}
+                          type="text"
+                          name="address"
+                          className={clsx({"border-danger": errors.address})}
+                          placeholder={t("Enter address")}
+                        />
+                        {errors.address && (
+                          <div className="mt-2 text-danger">
+                            {typeof errors.address.message === "string" && errors.address.message}
+                          </div>
+                        )}
+                      </div>
                     </div>
 
 
-<div className="mt-3 input-form">
-                      <FormLabel
-                        htmlFor="validation-form-1"
-                        className="flex justify-start items-start flex-col w-full sm:flex-row"
-                      >
-                        {t("Address")}
-                      </FormLabel>
-                      <FormInput
-                        {...register("address")}
-                        id="validation-form-1"
-                        type="text"
-                        name="address"
-                        className={clsx({
-                          "border-danger": errors.address,
-                        })}
-                        placeholder={t("Enter address")}
-                      />
-                      {errors.address && (
-                        <div className="mt-2 text-danger">
-                          {typeof errors.address.message === "string" &&
-                            errors.address.message}
-                        </div>
-                      )}
-                    </div>
-
-
-<div className="mt-3 input-form">
-                      <FormLabel
-                        htmlFor="validation-form-1"
-                        className="flex justify-start items-start flex-col w-full sm:flex-row"
-                      >
-                        {t("Email")}
-                      </FormLabel>
-                      <FormInput
-                        {...register("email")}
-                        id="validation-form-1"
-                        type="email"
-                        name="email"
-                        className={clsx({
-                          "border-danger": errors.email,
-                        })}
-                        placeholder={t("Enter email")}
-                      />
-                      {errors.email && (
-                        <div className="mt-2 text-danger">
-                          {typeof errors.email.message === "string" &&
-                            errors.email.message}
-                        </div>
-                      )}
-                    </div>
-
-
-<div className="mt-3 input-form">
-                      <FormLabel
-                        htmlFor="validation-form-1"
-                        className="flex justify-start items-start flex-col w-full sm:flex-row"
-                      >
-                        {t("Phone Number")}
-                      </FormLabel>
-                      <FormInput
-                        {...register("phone_number")}
-                        id="validation-form-1"
-                        type="text"
-                        name="phone_number"
-                        className={clsx({
-                          "border-danger": errors.phone_number,
-                        })}
-                        placeholder={t("Enter phone_number")}
-                      />
-                      {errors.phone_number && (
-                        <div className="mt-2 text-danger">
-                          {typeof errors.phone_number.message === "string" &&
-                            errors.phone_number.message}
-                        </div>
-                      )}
-                    </div>
-
-
-<div className="mt-3 input-form">
-                      <FormLabel
-                        htmlFor="validation-form-1"
-                        className="flex justify-start items-start flex-col w-full sm:flex-row"
-                      >
-                        {t("Whatsapp")}
-                      </FormLabel>
-                      <FormInput
-                        {...register("whatsapp")}
-                        id="validation-form-1"
-                        type="text"
-                        name="whatsapp"
-                        className={clsx({
-                          "border-danger": errors.whatsapp,
-                        })}
-                        placeholder={t("Enter whatsapp")}
-                      />
-                      {errors.whatsapp && (
-                        <div className="mt-2 text-danger">
-                          {typeof errors.whatsapp.message === "string" &&
-                            errors.whatsapp.message}
-                        </div>
-                      )}
-                    </div>
-
-
-<div className="mt-3 input-form">
-                      <FormLabel
-                        htmlFor="validation-form-1"
-                        className="flex justify-start items-start flex-col w-full sm:flex-row"
-                      >
-                        {t("Wechat Id")}
-                      </FormLabel>
-                      <FormInput
-                        {...register("wechat_id")}
-                        id="validation-form-1"
-                        type="text"
-                        name="wechat_id"
-                        className={clsx({
-                          "border-danger": errors.wechat_id,
-                        })}
-                        placeholder={t("Enter wechat_id")}
-                      />
-                      {errors.wechat_id && (
-                        <div className="mt-2 text-danger">
-                          {typeof errors.wechat_id.message === "string" &&
-                            errors.wechat_id.message}
-                        </div>
-                      )}
-                    </div>
-
-
-          <div className="w-full ">
-              <FileUpload endpoint={upload_url} type="image/*" className="w-full " setUploadedURL={setUploadImage}/>
-          </div>
-        
-<div className="mt-3 input-form">
-                      <FormLabel
-                        htmlFor="validation-form-1"
-                        className="flex justify-start items-start flex-col w-full sm:flex-row"
-                      >
+                    {/* Row 9: Additional Note */}
+                    <div className="input-form">
+                      <FormLabel className="flex justify-start items-start flex-col w-full sm:flex-row">
                         {t("Additional Note")}
                       </FormLabel>
-                      <FormInput
+                      <FormTextarea
                         {...register("additional_note")}
-                        id="validation-form-1"
-                        type="text"
                         name="additional_note"
-                        className={clsx({
-                          "border-danger": errors.additional_note,
-                        })}
-                        placeholder={t("Enter additional_note")}
+                        className={clsx({"border-danger": errors.additional_note})}
+                        placeholder={t("Enter additional notes")}
+                        rows={3}
                       />
                       {errors.additional_note && (
                         <div className="mt-2 text-danger">
-                          {typeof errors.additional_note.message === "string" &&
-                            errors.additional_note.message}
+                          {typeof errors.additional_note.message === "string" && errors.additional_note.message}
                         </div>
                       )}
                     </div>

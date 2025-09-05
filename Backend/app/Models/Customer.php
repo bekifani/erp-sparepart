@@ -13,9 +13,13 @@ use Illuminate\Notifications\Notifiable;
 class Customer extends Model
 {
     use HasFactory, LogsActivity, Notifiable;
-    public $fillable = ['name_surname', 'shipping_mark', 'user_id', 'country', 'address', 'email', 'phone_number', 'whatsapp', 'wechat_id', 'image', 'additional_note'];
+    public $fillable = ['name_surname', 'shipping_mark', 'country', 'address', 'email', 'phone_number', 'position', 'birth_date', 'whatsapp', 'wechat_id', 'image', 'additional_note'];
     protected static $logAttributes = ['*'];
     public $guarded = [];
+    
+    protected $casts = [
+        'birth_date' => 'date'
+    ];
 
     public function getDescriptionForEvent(string $eventName): string
     {
@@ -32,6 +36,6 @@ class Customer extends Model
     }
 
  public function user() { 
- return $this->belongsTo(User::class, 'user_id', 'id');
+ return $this->hasOne(User::class, 'customer_id', 'id');
  }
 }

@@ -8,10 +8,11 @@ use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Facades\Log;
 use Mail;
 class CustomerController extends BaseController
 {
-    protected $searchableColumns = ['name_surname', 'shipping_mark', 'country', 'address', 'email', 'phone_number', 'whatsapp', 'wechat_id', 'image', 'additional_note'];
+    protected $searchableColumns = ['name_surname', 'shipping_mark', 'country', 'address', 'email', 'phone_number', 'position', 'birth_date', 'whatsapp', 'wechat_id', 'image', 'additional_note'];
 
     public function index(Request $request)
     {
@@ -36,6 +37,13 @@ class CustomerController extends BaseController
             }
         }
         $customer = $query->paginate($perPage); 
+        
+        // Log the customer data to check if new fields are included
+        Log::info('Customer index response:', [
+            'first_customer' => $customer->items() ? $customer->items()[0] : null,
+            'total_count' => $customer->total()
+        ]);
+        
         $data = [
             "data" => $customer->toArray(), 
             'current_page' => $customer->currentPage(),
@@ -80,9 +88,11 @@ class CustomerController extends BaseController
           "country"=>"nullable|string|max:255",
           "address"=>"nullable|string|max:255",
           "email"=>"required|email|unique:customers,email",
-          "phone_number"=>"nullable|string|max:20",
-          "whatsapp"=>"nullable|string|max:20",
-          "wechat_id"=>"nullable|string|max:255",
+          "phone_number"=>"nullable|string|max:20|unique:customers,phone_number",
+          "position"=>"nullable|string|max:255",
+          "birth_date"=>"nullable|date",
+          "whatsapp"=>"nullable|string|max:20|unique:customers,whatsapp",
+          "wechat_id"=>"nullable|string|max:255|unique:customers,wechat_id",
           "image"=>"nullable|",
           "additional_note"=>"nullable|string",
           
@@ -100,6 +110,33 @@ class CustomerController extends BaseController
         
         //file uploads
 
+        // Handle image field - convert base64 data to file path (for camera capture)
+        if (isset($validated['image']) && !empty($validated['image'])) {
+            $base64Data = $validated['image'];
+            
+            // Handle both array format {data: 'base64...', type: 'image/jpeg'} and string format
+            if (is_array($validated['image']) && isset($validated['image']['data'])) {
+                $base64Data = $validated['image']['data'];
+            }
+            
+            // Remove data URL prefix if present
+            if (strpos($base64Data, 'data:image') === 0) {
+                $base64Data = substr($base64Data, strpos($base64Data, ',') + 1);
+            }
+            
+            // Decode base64 and save as file
+            $decodedImageData = base64_decode($base64Data);
+            if ($decodedImageData !== false) {
+                $fileName = 'customer_image_' . time() . '.jpg';
+                $filePath = 'uploads/data/' . $fileName;
+                Storage::disk('public')->put($filePath, $decodedImageData);
+                $validated['image'] = $filePath;
+            } else {
+                // If base64 decode fails, treat as regular file path
+                // This handles cases where image is already a file path from FileUpload component
+            }
+        }
+
         $customer = Customer::create($validated);
         
         // Create user automatically like employee registration
@@ -116,9 +153,7 @@ class CustomerController extends BaseController
         ];
         $user = User::create($user_data);
         
-        // Update customer with user_id
-        $customer->user_id = $user->id;
-        $customer->save();
+        // No need to update customer with user_id - relationship is now one-way
         
         // Send password via email if available
         if($customer->email != null) {
@@ -139,6 +174,10 @@ class CustomerController extends BaseController
     public function show($id)
     {
         $customer = Customer::findOrFail($id);
+        Log::info('Customer show response:', [
+            'customer_id' => $id,
+            'customer_data' => $customer->toArray()
+        ]);
         return $this->sendResponse($customer, "");
     }
 
@@ -155,9 +194,11 @@ class CustomerController extends BaseController
           "country"=>"nullable|string|max:255",
           "address"=>"nullable|string|max:255",
           "email"=>"required|email|unique:customers,email," . $id,
-          "phone_number"=>"nullable|string|max:20",
-          "whatsapp"=>"nullable|string|max:20",
-          "wechat_id"=>"nullable|string|max:255",
+          "phone_number"=>"nullable|string|max:20|unique:customers,phone_number," . $id,
+          "position"=>"nullable|string|max:255",
+          "birth_date"=>"nullable|date",
+          "whatsapp"=>"nullable|string|max:20|unique:customers,whatsapp," . $id,
+          "wechat_id"=>"nullable|string|max:255|unique:customers,wechat_id," . $id,
           "image"=>"nullable|",
           "additional_note"=>"nullable|string",
           
@@ -174,18 +215,43 @@ class CustomerController extends BaseController
 
         //file uploads update
 
+        // Handle image field - convert base64 data to file path (for camera capture)
+        if (isset($validated['image']) && !empty($validated['image'])) {
+            $base64Data = $validated['image'];
+            
+            // Handle both array format {data: 'base64...', type: 'image/jpeg'} and string format
+            if (is_array($validated['image']) && isset($validated['image']['data'])) {
+                $base64Data = $validated['image']['data'];
+            }
+            
+            // Remove data URL prefix if present
+            if (strpos($base64Data, 'data:image') === 0) {
+                $base64Data = substr($base64Data, strpos($base64Data, ',') + 1);
+            }
+            
+            // Decode base64 and save as file
+            $decodedImageData = base64_decode($base64Data);
+            if ($decodedImageData !== false) {
+                $fileName = 'customer_image_' . time() . '.jpg';
+                $filePath = 'uploads/data/' . $fileName;
+                Storage::disk('public')->put($filePath, $decodedImageData);
+                $validated['image'] = $filePath;
+            } else {
+                // If base64 decode fails, treat as regular file path
+                // This handles cases where image is already a file path from FileUpload component
+            }
+        }
+
         $customer->update($validated);
         
         // Update associated user if exists
-        if($customer->user_id) {
-            $user = User::find($customer->user_id);
-            if($user) {
-                $user->update([
-                    "name" => $customer->name_surname,
-                    "email" => $customer->email,
-                    "phone" => $customer->phone_number
-                ]);
-            }
+        $user = $customer->user;
+        if($user) {
+            $user->update([
+                "name" => $customer->name_surname,
+                "email" => $customer->email,
+                "phone" => $customer->phone_number
+            ]);
         }
         
         return $this->sendResponse($customer, "customer updated successfully");
@@ -193,15 +259,26 @@ class CustomerController extends BaseController
 
     public function destroy($id)
     {
-        $customer = Customer::findOrFail($id);
-        $customer->delete();
-
-
-
-$this->deleteFile($customer->image);
-
-        //delete files uploaded
-        return $this->sendResponse(1, "customer deleted succesfully");
+        try {
+            $customer = Customer::findOrFail($id);
+            
+            // Store file path before deleting customer record
+            $imagePath = $customer->image;
+            
+            // Delete customer record - associated user will be auto-deleted via cascade
+            $customer->delete();
+            
+            // Delete associated files after customer is deleted
+            if($imagePath) {
+                $this->deleteFile($imagePath);
+            }
+            
+            return $this->sendResponse(1, "customer deleted successfully");
+            
+        } catch (\Exception $e) {
+            Log::error('Customer deletion error: ' . $e->getMessage());
+            return $this->sendError("Error deleting customer", ['error' => $e->getMessage()]);
+        }
     }
 
     public function deleteFile($filePath) {
