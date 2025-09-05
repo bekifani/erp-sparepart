@@ -74,31 +74,6 @@ const media_url = useSelector((state)=>state.auth.media_url)
   }
   const [data, setData] = useState([
     {
-      title: t("Id"),
-      minWidth: 50,
-      responsive: 0,
-      field: "id",
-      vertAlign: "middle",
-      print: true,
-      download: true,
-    },
-   
-    {
-      title: t("Photo"),
-      minWidth: 200,
-      field: "photo",
-      hozAlign: "center",
-      headerHozAlign: "center",
-      vertAlign: "middle",
-      print: true,
-      download: true,
-      formatter(cell) {
-      return getMiniDisplay(cell.getData().photo)
-      }
-    },
-    
-
-    {
       title: t("First Name"),
       minWidth: 200,
       field: "first_name",
@@ -107,9 +82,7 @@ const media_url = useSelector((state)=>state.auth.media_url)
       vertAlign: "middle",
       print: true,
       download: true,
-      
     },
-    
 
     {
       title: t("Last Name"),
@@ -120,11 +93,24 @@ const media_url = useSelector((state)=>state.auth.media_url)
       vertAlign: "middle",
       print: true,
       download: true,
-      
+    },
+   
+    {
+      title: t("Image"),
+      minWidth: 100,
+      field: "photo",
+      hozAlign: "center",
+      headerHozAlign: "center",
+      vertAlign: "middle",
+      print: true,
+      download: true,
+      formatter(cell) {
+        return getMiniDisplay(cell.getData().photo)
+      }
     },
     
     {
-      title: t("Email"),
+      title: t("E-mail"),
       minWidth: 200,
       field: "email",
       hozAlign: "center",
@@ -132,46 +118,83 @@ const media_url = useSelector((state)=>state.auth.media_url)
       vertAlign: "middle",
       print: true,
       download: true,
-      
     },
-    
 
     {
       title: t("Phone"),
-      minWidth: 200,
+      minWidth: 150,
       field: "phone",
       hozAlign: "center",
       headerHozAlign: "center",
       vertAlign: "middle",
       print: true,
       download: true,
-      
     },
     
+    {
+      title: t("Position"),
+      minWidth: 150,
+      field: "position",
+      hozAlign: "center",
+      headerHozAlign: "center",
+      vertAlign: "middle",
+      print: true,
+      download: true,
+    },
+    
+    {
+      title: t("Birth date"),
+      minWidth: 120,
+      field: "birthdate",
+      hozAlign: "center",
+      headerHozAlign: "center",
+      vertAlign: "middle",
+      print: true,
+      download: true,
+    },
+    
+    {
+      title: t("WhatsApp"),
+      minWidth: 150,
+      field: "whatsapp",
+      hozAlign: "center",
+      headerHozAlign: "center",
+      vertAlign: "middle",
+      print: true,
+      download: true,
+    },
+    
+    {
+      title: t("Wechat"),
+      minWidth: 150,
+      field: "wechat",
+      hozAlign: "center",
+      headerHozAlign: "center",
+      vertAlign: "middle",
+      print: true,
+      download: true,
+    },
 
     {
       title: t("Salary"),
-      minWidth: 200,
+      minWidth: 120,
       field: "salary",
       hozAlign: "center",
       headerHozAlign: "center",
       vertAlign: "middle",
       print: true,
       download: true,
-      
     },
-    
 
     {
-      title: t("Hire Date"),
-      minWidth: 200,
+      title: t("Salary date"),
+      minWidth: 120,
       field: "hire_date",
       hozAlign: "center",
       headerHozAlign: "center",
       vertAlign: "middle",
       print: true,
       download: true,
-      
     },
     
 
@@ -195,7 +218,7 @@ const media_url = useSelector((state)=>state.auth.media_url)
     
 
     {
-      title: t("Note"),
+      title: t("Additional note"),
       minWidth: 200,
       field: "note",
       hozAlign: "center",
@@ -203,7 +226,6 @@ const media_url = useSelector((state)=>state.auth.media_url)
       vertAlign: "middle",
       print: true,
       download: true,
-      
     },
     
 
@@ -288,7 +310,7 @@ const media_url = useSelector((state)=>state.auth.media_url)
       },
     },
 ]);
-  const [searchColumns, setSearchColumns] = useState(['first_name', 'last_name', 'email', 'phone', 'salary', 'hire_date', 'is_active', 'note', ]);
+  const [searchColumns, setSearchColumns] = useState(['first_name', 'last_name', 'position', 'email', 'phone', 'whatsapp', 'wechat', 'birthdate', 'salary', 'hire_date', 'is_active', 'note']);
 
   // schema
   const schema = yup
@@ -296,9 +318,16 @@ const media_url = useSelector((state)=>state.auth.media_url)
      photo : yup.string().required(t('The Photo field is required')), 
 first_name : yup.string().required(t('The First Name field is required')), 
 last_name : yup.string().required(t('The Last Name field is required')), 
+position : yup.string().nullable(), 
+email : yup.string().email(t('Please enter a valid email')).nullable(), 
 phone : yup.string().required(t('The Phone field is required')), 
+whatsapp : yup.string().nullable(), 
+wechat : yup.string().nullable(), 
+birthdate : yup.date().nullable(), 
+salary : yup.number().nullable(), 
+hire_date : yup.date().required(t('The Hire Date field is required')), 
 is_active : yup.string().required(t('The Is Active field is required')), 
-note : yup.string().required(t('The Note field is required')), 
+note : yup.string().nullable(), 
 
     })
     .required();
@@ -349,70 +378,145 @@ note : yup.string().required(t('The Note field is required')),
     return ReactDOMServer.renderToString(element); // Convert JSX to HTML string
   };
 
+  const formatErrorMessage = (error) => {
+    if (error.data?.errors) {
+      // Extract validation errors and format them
+      const errors = error.data.errors;
+      const errorMessages = [];
+      
+      Object.keys(errors).forEach(field => {
+        const fieldErrors = errors[field];
+        if (Array.isArray(fieldErrors)) {
+          fieldErrors.forEach(msg => {
+            errorMessages.push(`${field.replace('_', ' ').toUpperCase()}: ${msg}`);
+          });
+        }
+      });
+      
+      return errorMessages.length > 0 ? errorMessages.join(' | ') : 'Validation failed';
+    }
+    
+    if (error.data?.message) {
+      return error.data.message;
+    }
+    
+    if (error.message) {
+      return error.message;
+    }
+    
+    return 'An unexpected error occurred';
+  };
+
   const onCreate = async (data) => {
     try {
       const response = await createEmployee(data);
-      setToastMessage(t("Employee created successfully."));
+      if (response.error) {
+        const errorMsg = formatErrorMessage(response.error);
+        setToastMessage(t("Failed to create employee") + ": " + errorMsg);
+      } else {
+        setToastMessage(t("Employee created successfully"));
+        setRefetch(true);
+        setShowCreateModal(false);
+      }
     } catch (error) {
-      setToastMessage(t("Error creating Employee."));
+      setToastMessage(t("Failed to create employee") + ": " + (error.message || t("Network or server error")));
     }
     basicStickyNotification.current?.showToast();
-    setRefetch(true);
-    setShowCreateModal(false);
+    // Auto-hide toast after 7 seconds
+    setTimeout(() => {
+      basicStickyNotification.current?.hideToast();
+    }, 7000);
   };
 
   const onUpdate = async (data) => {
-    setShowUpdateModal(false)
     try {
       const response = await updateEmployee(data);
-      setToastMessage(t('Employee updated successfully'));
-      setRefetch(true)
+      if (response.error) {
+        const errorMsg = formatErrorMessage(response.error);
+        setToastMessage(t("Failed to update employee") + ": " + errorMsg);
+        setShowUpdateModal(true);
+      } else {
+        setToastMessage(t("Employee updated successfully"));
+        setRefetch(true);
+        setShowUpdateModal(false);
+      }
     } catch (error) {
-      setShowUpdateModal(true)
-      setToastMessage(t('Employee deletion failed'));
+      setToastMessage(t("Failed to update employee") + ": " + (error.message || t("Network or server error")));
+      setShowUpdateModal(true);
     }
     basicStickyNotification.current?.showToast();
+    // Auto-hide toast after 7 seconds
+    setTimeout(() => {
+      basicStickyNotification.current?.hideToast();
+    }, 7000);
   };
 
   const onDelete = async () => {
     let id = getValues("id");
     setShowDeleteModal(false)
     try {
-        const response = deleteEmployee(id);
-        setToastMessage(t("Employee deleted successfully."));
-        setRefetch(true);
+        const response = await deleteEmployee(id);
+        if (response.error) {
+          const errorMsg = formatErrorMessage(response.error);
+          setToastMessage(t("Failed to delete employee") + ": " + errorMsg);
+        } else {
+          setToastMessage(t("Employee deleted successfully"));
+          setRefetch(true);
+        }
       }
     catch (error) {
-      setToastMessage(t("Error deleting Employee."));
+      setToastMessage(t("Failed to delete employee") + ": " + (error.message || t("Network or server error")));
     }
     basicStickyNotification.current?.showToast();
+    // Auto-hide toast after 7 seconds
+    setTimeout(() => {
+      basicStickyNotification.current?.hideToast();
+    }, 7000);
   };  
   
   const terminateEmployee = async () => {
     let id = getValues("id");
     setShowTerminateModal(false)
     try {
-        const response = terminateUser(id);
-        setToastMessage(t("Employee Terminated."));
-        setRefetch(true);
+        const response = await terminateUser(id);
+        if (response.error) {
+          const errorMsg = formatErrorMessage(response.error);
+          setToastMessage(t("Failed to terminate employee") + ": " + errorMsg);
+        } else {
+          setToastMessage(t("Employee terminated successfully"));
+          setRefetch(true);
+        }
       }
     catch (error) {
-      setToastMessage(t("Error Terminating Employee."));
+      setToastMessage(t("Failed to terminate employee") + ": " + (error.message || t("Network or server error")));
     }
     basicStickyNotification.current?.showToast();
+    // Auto-hide toast after 7 seconds
+    setTimeout(() => {
+      basicStickyNotification.current?.hideToast();
+    }, 7000);
   }
 
   const activateEmployee = async () => {
     let id = getValues("id");
     try {
-        await activateEmployeeAccount(id);
-        setToastMessage(t("Employee Account Activated."));
-        setRefetch(true);
+        const response = await activateEmployeeAccount(id);
+        if (response.error) {
+          const errorMsg = formatErrorMessage(response.error);
+          setToastMessage(t("Failed to activate employee account") + ": " + errorMsg);
+        } else {
+          setToastMessage(t("Employee account activated successfully"));
+          setRefetch(true);
+        }
       }
     catch (error) {
-      setToastMessage(t("Error Activating Account."));
+      setToastMessage(t("Failed to activate employee account") + ": " + (error.message || t("Network or server error")));
     }
     basicStickyNotification.current?.showToast();
+    // Auto-hide toast after 7 seconds
+    setTimeout(() => {
+      basicStickyNotification.current?.hideToast();
+    }, 7000);
   }
 
 return (
@@ -571,6 +675,30 @@ return (
                       )}
                     </div>
 
+<div className="mt-3 input-form">
+                      <FormLabel
+                        htmlFor="validation-form-1"
+                        className="flex justify-start items-start flex-col w-full sm:flex-row"
+                      >
+                        {t("Position")}
+                      </FormLabel>
+                      <FormInput
+                        {...register("position")}
+                        id="validation-form-1"
+                        type="text"
+                        name="position"
+                        className={clsx({
+                          "border-danger": errors.position,
+                        })}
+                        placeholder={t("Enter position")}
+                      />
+                      {errors.position && (
+                        <div className="mt-2 text-danger">
+                          {typeof errors.position.message === "string" &&
+                            errors.position.message}
+                        </div>
+                      )}
+                    </div>
 
    
 
@@ -625,6 +753,80 @@ return (
                       )}
                     </div>
 
+<div className="mt-3 input-form">
+                      <FormLabel
+                        htmlFor="validation-form-1"
+                        className="flex justify-start items-start flex-col w-full sm:flex-row"
+                      >
+                        {t("WhatsApp")}
+                      </FormLabel>
+                      <FormInput
+                        {...register("whatsapp")}
+                        id="validation-form-1"
+                        type="text"
+                        name="whatsapp"
+                        className={clsx({
+                          "border-danger": errors.whatsapp,
+                        })}
+                        placeholder={t("Enter whatsapp")}
+                      />
+                      {errors.whatsapp && (
+                        <div className="mt-2 text-danger">
+                          {typeof errors.whatsapp.message === "string" &&
+                            errors.whatsapp.message}
+                        </div>
+                      )}
+                    </div>
+
+<div className="mt-3 input-form">
+                      <FormLabel
+                        htmlFor="validation-form-1"
+                        className="flex justify-start items-start flex-col w-full sm:flex-row"
+                      >
+                        {t("WeChat")}
+                      </FormLabel>
+                      <FormInput
+                        {...register("wechat")}
+                        id="validation-form-1"
+                        type="text"
+                        name="wechat"
+                        className={clsx({
+                          "border-danger": errors.wechat,
+                        })}
+                        placeholder={t("Enter wechat")}
+                      />
+                      {errors.wechat && (
+                        <div className="mt-2 text-danger">
+                          {typeof errors.wechat.message === "string" &&
+                            errors.wechat.message}
+                        </div>
+                      )}
+                    </div>
+
+<div className="mt-3 input-form">
+                      <FormLabel
+                        htmlFor="validation-form-1"
+                        className="flex justify-start items-start flex-col w-full sm:flex-row"
+                      >
+                        {t("Birth Date")}
+                      </FormLabel>
+                      <FormInput
+                        {...register("birthdate")}
+                        id="validation-form-1"
+                        type="date"
+                        name="birthdate"
+                        className={clsx({
+                          "border-danger": errors.birthdate,
+                        })}
+                        placeholder={t("Enter birthdate")}
+                      />
+                      {errors.birthdate && (
+                        <div className="mt-2 text-danger">
+                          {typeof errors.birthdate.message === "string" &&
+                            errors.birthdate.message}
+                        </div>
+                      )}
+                    </div>
 
 <div className="mt-3 input-form">
                       <FormLabel
@@ -657,7 +859,7 @@ return (
                         htmlFor="validation-form-1"
                         className="flex justify-start items-start flex-col w-full sm:flex-row"
                       >
-                        {t("Hire Date")}
+                        {t("Salary Date")}
                       </FormLabel>
                       <FormInput
                         {...register("hire_date")}
@@ -834,6 +1036,30 @@ return (
                       )}
                     </div>
 
+<div className="mt-3 input-form">
+                      <FormLabel
+                        htmlFor="validation-form-1"
+                        className="flex justify-start items-start flex-col w-full sm:flex-row"
+                      >
+                        {t("Position")}
+                      </FormLabel>
+                      <FormInput
+                        {...register("position")}
+                        id="validation-form-1"
+                        type="text"
+                        name="position"
+                        className={clsx({
+                          "border-danger": errors.position,
+                        })}
+                        placeholder={t("Enter position")}
+                      />
+                      {errors.position && (
+                        <div className="mt-2 text-danger">
+                          {typeof errors.position.message === "string" &&
+                            errors.position.message}
+                        </div>
+                      )}
+                    </div>
 
    
 
@@ -888,6 +1114,80 @@ return (
                       )}
                     </div>
 
+<div className="mt-3 input-form">
+                      <FormLabel
+                        htmlFor="validation-form-1"
+                        className="flex justify-start items-start flex-col w-full sm:flex-row"
+                      >
+                        {t("WhatsApp")}
+                      </FormLabel>
+                      <FormInput
+                        {...register("whatsapp")}
+                        id="validation-form-1"
+                        type="text"
+                        name="whatsapp"
+                        className={clsx({
+                          "border-danger": errors.whatsapp,
+                        })}
+                        placeholder={t("Enter whatsapp")}
+                      />
+                      {errors.whatsapp && (
+                        <div className="mt-2 text-danger">
+                          {typeof errors.whatsapp.message === "string" &&
+                            errors.whatsapp.message}
+                        </div>
+                      )}
+                    </div>
+
+<div className="mt-3 input-form">
+                      <FormLabel
+                        htmlFor="validation-form-1"
+                        className="flex justify-start items-start flex-col w-full sm:flex-row"
+                      >
+                        {t("WeChat")}
+                      </FormLabel>
+                      <FormInput
+                        {...register("wechat")}
+                        id="validation-form-1"
+                        type="text"
+                        name="wechat"
+                        className={clsx({
+                          "border-danger": errors.wechat,
+                        })}
+                        placeholder={t("Enter wechat")}
+                      />
+                      {errors.wechat && (
+                        <div className="mt-2 text-danger">
+                          {typeof errors.wechat.message === "string" &&
+                            errors.wechat.message}
+                        </div>
+                      )}
+                    </div>
+
+<div className="mt-3 input-form">
+                      <FormLabel
+                        htmlFor="validation-form-1"
+                        className="flex justify-start items-start flex-col w-full sm:flex-row"
+                      >
+                        {t("Birth Date")}
+                      </FormLabel>
+                      <FormInput
+                        {...register("birthdate")}
+                        id="validation-form-1"
+                        type="date"
+                        name="birthdate"
+                        className={clsx({
+                          "border-danger": errors.birthdate,
+                        })}
+                        placeholder={t("Enter birthdate")}
+                      />
+                      {errors.birthdate && (
+                        <div className="mt-2 text-danger">
+                          {typeof errors.birthdate.message === "string" &&
+                            errors.birthdate.message}
+                        </div>
+                      )}
+                    </div>
 
 <div className="mt-3 input-form">
                       <FormLabel
@@ -920,7 +1220,7 @@ return (
                         htmlFor="validation-form-1"
                         className="flex justify-start items-start flex-col w-full sm:flex-row"
                       >
-                        {t("Hire Date")}
+                        {t("Salary Date")}
                       </FormLabel>
                       <FormInput
                         {...register("hire_date")}
