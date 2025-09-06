@@ -416,6 +416,10 @@ additional_note : yup.string().nullable(),
         setRefetch(true);
         setShowCreateModal(false);
         basicStickyNotification.current?.showToast();
+        // Auto-hide toast after 7 seconds
+        setTimeout(() => {
+          basicStickyNotification.current?.hideToast();
+        }, 7000);
       } else {
         console.error('🔴 API returned error:', response);
         let errorMessage = t("Error creating Customer");
@@ -466,6 +470,10 @@ additional_note : yup.string().nullable(),
         
         setToastMessage(errorMessage);
         basicStickyNotification.current?.showToast();
+        // Auto-hide toast after 7 seconds
+        setTimeout(() => {
+          basicStickyNotification.current?.hideToast();
+        }, 7000);
       }
     } catch (error) {
       console.error('🔴 Exception in onCreate:', error);
@@ -518,6 +526,10 @@ additional_note : yup.string().nullable(),
       
       setToastMessage(errorMessage);
       basicStickyNotification.current?.showToast();
+      // Auto-hide toast after 7 seconds
+      setTimeout(() => {
+        basicStickyNotification.current?.hideToast();
+      }, 7000);
     }
   };
 
