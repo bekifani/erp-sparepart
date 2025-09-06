@@ -37,6 +37,8 @@ function index_main() {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showUpdateModal, setShowUpdateModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [showViewModal, setShowViewModal] = useState(false);
+  const [viewData, setViewData] = useState(null);
   const [editorData, setEditorData] = useState("")
   const [capturedImage, setCapturedImage] = useState(null);
   const [confirmationMessage, setConfirmationMessage] =
@@ -222,6 +224,11 @@ function index_main() {
         const element = stringToHTML(
           `<div class="flex items-center lg:justify-center"></div>`
         );
+        const viewBtn =
+          stringToHTML(`<div class="flex items-center lg:justify-center">
+              <a class="view-btn flex items-center mr-3" href="javascript:;">
+                <i data-lucide="eye" class="w-3.5 h-3.5 stroke-[1.7] mr-1.5"></i> View
+              </a>`);
         const a =
           stringToHTML(`<div class="flex items-center lg:justify-center">
               <a class="delete-btn flex items-center mr-3" href="javascript:;">
@@ -232,6 +239,11 @@ function index_main() {
                 <i data-lucide="trash-2" class="w-3.5 h-3.5 stroke-[1.7] mr-1.5"></i> Delete
               </a>
             </div>`);
+        viewBtn.addEventListener("click", function () {
+          const data = cell.getData();
+          setViewData(data);
+          setShowViewModal(true);
+        });
         a.addEventListener("click", function () {
           const data = cell.getData();
           console.log("Edit button clicked - Customer data:", data);
@@ -265,6 +277,8 @@ function index_main() {
           setShowDeleteModal(true);
         });
         let permission = "customer";
+        // Always show view button
+        element.append(viewBtn);
         if(hasPermission(permission+'-edit')){
           element.append(a)
         }
@@ -758,6 +772,118 @@ return (
         </Slideover.Panel>
       </Slideover>
 
+      {/* View Customer Details Slideover */}
+      <Slideover
+        open={showViewModal}
+        onClose={() => {
+          setShowViewModal(false);
+          setViewData(null);
+        }}
+        size="xl"
+      >
+        <Slideover.Panel className="text-left overflow-y-auto max-h-[110vh]">
+          <Slideover.Title>
+            <h2 className="mr-auto text-base font-medium">{t("Customer Details")}</h2>
+          </Slideover.Title>
+          <Slideover.Description className="p-6">
+            {viewData && (
+              <div className="space-y-6">
+                {/* Customer Image */}
+                {viewData.image && (
+                  <div className="flex justify-center mb-6">
+                    <img 
+                      src={media_url + viewData.image} 
+                      alt="Customer Image" 
+                      className="w-64 h-64 rounded-lg object-cover border-4 border-gray-200 shadow-lg"
+                    />
+                  </div>
+                )}
+
+                {/* Basic Information */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">{t("Name & Surname")}</label>
+                    <div className="p-3 bg-gray-50 rounded-md border">{viewData.name_surname || '-'}</div>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">{t("Shipping Mark")}</label>
+                    <div className="p-3 bg-gray-50 rounded-md border">{viewData.shipping_mark || '-'}</div>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">{t("Email")}</label>
+                    <div className="p-3 bg-gray-50 rounded-md border">{viewData.email || '-'}</div>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">{t("Phone")}</label>
+                    <div className="p-3 bg-gray-50 rounded-md border">{viewData.phone_number || '-'}</div>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">{t("Position")}</label>
+                    <div className="p-3 bg-gray-50 rounded-md border">{viewData.position || '-'}</div>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">{t("Birth Date")}</label>
+                    <div className="p-3 bg-gray-50 rounded-md border">
+                      {viewData.birth_date ? viewData.birth_date.split('T')[0] : '-'}
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">{t("WhatsApp")}</label>
+                    <div className="p-3 bg-gray-50 rounded-md border">{viewData.whatsapp || '-'}</div>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">{t("WeChat")}</label>
+                    <div className="p-3 bg-gray-50 rounded-md border">{viewData.wechat_id || '-'}</div>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">{t("Country")}</label>
+                    <div className="p-3 bg-gray-50 rounded-md border">{viewData.country || '-'}</div>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">{t("Address")}</label>
+                    <div className="p-3 bg-gray-50 rounded-md border">{viewData.address || '-'}</div>
+                  </div>
+                </div>
+
+                {/* Pictures */}
+                {viewData.pictures && (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">{t("Additional Pictures")}</label>
+                    <div className="flex justify-center">
+                      <img 
+                        src={media_url + viewData.pictures} 
+                        alt="Customer Picture" 
+                        className="w-full max-w-md h-64 object-cover rounded-lg border shadow-lg"
+                      />
+                    </div>
+                  </div>
+                )}
+
+                {/* Additional Note */}
+                {viewData.additional_note && (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">{t("Additional Note")}</label>
+                    <div className="p-3 bg-gray-50 rounded-md border min-h-[80px]">{viewData.additional_note}</div>
+                  </div>
+                )}
+              </div>
+            )}
+          </Slideover.Description>
+          <div className="px-6 pb-6">
+            <Button
+              type="button"
+              variant="outline-secondary"
+              onClick={() => {
+                setShowViewModal(false);
+                setViewData(null);
+              }}
+              className="w-full"
+            >
+              {t("Close")}
+            </Button>
+          </div>
+        </Slideover.Panel>
+      </Slideover>
 
       <Slideover
        

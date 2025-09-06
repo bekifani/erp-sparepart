@@ -36,6 +36,8 @@ function index_main() {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showUpdateModal, setShowUpdateModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [showViewModal, setShowViewModal] = useState(false);
+  const [viewData, setViewData] = useState(null);
   const [editorData, setEditorData] = useState("")
   const [capturedImages, setCapturedImages] = useState([]);
   const [confirmationMessage, setConfirmationMessage] =
@@ -320,6 +322,11 @@ function index_main() {
         const element = stringToHTML(
           `<div class="flex items-center lg:justify-center"></div>`
         );
+        const viewBtn =
+          stringToHTML(`<div class="flex items-center lg:justify-center">
+              <a class="view-btn flex items-center mr-3" href="javascript:;">
+                <i data-lucide="eye" class="w-3.5 h-3.5 stroke-[1.7] mr-1.5"></i> View
+              </a>`);
         const a =
           stringToHTML(`<div class="flex items-center lg:justify-center">
               <a class="delete-btn flex items-center mr-3" href="javascript:;">
@@ -330,6 +337,11 @@ function index_main() {
                 <i data-lucide="trash-2" class="w-3.5 h-3.5 stroke-[1.7] mr-1.5"></i> Delete
               </a>
             </div>`);
+        viewBtn.addEventListener("click", function () {
+          const data = cell.getData();
+          setViewData(data);
+          setShowViewModal(true);
+        });
         a.addEventListener("click", function () {
           const data = cell.getData();
           Object.keys(data).forEach((key) => {
@@ -347,6 +359,8 @@ function index_main() {
           setShowDeleteModal(true);
         });
         let permission = "supplier";
+        // Always show view button
+        element.append(viewBtn);
         if(hasPermission(permission+'-edit')){
           element.append(a)
         }
@@ -772,6 +786,143 @@ function index_main() {
         </Slideover.Panel>
       </Slideover>
 
+      {/* View Supplier Details Slideover */}
+      <Slideover
+        open={showViewModal}
+        onClose={() => {
+          setShowViewModal(false);
+          setViewData(null);
+        }}
+        size="xl"
+      >
+        <Slideover.Panel className="text-left overflow-y-auto max-h-[110vh]">
+          <Slideover.Title>
+            <h2 className="mr-auto text-base font-medium">{t("Supplier Details")}</h2>
+          </Slideover.Title>
+          <Slideover.Description className="p-6">
+            {viewData && (
+              <div className="space-y-6">
+                {/* Supplier Images */}
+                {viewData.images && viewData.images.length > 0 && (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">{t("Images")} ({viewData.images.length})</label>
+                    <div className="overflow-x-auto pb-4">
+                      <div className="flex gap-6 min-w-max">
+                        {viewData.images.map((image, index) => (
+                          <div key={index} className="relative flex-shrink-0">
+                            <img 
+                              src={media_url + image} 
+                              alt={`Supplier Image ${index + 1}`} 
+                              className="w-full h-64 object-cover rounded-lg border shadow-lg hover:shadow-xl transition-shadow"
+                            />
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Basic Information */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">{t("Supplier")}</label>
+                    <div className="p-3 bg-gray-50 rounded-md border">{viewData.supplier || '-'}</div>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">{t("Name Surname")}</label>
+                    <div className="p-3 bg-gray-50 rounded-md border">{viewData.name_surname || '-'}</div>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">{t("Occupation")}</label>
+                    <div className="p-3 bg-gray-50 rounded-md border">{viewData.occupation || '-'}</div>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">{t("Code")}</label>
+                    <div className="p-3 bg-gray-50 rounded-md border">{viewData.code || '-'}</div>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">{t("Address")}</label>
+                    <div className="p-3 bg-gray-50 rounded-md border">{viewData.address || '-'}</div>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">{t("Email")}</label>
+                    <div className="p-3 bg-gray-50 rounded-md border">{viewData.email || '-'}</div>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">{t("Phone Number")}</label>
+                    <div className="p-3 bg-gray-50 rounded-md border">{viewData.phone_number || '-'}</div>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">{t("WhatsApp")}</label>
+                    <div className="p-3 bg-gray-50 rounded-md border">{viewData.whatsapp || '-'}</div>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">{t("WeChat ID")}</label>
+                    <div className="p-3 bg-gray-50 rounded-md border">{viewData.wechat_id || '-'}</div>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">{t("Number Of Products")}</label>
+                    <div className="p-3 bg-gray-50 rounded-md border">{viewData.number_of_products || '-'}</div>
+                  </div>
+                </div>
+
+                {/* Category of Products */}
+                {viewData.category_of_products && (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">{t("Category Of Products")}</label>
+                    <div className="p-3 bg-gray-50 rounded-md border">
+                      <div className="flex flex-wrap gap-2">
+                        {viewData.category_of_products.split(',').map((category, index) => (
+                          <span key={index} className="px-2 py-1 bg-slate-200 text-slate-700 rounded-full text-sm">
+                            {category.trim()}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Name of Products */}
+                {viewData.name_of_products && (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">{t("Name Of Products")}</label>
+                    <div className="p-3 bg-gray-50 rounded-md border">
+                      <div className="flex flex-wrap gap-2">
+                        {viewData.name_of_products.split(',').map((product, index) => (
+                          <span key={index} className="px-2 py-1 bg-success/10 text-success rounded-full text-sm">
+                            {product.trim()}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Additional Note */}
+                {viewData.additional_note && (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">{t("Additional Note")}</label>
+                    <div className="p-3 bg-gray-50 rounded-md border min-h-[80px]">{viewData.additional_note}</div>
+                  </div>
+                )}
+              </div>
+            )}
+          </Slideover.Description>
+          <div className="px-6 pb-6">
+            <Button
+              type="button"
+              variant="outline-secondary"
+              onClick={() => {
+                setShowViewModal(false);
+                setViewData(null);
+              }}
+              className="w-full"
+            >
+              {t("Close")}
+            </Button>
+          </div>
+        </Slideover.Panel>
+      </Slideover>
 
       <Slideover
        

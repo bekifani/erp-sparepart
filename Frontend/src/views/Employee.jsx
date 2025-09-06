@@ -39,6 +39,8 @@ const media_url = useSelector((state)=>state.auth.media_url)
   const [showUpdateModal, setShowUpdateModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [showTerminateModal, setShowTerminateModal] = useState(false);
+  const [showViewModal, setShowViewModal] = useState(false);
+  const [viewData, setViewData] = useState(null);
   const [editorData, setEditorData] = useState("")
   const [confirmationMessage, setConfirmationMessage] =
     useState(t("Are you Sure Do You want to Delete Employee"));
@@ -244,6 +246,11 @@ const media_url = useSelector((state)=>state.auth.media_url)
         const element = stringToHTML(
           `<div class="flex items-center lg:justify-center"></div>`
         );
+        const viewBtn =
+          stringToHTML(`<div class="flex items-center lg:justify-center">
+              <a class="view-btn flex items-center mr-3" href="javascript:;">
+                <i data-lucide="eye" class="w-3.5 h-3.5 stroke-[1.7] mr-1.5"></i> ${t('View')}
+              </a>`);        
         const a =
           stringToHTML(`<div class="flex items-center lg:justify-center">
               <a class="delete-btn flex items-center mr-3" href="javascript:;">
@@ -264,6 +271,11 @@ const media_url = useSelector((state)=>state.auth.media_url)
                 <i data-lucide="circle-x" class="w-3.5 h-3.5 stroke-[1.7]  mr-1.5"></i> ${t('Activate Employee')}
               </a>
             </div>`);
+        viewBtn.addEventListener("click", function () {
+          const data = cell.getData();
+          setViewData(data);
+          setShowViewModal(true);
+        });
         a.addEventListener("click", function () {
           const data = cell.getData();
           Object.keys(data).forEach((key) => {
@@ -294,6 +306,8 @@ const media_url = useSelector((state)=>state.auth.media_url)
         });
         let permission = "Employee";
 
+        // Always show view button
+        element.append(viewBtn);
         if(hasPermission(permission.toLowerCase()+'-edit')){
           element.append(a)
         }
@@ -739,6 +753,111 @@ return (
               onClick={() => terminateEmployee()}
             >
               {t("Terminate")}
+            </Button>
+          </div>
+        </Slideover.Panel>
+      </Slideover>
+
+      {/* View Employee Details Slideover */}
+      <Slideover
+        open={showViewModal}
+        onClose={() => {
+          setShowViewModal(false);
+          setViewData(null);
+        }}
+        size="xl"
+      >
+        <Slideover.Panel className="text-left overflow-y-auto max-h-[110vh]">
+          <Slideover.Title>
+            <h2 className="mr-auto text-base font-medium">{t("Employee Details")}</h2>
+          </Slideover.Title>
+          <Slideover.Description className="p-6">
+            {viewData && (
+              <div className="space-y-6">
+                {/* Employee Photo */}
+                {viewData.photo && (
+                  <div className="flex justify-center mb-6">
+                    <img 
+                      src={media_url + viewData.photo} 
+                      alt="Employee Photo" 
+                      className="w-64 h-64 rounded-lg object-cover border-4 border-gray-200 shadow-lg"
+                    />
+                  </div>
+                )}
+
+                {/* Basic Information */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">{t("First Name")}</label>
+                    <div className="p-3 bg-gray-50 rounded-md border">{viewData.first_name || '-'}</div>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">{t("Last Name")}</label>
+                    <div className="p-3 bg-gray-50 rounded-md border">{viewData.last_name || '-'}</div>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">{t("Position")}</label>
+                    <div className="p-3 bg-gray-50 rounded-md border">{viewData.position || '-'}</div>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">{t("Email")}</label>
+                    <div className="p-3 bg-gray-50 rounded-md border">{viewData.email || '-'}</div>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">{t("Phone")}</label>
+                    <div className="p-3 bg-gray-50 rounded-md border">{viewData.phone || '-'}</div>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">{t("Birth Date")}</label>
+                    <div className="p-3 bg-gray-50 rounded-md border">{viewData.birthdate || '-'}</div>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">{t("WhatsApp")}</label>
+                    <div className="p-3 bg-gray-50 rounded-md border">{viewData.whatsapp || '-'}</div>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">{t("WeChat")}</label>
+                    <div className="p-3 bg-gray-50 rounded-md border">{viewData.wechat || '-'}</div>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">{t("Salary")}</label>
+                    <div className="p-3 bg-gray-50 rounded-md border">{viewData.salary || '-'}</div>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">{t("Hire Date")}</label>
+                    <div className="p-3 bg-gray-50 rounded-md border">{viewData.hire_date || '-'}</div>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">{t("Status")}</label>
+                    <div className="p-3 bg-gray-50 rounded-md border">
+                      <span className={`px-2 py-1 rounded-full text-xs ${viewData.is_active == 1 ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
+                        {viewData.is_active == 1 ? t("Active") : t("Not Active")}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Additional Note */}
+                {viewData.note && (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">{t("Additional Note")}</label>
+                    <div className="p-3 bg-gray-50 rounded-md border min-h-[80px]">{viewData.note}</div>
+                  </div>
+                )}
+              </div>
+            )}
+          </Slideover.Description>
+          <div className="px-6 pb-6">
+            <Button
+              type="button"
+              variant="outline-secondary"
+              onClick={() => {
+                setShowViewModal(false);
+                setViewData(null);
+              }}
+              className="w-full"
+            >
+              {t("Close")}
             </Button>
           </div>
         </Slideover.Panel>
