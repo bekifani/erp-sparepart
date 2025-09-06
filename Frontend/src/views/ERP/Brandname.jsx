@@ -1,4 +1,3 @@
-
 import "@/assets/css/vendors/tabulator.css";
 import Lucide from "@/components/Base/Lucide";
 import ReactDOMServer from 'react-dom/server';
@@ -81,7 +80,7 @@ function index_main() {
       vertAlign: "middle",
       print: true,
       download: true,
-      
+      visible: false,
     },
     
 
@@ -107,7 +106,7 @@ function index_main() {
       vertAlign: "middle",
       print: true,
       download: true,
-      
+      visible: false,
     },
     
 
@@ -120,7 +119,7 @@ function index_main() {
       vertAlign: "middle",
       print: true,
       download: true,
-      
+      visible: false,
     },
     
 
@@ -133,7 +132,7 @@ function index_main() {
       vertAlign: "middle",
       print: true,
       download: true,
-      
+      visible: false,
     },
     
 
@@ -200,17 +199,12 @@ function index_main() {
       },
     },
 ]);
-  const [searchColumns, setSearchColumns] = useState(['brand_code', 'brand_name', 'name_az', 'name_ru', 'name_cn', 'number_of_products', ]);
+  const [searchColumns, setSearchColumns] = useState(['brand_name', 'number_of_products']);
 
   // schema
   const schema = yup
     .object({
-     brand_code : yup.string().required(t('The Brand Code field is required')), 
-brand_name : yup.string().required(t('The Brand Name field is required')), 
-name_az : yup.string().required(t('The Name Az field is required')), 
-name_ru : yup.string().required(t('The Name Ru field is required')), 
-name_cn : yup.string().required(t('The Name Cn field is required')), 
-
+      brand_name: yup.string().required(t('The Brand Name field is required')),
     })
     .required();
 
@@ -226,8 +220,85 @@ name_cn : yup.string().required(t('The Name Cn field is required')),
     resolver: yupResolver(schema),
   });
 
-   
+  // Extract meaningful error message from server/RTK Query responses
+  const getErrorMessage = (err, fallback = t("An error occurred")) => {
+    try {
+      const data = err?.data || err?.error || err;
+      const firstError = data?.errors && typeof data.errors === 'object'
+        ? Object.values(data.errors).flat().find(Boolean)
+        : null;
+      return data?.message || firstError || err?.message || fallback;
+    } catch (_) {
+      return fallback;
+    }
+  };
 
+  const onCreate = async (data) => {
+    const valid = await trigger();
+    if (!valid) {
+      setToastMessage(t("Please fix the validation errors."));
+      basicStickyNotification.current?.showToast();
+      return;
+    }
+    try {
+      const response = await createBrandname(data);
+      if (response && response.success !== false) {
+        setToastMessage(t("Brandname created successfully."));
+        setRefetch(true);
+        setShowCreateModal(false);
+      } else {
+        const msg = response?.data?.message || response?.error?.data?.message || response?.message || t('Creation failed');
+        throw new Error(msg);
+      }
+    } catch (error) {
+      const msg = getErrorMessage(error, t("Error creating Brandname."));
+      setToastMessage(msg);
+    }
+    basicStickyNotification.current?.showToast();
+  };
+
+  const onUpdate = async (data) => {
+    const valid = await trigger();
+    if (!valid) {
+      setToastMessage(t("Please fix the validation errors."));
+      basicStickyNotification.current?.showToast();
+      return;
+    }
+    try {
+      const response = await updateBrandname(data);
+      if (response && response.success !== false) {
+        setToastMessage(t('Brandname updated successfully'));
+        setRefetch(true)
+        setShowUpdateModal(false)
+      } else {
+        const msg = response?.data?.message || response?.error?.data?.message || response?.message || t('Update failed');
+        throw new Error(msg);
+      }
+    } catch (error) {
+      const msg = getErrorMessage(error, t('Error updating Brandname.'))
+      setToastMessage(msg);
+    }
+    basicStickyNotification.current?.showToast();
+  };
+
+  const onDelete = async () => {
+    let id = getValues("id");
+    setShowDeleteModal(false)
+    try {
+      const response = await deleteBrandname(id);
+      if (response && response.success !== false) {
+        setToastMessage(t("Brandname deleted successfully."));
+        setRefetch(true);
+      } else {
+        const msg = response?.data?.message || response?.error?.data?.message || response?.message || t('Deletion failed');
+        throw new Error(msg);
+      }
+    } catch (error) {
+      const msg = getErrorMessage(error, t("Error deleting Brandname."));
+      setToastMessage(msg);
+    }
+    basicStickyNotification.current?.showToast();
+  };    
 
   const [refetch, setRefetch] = useState(false);
   const getMiniDisplay = (url) => {
@@ -257,46 +328,7 @@ name_cn : yup.string().required(t('The Name Cn field is required')),
     return ReactDOMServer.renderToString(element); // Convert JSX to HTML string
   };
 
-  const onCreate = async (data) => {
-    try {
-      const response = await createBrandname(data);
-      setToastMessage(t("Brandname created successfully."));
-    } catch (error) {
-      setToastMessage(t("Error creating Brandname."));
-    }
-    basicStickyNotification.current?.showToast();
-    setRefetch(true);
-    setShowCreateModal(false);
-  };
-
-  const onUpdate = async (data) => {
-    setShowUpdateModal(false)
-    try {
-      const response = await updateBrandname(data);
-      setToastMessage(t('Brandname updated successfully'));
-      setRefetch(true)
-    } catch (error) {
-      setShowUpdateModal(true)
-      setToastMessage(t('Brandname deletion failed'));
-    }
-    basicStickyNotification.current?.showToast();
-  };
-
-  const onDelete = async () => {
-    let id = getValues("id");
-    setShowDeleteModal(false)
-    try {
-        const response = deleteBrandname(id);
-        setToastMessage(t("Brandname deleted successfully."));
-        setRefetch(true);
-      }
-    catch (error) {
-      setToastMessage(t("Error deleting Brandname."));
-    }
-    basicStickyNotification.current?.showToast();
-  };    
-
-return (
+  return (
     <div>
       <Slideover
         open={showDeleteModal}
@@ -367,32 +399,6 @@ return (
                         htmlFor="validation-form-1"
                         className="flex justify-start items-start flex-col w-full sm:flex-row"
                       >
-                        {t("Brand Code")}
-                      </FormLabel>
-                      <FormInput
-                        {...register("brand_code")}
-                        id="validation-form-1"
-                        type="text"
-                        name="brand_code"
-                        className={clsx({
-                          "border-danger": errors.brand_code,
-                        })}
-                        placeholder={t("Enter brand_code")}
-                      />
-                      {errors.brand_code && (
-                        <div className="mt-2 text-danger">
-                          {typeof errors.brand_code.message === "string" &&
-                            errors.brand_code.message}
-                        </div>
-                      )}
-                    </div>
-
-
-<div className="mt-3 input-form">
-                      <FormLabel
-                        htmlFor="validation-form-1"
-                        className="flex justify-start items-start flex-col w-full sm:flex-row"
-                      >
                         {t("Brand Name")}
                       </FormLabel>
                       <FormInput
@@ -412,111 +418,6 @@ return (
                         </div>
                       )}
                     </div>
-
-
-<div className="mt-3 input-form">
-                      <FormLabel
-                        htmlFor="validation-form-1"
-                        className="flex justify-start items-start flex-col w-full sm:flex-row"
-                      >
-                        {t("Name Az")}
-                      </FormLabel>
-                      <FormInput
-                        {...register("name_az")}
-                        id="validation-form-1"
-                        type="text"
-                        name="name_az"
-                        className={clsx({
-                          "border-danger": errors.name_az,
-                        })}
-                        placeholder={t("Enter name_az")}
-                      />
-                      {errors.name_az && (
-                        <div className="mt-2 text-danger">
-                          {typeof errors.name_az.message === "string" &&
-                            errors.name_az.message}
-                        </div>
-                      )}
-                    </div>
-
-
-<div className="mt-3 input-form">
-                      <FormLabel
-                        htmlFor="validation-form-1"
-                        className="flex justify-start items-start flex-col w-full sm:flex-row"
-                      >
-                        {t("Name Ru")}
-                      </FormLabel>
-                      <FormInput
-                        {...register("name_ru")}
-                        id="validation-form-1"
-                        type="text"
-                        name="name_ru"
-                        className={clsx({
-                          "border-danger": errors.name_ru,
-                        })}
-                        placeholder={t("Enter name_ru")}
-                      />
-                      {errors.name_ru && (
-                        <div className="mt-2 text-danger">
-                          {typeof errors.name_ru.message === "string" &&
-                            errors.name_ru.message}
-                        </div>
-                      )}
-                    </div>
-
-
-<div className="mt-3 input-form">
-                      <FormLabel
-                        htmlFor="validation-form-1"
-                        className="flex justify-start items-start flex-col w-full sm:flex-row"
-                      >
-                        {t("Name Cn")}
-                      </FormLabel>
-                      <FormInput
-                        {...register("name_cn")}
-                        id="validation-form-1"
-                        type="text"
-                        name="name_cn"
-                        className={clsx({
-                          "border-danger": errors.name_cn,
-                        })}
-                        placeholder={t("Enter name_cn")}
-                      />
-                      {errors.name_cn && (
-                        <div className="mt-2 text-danger">
-                          {typeof errors.name_cn.message === "string" &&
-                            errors.name_cn.message}
-                        </div>
-                      )}
-                    </div>
-
-
-<div className="mt-3 input-form">
-                      <FormLabel
-                        htmlFor="validation-form-1"
-                        className="flex justify-start items-start flex-col w-full sm:flex-row"
-                      >
-                        {t("Number Of Products")}
-                      </FormLabel>
-                      <FormInput
-                        {...register("number_of_products")}
-                        id="validation-form-1"
-                        type="number"
-                        name="number_of_products"
-                        className={clsx({
-                          "border-danger": errors.number_of_products,
-                        })}
-                        placeholder={t("Enter number_of_products")}
-                      />
-                      {errors.number_of_products && (
-                        <div className="mt-2 text-danger">
-                          {typeof errors.number_of_products.message === "string" &&
-                            errors.number_of_products.message}
-                        </div>
-                      )}
-                    </div>
-
 
                   </div>
                       )}
@@ -569,32 +470,6 @@ return (
                         htmlFor="validation-form-1"
                         className="flex justify-start items-start flex-col w-full sm:flex-row"
                       >
-                        {t("Brand Code")}
-                      </FormLabel>
-                      <FormInput
-                        {...register("brand_code")}
-                        id="validation-form-1"
-                        type="text"
-                        name="brand_code"
-                        className={clsx({
-                          "border-danger": errors.brand_code,
-                        })}
-                        placeholder={t("Enter brand_code")}
-                      />
-                      {errors.brand_code && (
-                        <div className="mt-2 text-danger">
-                          {typeof errors.brand_code.message === "string" &&
-                            errors.brand_code.message}
-                        </div>
-                      )}
-                    </div>
-
-
-<div className="mt-3 input-form">
-                      <FormLabel
-                        htmlFor="validation-form-1"
-                        className="flex justify-start items-start flex-col w-full sm:flex-row"
-                      >
                         {t("Brand Name")}
                       </FormLabel>
                       <FormInput
@@ -614,111 +489,6 @@ return (
                         </div>
                       )}
                     </div>
-
-
-<div className="mt-3 input-form">
-                      <FormLabel
-                        htmlFor="validation-form-1"
-                        className="flex justify-start items-start flex-col w-full sm:flex-row"
-                      >
-                        {t("Name Az")}
-                      </FormLabel>
-                      <FormInput
-                        {...register("name_az")}
-                        id="validation-form-1"
-                        type="text"
-                        name="name_az"
-                        className={clsx({
-                          "border-danger": errors.name_az,
-                        })}
-                        placeholder={t("Enter name_az")}
-                      />
-                      {errors.name_az && (
-                        <div className="mt-2 text-danger">
-                          {typeof errors.name_az.message === "string" &&
-                            errors.name_az.message}
-                        </div>
-                      )}
-                    </div>
-
-
-<div className="mt-3 input-form">
-                      <FormLabel
-                        htmlFor="validation-form-1"
-                        className="flex justify-start items-start flex-col w-full sm:flex-row"
-                      >
-                        {t("Name Ru")}
-                      </FormLabel>
-                      <FormInput
-                        {...register("name_ru")}
-                        id="validation-form-1"
-                        type="text"
-                        name="name_ru"
-                        className={clsx({
-                          "border-danger": errors.name_ru,
-                        })}
-                        placeholder={t("Enter name_ru")}
-                      />
-                      {errors.name_ru && (
-                        <div className="mt-2 text-danger">
-                          {typeof errors.name_ru.message === "string" &&
-                            errors.name_ru.message}
-                        </div>
-                      )}
-                    </div>
-
-
-<div className="mt-3 input-form">
-                      <FormLabel
-                        htmlFor="validation-form-1"
-                        className="flex justify-start items-start flex-col w-full sm:flex-row"
-                      >
-                        {t("Name Cn")}
-                      </FormLabel>
-                      <FormInput
-                        {...register("name_cn")}
-                        id="validation-form-1"
-                        type="text"
-                        name="name_cn"
-                        className={clsx({
-                          "border-danger": errors.name_cn,
-                        })}
-                        placeholder={t("Enter name_cn")}
-                      />
-                      {errors.name_cn && (
-                        <div className="mt-2 text-danger">
-                          {typeof errors.name_cn.message === "string" &&
-                            errors.name_cn.message}
-                        </div>
-                      )}
-                    </div>
-
-
-<div className="mt-3 input-form">
-                      <FormLabel
-                        htmlFor="validation-form-1"
-                        className="flex justify-start items-start flex-col w-full sm:flex-row"
-                      >
-                        {t("Number Of Products")}
-                      </FormLabel>
-                      <FormInput
-                        {...register("number_of_products")}
-                        id="validation-form-1"
-                        type="number"
-                        name="number_of_products"
-                        className={clsx({
-                          "border-danger": errors.number_of_products,
-                        })}
-                        placeholder={t("Enter number_of_products")}
-                      />
-                      {errors.number_of_products && (
-                        <div className="mt-2 text-danger">
-                          {typeof errors.number_of_products.message === "string" &&
-                            errors.number_of_products.message}
-                        </div>
-                      )}
-                    </div>
-
 
                   </div>
                 )}
@@ -746,6 +516,7 @@ return (
         getRef={(el) => {
           basicStickyNotification.current = el;
         }}
+        options={{ duration: 3000 }}
         className="flex flex-col sm:flex-row"
       >
         <div className="font-medium">{toastMessage}</div>

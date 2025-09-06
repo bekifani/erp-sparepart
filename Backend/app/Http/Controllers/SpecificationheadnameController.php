@@ -7,6 +7,7 @@ use App\Models\Specificationheadname;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
+
 class SpecificationheadnameController extends BaseController
 {
     protected $searchableColumns = ['headname', 'translate_az', 'translate_ru', 'translate_ch'];
@@ -67,13 +68,11 @@ class SpecificationheadnameController extends BaseController
     public function store(Request $request)
     {
         $validationRules = [
-          
-          "headname"=>"nullable|string|max:255",
+          // headname must be unique
+          "headname"=>"required|string|max:255|unique:specificationheadnames,headname",
           "translate_az"=>"nullable|string|max:255",
           "translate_ru"=>"nullable|string|max:255",
           "translate_ch"=>"nullable|string|max:255",
-          
-
         ];
 
         $validation = Validator::make($request->all() , $validationRules);
@@ -82,13 +81,12 @@ class SpecificationheadnameController extends BaseController
         }
         $validated=$validation->validated();
 
-
-
-        
-        //file uploads
-
-        $specificationheadname = Specificationheadname::create($validated);
-        return $this->sendResponse($specificationheadname, "specificationheadname created succesfully");
+        try {
+            $specificationheadname = Specificationheadname::create($validated);
+            return $this->sendResponse($specificationheadname, "specificationheadname created succesfully");
+        } catch (\Exception $e) {
+            return $this->sendError("Error creating specificationheadname", ['message' => $e->getMessage()]);
+        }
     }
 
     public function show($id)
@@ -102,14 +100,13 @@ class SpecificationheadnameController extends BaseController
     {
         $specificationheadname = Specificationheadname::findOrFail($id);
          $validationRules = [
-            //for update
+             //for update
 
-          
-          "headname"=>"nullable|string|max:255",
+          // enforce uniqueness excluding current row
+          "headname"=>"required|string|max:255|unique:specificationheadnames,headname,".$id,
           "translate_az"=>"nullable|string|max:255",
           "translate_ru"=>"nullable|string|max:255",
           "translate_ch"=>"nullable|string|max:255",
-          
         ];
 
         $validation = Validator::make($request->all() , $validationRules);
@@ -118,23 +115,18 @@ class SpecificationheadnameController extends BaseController
         }
         $validated=$validation->validated();
 
-
-
-
-        //file uploads update
-
-        $specificationheadname->update($validated);
-        return $this->sendResponse($specificationheadname, "specificationheadname updated successfully");
+        try {
+            $specificationheadname->update($validated);
+            return $this->sendResponse($specificationheadname, "specificationheadname updated successfully");
+        } catch (\Exception $e) {
+            return $this->sendError("Error updating specificationheadname", ['message' => $e->getMessage()]);
+        }
     }
 
     public function destroy($id)
     {
         $specificationheadname = Specificationheadname::findOrFail($id);
         $specificationheadname->delete();
-
-
-
-
 
         //delete files uploaded
         return $this->sendResponse(1, "specificationheadname deleted succesfully");

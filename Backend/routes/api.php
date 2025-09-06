@@ -139,12 +139,12 @@ Route::delete('/unit/{id}', [App\Http\Controllers\UnitController::class, 'destro
 Route::get('/all_units', [App\Http\Controllers\UnitController::class,'all_units']);
 
 
-Route::get('/ProductInformation', [App\Http\Controllers\ProductInformationController::class, 'index'])->middleware('permission:productinformation-list|productinformation-create|productinformation-edit|productinformation-delete');
-Route::get('/ProductInformation/{id}', [App\Http\Controllers\ProductInformationController::class, 'show'])->middleware('permission:productinformation-list|productinformation-create|productinformation-edit|productinformation-delete');
+Route::get('/ProductInformation', [App\Http\Controllers\ProductInformationController::class, 'index'])->middleware('permission:productInformation-list|productInformation-create|productInformation-edit|productInformation-delete');
+Route::get('/ProductInformation/{id}', [App\Http\Controllers\ProductInformationController::class, 'show'])->middleware('permission:productInformation-list|productInformation-create|productInformation-edit|productInformation-delete');
 Route::get('/search_ProductInformation/{search_term}', [App\Http\Controllers\ProductInformationController::class, 'search']);
-Route::post('/ProductInformation', [App\Http\Controllers\ProductInformationController::class, 'store'])->middleware('permission:productinformation-create');
-Route::put('/ProductInformation/{id}', [App\Http\Controllers\ProductInformationController::class, 'update'])->middleware('permission:productinformation-edit');
-Route::delete('/ProductInformation/{id}', [App\Http\Controllers\ProductInformationController::class, 'destroy'])->middleware('permission:productinformation-delete');
+Route::post('/ProductInformation', [App\Http\Controllers\ProductInformationController::class, 'store'])->middleware('permission:productInformation-create');
+Route::put('/ProductInformation/{id}', [App\Http\Controllers\ProductInformationController::class, 'update'])->middleware('permission:productInformation-edit');
+Route::delete('/ProductInformation/{id}', [App\Http\Controllers\ProductInformationController::class, 'destroy'])->middleware('permission:productInformation-delete');
 Route::get('/all_productInformations', [App\Http\Controllers\ProductInformationController::class,'all_productInformations']);
 
 

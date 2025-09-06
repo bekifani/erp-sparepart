@@ -10,10 +10,14 @@ return new class extends Migration
     {
         Schema::create('products', function (Blueprint $table) {
             $table->id();
-                $table->foreignId('product_information_id')->nullable();
-                $table->foreign('product_information_id')->references('id')->on('product_information')->onDelete('restrict')->onUpdate('cascade');
-                $table->foreignId('supplier_id')->nullable();
+                 $table->foreignId('supplier_id')->nullable();
                 $table->foreign('supplier_id')->references('id')->on('suppliers')->onDelete('restrict')->onUpdate('cascade');
+                // New brand reference and moved fields from product_information
+                $table->foreignId('brand_id')->nullable();
+                $table->foreign('brand_id')->references('id')->on('brandnames')->onDelete('set null')->onUpdate('cascade');
+                $table->string('brand_code')->nullable();
+                $table->string('oe_code')->nullable();
+                $table->string('description')->nullable();
                 $table->integer('qty');
                 $table->integer('min_qty')->nullable();
                 $table->decimal('purchase_price',10,2)->nullable();

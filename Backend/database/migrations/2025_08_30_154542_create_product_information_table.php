@@ -10,13 +10,13 @@ return new class extends Migration
     {
         Schema::create('product_information', function (Blueprint $table) {
             $table->id();
+            $table->foreignId('product_id')->nullable();
+                $table->foreign('product_id')->references('id')->on('products')->onDelete('restrict')->onUpdate('cascade');
+               
                 $table->foreignId('product_name_id')->nullable();
                 $table->foreign('product_name_id')->references('id')->on('productnames')->onDelete('restrict')->onUpdate('cascade');
                 $table->string('product_code');
-                $table->foreignId('brand_code')->nullable();
-                $table->foreign('brand_code')->references('id')->on('brandnames')->onDelete('restrict')->onUpdate('cascade');
-                $table->string('oe_code')->nullable();
-                $table->string('description')->nullable();
+                // brand, brand_code, oe_code, description were moved to products table
                 $table->decimal('net_weight',10,2)->nullable();
                 $table->decimal('gross_weight',10,2)->nullable();
                 $table->foreignId('unit_id')->nullable();

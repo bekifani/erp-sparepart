@@ -4,85 +4,86 @@ import axios from "axios";
 import { useSelector } from "react-redux";
 import { useTranslation } from "react-i18next";
 
-const TomSelectSearch = ({ apiUrl, setValue , variable, defaultValue, customDataMapping, onSelectionChange}) => {
+const TomSelectSearch = ({ apiUrl, setValue , variable, defaultValue, customDataMapping, onSelectionChange, minQueryLength = 1, defaultLabel }) => {
   const {t,i18n} = useTranslation()
   const tomSelectRef = useRef(null);
   const token = useSelector((state)=> state.auth.token)
   const tenant = useSelector((state)=> state.auth.tenant)
+
   useEffect(() => {
     // Initialize Tom Select with configuration
     const tomSelectInstance = new TomSelect(tomSelectRef.current, {
       placeholder: t("Search") + "...",
       load: async (query, callback) => {
         try {
-          if (!query.trim()) return callback();
+          if (!query.trim() || query.length < minQueryLength) return callback();
          
-          console.log('TomSelectSearch: Making API call to:', `${apiUrl}/${query}`);
-          console.log('TomSelectSearch: Query term:', query);
-          
-          const response = await axios.get(`${apiUrl}/${query}`, {
+          // Attempt path param first: /api/search_xxx/{query}
+          const pathUrl = `${apiUrl}/${encodeURIComponent(query)}`;
+          const queryUrl = `${apiUrl}?term=${encodeURIComponent(query)}`;
+          console.log('TomSelectSearch: Trying path URL:', pathUrl);
+
+          let response;
+          try {
+            response = await axios.get(pathUrl, {
               headers: {
-                  'X-Tenant': `${tenant}`,
-                  'Authorization': `Bearer ${token}`
+                'X-Tenant': `${tenant}`,
+                'Authorization': `Bearer ${token}`
+              } 
+            });
+          } catch (err) {
+            // Fallback to query param if path failed (404/405/400 etc.)
+            console.warn('TomSelectSearch: Path URL failed, trying query URL:', queryUrl, err?.response?.status);
+            response = await axios.get(queryUrl, {
+              headers: {
+                'X-Tenant': `${tenant}`,
+                'Authorization': `Bearer ${token}`
               }
-          });
-          
-          console.log('TomSelectSearch: Raw API response:', response.data);
-          
-          // Handle different response structures
-          let data = response.data;
-          if (data.data) {
-            data = data.data;
-            if (data.data) {
-              data = data.data;
-            }
+            });
           }
           
-          console.log('TomSelectSearch: Processed data:', data);
-          
-          // Ensure data is an array
+          // Normalize data
+          let data = response.data;
+          if (data?.data?.data) {
+            data = data.data.data;
+          } else if (data?.data) {
+            data = data.data;
+          }
+
           const items = Array.isArray(data) ? data : [];
-          console.log('TomSelectSearch: Items array:', items);
-          console.log('TomSelectSearch: Items count:', items.length);
-          
+
+          // Build options (mapped objects)
           const options = items.map(item => {
             if (customDataMapping) {
-              const mapped = customDataMapping(item);
-              console.log('TomSelectSearch: Custom mapped item:', mapped);
-              return mapped;
+              return customDataMapping(item) || {};
             }
             return {
               value: item.value || item.id,  
               text: item.text || item.name,
             };
           });
-          
-          console.log('TomSelectSearch: Final options for dropdown:', options);
-          
-          // Store items for later use in onChange
-          tomSelectInstance.itemsData = items;
-          callback(options);  // Return options for the dropdown
+
+          // Store mapped options for later retrieval in onChange
+          tomSelectInstance.itemsData = options;
+          callback(options);
         } catch (error) {
           console.error("TomSelectSearch: Error fetching data:", error);
           console.error("TomSelectSearch: Error details:", error.response?.data);
+          callback();
         }
       },
-      create: false, // Disable create option (optional)
       onChange: (value) => {
-        setValue(variable, value);  // Update selected value on change
-        
-        // Call onSelectionChange callback if provided
+        // Mark as dirty/validated so RHF sees it as filled
+        setValue(variable, value, { shouldDirty: true, shouldValidate: true });
         if (onSelectionChange && tomSelectInstance.itemsData) {
-          const selectedItem = tomSelectInstance.itemsData.find(item => (item.value || item.id) == value);
-          if (selectedItem) {
-            console.log('Selected item:', selectedItem);
-            onSelectionChange(selectedItem);
-          }
+          const selectedItem = tomSelectInstance.itemsData.find(item => (item.value) == value);
+          if (selectedItem) onSelectionChange(selectedItem);
         }
       },
+      create: false,
     });
 
-    
+    // Seed initial option/selection
     if (defaultValue) {
       tomSelectInstance.setValue(defaultValue);
     }

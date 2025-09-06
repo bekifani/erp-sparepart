@@ -13,7 +13,7 @@ use Illuminate\Notifications\Notifiable;
 class Product extends Model
 {
     use HasFactory, LogsActivity, Notifiable;
-    public $fillable = ['product_information_id', 'supplier_id', 'qty', 'min_qty', 'purchase_price', 'extra_cost', 'cost_basis', 'selling_price', 'additional_note', 'status'];
+    public $fillable = ['supplier_id', 'brand_id', 'brand_code', 'oe_code', 'description', 'qty', 'min_qty', 'purchase_price', 'extra_cost', 'cost_basis', 'selling_price', 'additional_note', 'status'];
     protected static $logAttributes = ['*'];
     public $guarded = [];
 
@@ -31,10 +31,12 @@ class Product extends Model
             ->useLogName("Product");
     }
 
- public function ProductInformation() { 
- return $this->belongsTo(ProductInformation::class, 'product_information_id', 'id');
- }
- public function supplier() { 
- return $this->belongsTo(Supplier::class, 'supplier_id', 'id');
- }
+    public function ProductInformation()
+    {
+        // New relationship: product_information has product_id foreign key pointing to products.id
+        return $this->hasOne(ProductInformation::class, 'product_id', 'id');
+    }
+    public function supplier() { 
+        return $this->belongsTo(Supplier::class, 'supplier_id', 'id');
+    }
 }

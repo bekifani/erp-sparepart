@@ -298,25 +298,25 @@ function Main({setShowCreateModal, show_create=true, endpoint, data, searchColum
                 </Slideover.Panel>
               </Slideover>
  
-               <Can permission={`${permission.toLowerCase()}-create`}>
-                {show_create &&  <Button
-                  onClick={(event)=> {
-                    event.preventDefault();
-                    setShowCreateModal(true);
-                    }}
-                    variant="primary"
-                    className="group-[.mode--light]:!bg-white/[0.12] group-[.mode--light]:!text-slate-200 group-[.mode--light]:!border-transparent dark:group-[.mode--light]:!bg-darkmode-900/30 dark:!box"
-                  >
-                  <Lucide icon="Plus" className="stroke-[1.3] w-4 h-4 mr-2" />{" "}
-                  {t('Add New ')} {t(page_name)}
-                </Button>}
-               
-              </Can>
-            </div>
-          </div>
-        <div className="flex flex-col gap-8 mt-3.5">
-          <div className="flex flex-col box box--stacked">
-            <div className="flex flex-col p-5 xl:items-center xl:flex-row gap-y-2">
+               <Can permission={`${permission.includes('-') ? permission : `${permission.toLowerCase()}-create`}`}>
+                 {show_create &&  <Button
+                   onClick={(event)=> {
+                     event.preventDefault();
+                     setShowCreateModal(true);
+                     }}
+                     variant="primary"
+                     className="group-[.mode--light]:!bg-white/[0.12] group-[.mode--light]:!text-slate-200 group-[.mode--light]:!border-transparent dark:group-[.mode--light]:!bg-darkmode-900/30 dark:!box"
+                   >
+                   <Lucide icon="Plus" className="stroke-[1.3] w-4 h-4 mr-2" />{" "}
+                   {t('Add New ')} {t(page_name)}
+                 </Button>}
+                
+               </Can>
+             </div>
+           </div>
+         <div className="flex flex-col gap-8 mt-3.5">
+           <div className="flex flex-col box box--stacked">
+             <div className="flex flex-col p-5 xl:items-center xl:flex-row gap-y-2">
               {/* <form
                 id="tabulator-html-filter-form"
                 className="flex xl:flex-row flex-col border-dashed gap-x-5 gap-y-2 border border-slate-300/80 xl:border-0 rounded-[0.6rem] p-4 sm:p-5 xl:p-0"
