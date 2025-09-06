@@ -603,8 +603,9 @@ return (
         onClose={() => {
           setShowCreateModal(false);
         }}
+        size="xl"
       >
-        <Slideover.Panel className="  text-center overflow-y-auto max-h-[110vh]">
+        <Slideover.Panel className="text-center overflow-y-auto max-h-[110vh] max-w-5xl w-full">
           <form onSubmit={handleSubmit(onCreate)}>
             <Slideover.Title>
               <h2 className="mr-auto text-base font-medium">{t("Add New Employee")}</h2>
@@ -618,323 +619,337 @@ return (
                     </div>
                   </div>
                 ) : (
-                  <div className=" w-full grid grid-cols-1 gap-4 gap-y-3">
+                  <div className="w-full grid grid-cols-1 gap-4 gap-y-3">
                     
-          <div className="w-full ">
-              <FileUpload endpoint={upload_url} type="image/*" className="w-full " setUploadedURL={setUploadPhoto}/>
+          {/* Image Upload - Full Width */}
+          <div className="w-full">
+              <FormLabel className="block mb-2 text-sm font-medium">
+                {t("Upload an Image")}
+              </FormLabel>
+              <FileUpload endpoint={upload_url} type="image/*" className="w-full" setUploadedURL={setUploadPhoto}/>
           </div>
         
-<div className="mt-3 input-form">
-                      <FormLabel
-                        htmlFor="validation-form-1"
-                        className="flex justify-start items-start flex-col w-full sm:flex-row"
-                      >
-                        {t("First Name")}
-                      </FormLabel>
-                      <FormInput
-                        {...register("first_name")}
-                        id="validation-form-1"
-                        type="text"
-                        name="first_name"
-                        className={clsx({
-                          "border-danger": errors.first_name,
-                        })}
-                        placeholder={t("Enter first_name")}
-                      />
-                      {errors.first_name && (
-                        <div className="mt-2 text-danger">
-                          {typeof errors.first_name.message === "string" &&
-                            errors.first_name.message}
-                        </div>
-                      )}
-                    </div>
+          {/* Row 1: First Name & Last Name */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="input-form">
+              <FormLabel
+                htmlFor="first_name"
+                className="flex justify-start items-start flex-col w-full sm:flex-row"
+              >
+                {t("First Name")}
+              </FormLabel>
+              <FormInput
+                {...register("first_name")}
+                id="first_name"
+                type="text"
+                name="first_name"
+                className={clsx({
+                  "border-danger": errors.first_name,
+                })}
+                placeholder={t("Enter first_name")}
+              />
+              {errors.first_name && (
+                <div className="mt-2 text-danger">
+                  {typeof errors.first_name.message === "string" &&
+                    errors.first_name.message}
+                </div>
+              )}
+            </div>
 
+            <div className="input-form">
+              <FormLabel
+                htmlFor="last_name"
+                className="flex justify-start items-start flex-col w-full sm:flex-row"
+              >
+                {t("Last Name")}
+              </FormLabel>
+              <FormInput
+                {...register("last_name")}
+                id="last_name"
+                type="text"
+                name="last_name"
+                className={clsx({
+                  "border-danger": errors.last_name,
+                })}
+                placeholder={t("Enter last_name")}
+              />
+              {errors.last_name && (
+                <div className="mt-2 text-danger">
+                  {typeof errors.last_name.message === "string" &&
+                    errors.last_name.message}
+                </div>
+              )}
+            </div>
+          </div>
 
-<div className="mt-3 input-form">
-                      <FormLabel
-                        htmlFor="validation-form-1"
-                        className="flex justify-start items-start flex-col w-full sm:flex-row"
-                      >
-                        {t("Last Name")}
-                      </FormLabel>
-                      <FormInput
-                        {...register("last_name")}
-                        id="validation-form-1"
-                        type="text"
-                        name="last_name"
-                        className={clsx({
-                          "border-danger": errors.last_name,
-                        })}
-                        placeholder={t("Enter last_name")}
-                      />
-                      {errors.last_name && (
-                        <div className="mt-2 text-danger">
-                          {typeof errors.last_name.message === "string" &&
-                            errors.last_name.message}
-                        </div>
-                      )}
-                    </div>
+          {/* Row 2: Position & Email */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="input-form">
+              <FormLabel
+                htmlFor="position"
+                className="flex justify-start items-start flex-col w-full sm:flex-row"
+              >
+                {t("Position")}
+              </FormLabel>
+              <FormInput
+                {...register("position")}
+                id="position"
+                type="text"
+                name="position"
+                className={clsx({
+                  "border-danger": errors.position,
+                })}
+                placeholder={t("Enter position")}
+              />
+              {errors.position && (
+                <div className="mt-2 text-danger">
+                  {typeof errors.position.message === "string" &&
+                    errors.position.message}
+                </div>
+              )}
+            </div>
 
-<div className="mt-3 input-form">
-                      <FormLabel
-                        htmlFor="validation-form-1"
-                        className="flex justify-start items-start flex-col w-full sm:flex-row"
-                      >
-                        {t("Position")}
-                      </FormLabel>
-                      <FormInput
-                        {...register("position")}
-                        id="validation-form-1"
-                        type="text"
-                        name="position"
-                        className={clsx({
-                          "border-danger": errors.position,
-                        })}
-                        placeholder={t("Enter position")}
-                      />
-                      {errors.position && (
-                        <div className="mt-2 text-danger">
-                          {typeof errors.position.message === "string" &&
-                            errors.position.message}
-                        </div>
-                      )}
-                    </div>
+            <div className="input-form">
+              <FormLabel
+                htmlFor="email"
+                className="flex justify-start items-start flex-col w-full sm:flex-row"
+              >
+                {t("Email")}
+              </FormLabel>
+              <FormInput
+                {...register("email")}
+                id="email"
+                type="email"
+                name="email"
+                className={clsx({
+                  "border-danger": errors.email,
+                })}
+                placeholder={t("Enter email")}
+              />
+              {errors.email && (
+                <div className="mt-2 text-danger">
+                  {typeof errors.email.message === "string" &&
+                    errors.email.message}
+                </div>
+              )}
+            </div>
+          </div>
 
-   
+          {/* Row 3: Phone & WhatsApp */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="input-form">
+              <FormLabel
+                htmlFor="phone"
+                className="flex justify-start items-start flex-col w-full sm:flex-row"
+              >
+                {t("Phone")}
+              </FormLabel>
+              <FormInput
+                {...register("phone")}
+                id="phone"
+                type="text"
+                name="phone"
+                className={clsx({
+                  "border-danger": errors.phone,
+                })}
+                placeholder={t("Enter phone")}
+              />
+              {errors.phone && (
+                <div className="mt-2 text-danger">
+                  {typeof errors.phone.message === "string" &&
+                    errors.phone.message}
+                </div>
+              )}
+            </div>
 
-<div className="mt-3 input-form">
-                      <FormLabel
-                        htmlFor="validation-form-1"
-                        className="flex justify-start items-start flex-col w-full sm:flex-row"
-                      >
-                        {t("Email")}
-                      </FormLabel>
-                      <FormInput
-                        {...register("email")}
-                        id="validation-form-1"
-                        type="email"
-                        name="email"
-                        className={clsx({
-                          "border-danger": errors.email,
-                        })}
-                        placeholder={t("Enter email")}
-                      />
-                      {errors.email && (
-                        <div className="mt-2 text-danger">
-                          {typeof errors.email.message === "string" &&
-                            errors.email.message}
-                        </div>
-                      )}
-                    </div>
+            <div className="input-form">
+              <FormLabel
+                htmlFor="whatsapp"
+                className="flex justify-start items-start flex-col w-full sm:flex-row"
+              >
+                {t("WhatsApp")}
+              </FormLabel>
+              <FormInput
+                {...register("whatsapp")}
+                id="whatsapp"
+                type="text"
+                name="whatsapp"
+                className={clsx({
+                  "border-danger": errors.whatsapp,
+                })}
+                placeholder={t("Enter whatsapp")}
+              />
+              {errors.whatsapp && (
+                <div className="mt-2 text-danger">
+                  {typeof errors.whatsapp.message === "string" &&
+                    errors.whatsapp.message}
+                </div>
+              )}
+            </div>
+          </div>
 
+          {/* Row 4: WeChat & Birth Date */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="input-form">
+              <FormLabel
+                htmlFor="wechat"
+                className="flex justify-start items-start flex-col w-full sm:flex-row"
+              >
+                {t("WeChat")}
+              </FormLabel>
+              <FormInput
+                {...register("wechat")}
+                id="wechat"
+                type="text"
+                name="wechat"
+                className={clsx({
+                  "border-danger": errors.wechat,
+                })}
+                placeholder={t("Enter wechat")}
+              />
+              {errors.wechat && (
+                <div className="mt-2 text-danger">
+                  {typeof errors.wechat.message === "string" &&
+                    errors.wechat.message}
+                </div>
+              )}
+            </div>
 
-<div className="mt-3 input-form">
-                      <FormLabel
-                        htmlFor="validation-form-1"
-                        className="flex justify-start items-start flex-col w-full sm:flex-row"
-                      >
-                        {t("Phone")}
-                      </FormLabel>
-                      <FormInput
-                        {...register("phone")}
-                        id="validation-form-1"
-                        type="text"
-                        name="phone"
-                        className={clsx({
-                          "border-danger": errors.phone,
-                        })}
-                        placeholder={t("Enter phone")}
-                      />
-                      {errors.phone && (
-                        <div className="mt-2 text-danger">
-                          {typeof errors.phone.message === "string" &&
-                            errors.phone.message}
-                        </div>
-                      )}
-                    </div>
+            <div className="input-form">
+              <FormLabel
+                htmlFor="birthdate"
+                className="flex justify-start items-start flex-col w-full sm:flex-row"
+              >
+                {t("Birth Date")}
+              </FormLabel>
+              <FormInput
+                {...register("birthdate")}
+                id="birthdate"
+                type="date"
+                name="birthdate"
+                className={clsx({
+                  "border-danger": errors.birthdate,
+                })}
+                placeholder={t("Enter birthdate")}
+              />
+              {errors.birthdate && (
+                <div className="mt-2 text-danger">
+                  {typeof errors.birthdate.message === "string" &&
+                    errors.birthdate.message}
+                </div>
+              )}
+            </div>
+          </div>
 
-<div className="mt-3 input-form">
-                      <FormLabel
-                        htmlFor="validation-form-1"
-                        className="flex justify-start items-start flex-col w-full sm:flex-row"
-                      >
-                        {t("WhatsApp")}
-                      </FormLabel>
-                      <FormInput
-                        {...register("whatsapp")}
-                        id="validation-form-1"
-                        type="text"
-                        name="whatsapp"
-                        className={clsx({
-                          "border-danger": errors.whatsapp,
-                        })}
-                        placeholder={t("Enter whatsapp")}
-                      />
-                      {errors.whatsapp && (
-                        <div className="mt-2 text-danger">
-                          {typeof errors.whatsapp.message === "string" &&
-                            errors.whatsapp.message}
-                        </div>
-                      )}
-                    </div>
+          {/* Row 5: Salary & Hire Date */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="input-form">
+              <FormLabel
+                htmlFor="salary"
+                className="flex justify-start items-start flex-col w-full sm:flex-row"
+              >
+                {t("Salary")}
+              </FormLabel>
+              <FormInput
+                {...register("salary")}
+                id="salary"
+                type="number"
+                name="salary"
+                className={clsx({
+                  "border-danger": errors.salary,
+                })}
+                placeholder={t("Enter salary")}
+              />
+              {errors.salary && (
+                <div className="mt-2 text-danger">
+                  {typeof errors.salary.message === "string" &&
+                    errors.salary.message}
+                </div>
+              )}
+            </div>
 
-<div className="mt-3 input-form">
-                      <FormLabel
-                        htmlFor="validation-form-1"
-                        className="flex justify-start items-start flex-col w-full sm:flex-row"
-                      >
-                        {t("WeChat")}
-                      </FormLabel>
-                      <FormInput
-                        {...register("wechat")}
-                        id="validation-form-1"
-                        type="text"
-                        name="wechat"
-                        className={clsx({
-                          "border-danger": errors.wechat,
-                        })}
-                        placeholder={t("Enter wechat")}
-                      />
-                      {errors.wechat && (
-                        <div className="mt-2 text-danger">
-                          {typeof errors.wechat.message === "string" &&
-                            errors.wechat.message}
-                        </div>
-                      )}
-                    </div>
+            <div className="input-form">
+              <FormLabel
+                htmlFor="hire_date"
+                className="flex justify-start items-start flex-col w-full sm:flex-row"
+              >
+                {t("Salary Date")}
+              </FormLabel>
+              <FormInput
+                {...register("hire_date")}
+                id="hire_date"
+                type="date"
+                name="hire_date"
+                className={clsx({
+                  "border-danger": errors.hire_date,
+                })}
+                placeholder={t("Enter hire_date")}
+              />
+              {errors.hire_date && (
+                <div className="mt-2 text-danger">
+                  {typeof errors.hire_date.message === "string" &&
+                    errors.hire_date.message}
+                </div>
+              )}
+            </div>
+          </div>
 
-<div className="mt-3 input-form">
-                      <FormLabel
-                        htmlFor="validation-form-1"
-                        className="flex justify-start items-start flex-col w-full sm:flex-row"
-                      >
-                        {t("Birth Date")}
-                      </FormLabel>
-                      <FormInput
-                        {...register("birthdate")}
-                        id="validation-form-1"
-                        type="date"
-                        name="birthdate"
-                        className={clsx({
-                          "border-danger": errors.birthdate,
-                        })}
-                        placeholder={t("Enter birthdate")}
-                      />
-                      {errors.birthdate && (
-                        <div className="mt-2 text-danger">
-                          {typeof errors.birthdate.message === "string" &&
-                            errors.birthdate.message}
-                        </div>
-                      )}
-                    </div>
-
-<div className="mt-3 input-form">
-                      <FormLabel
-                        htmlFor="validation-form-1"
-                        className="flex justify-start items-start flex-col w-full sm:flex-row"
-                      >
-                        {t("Salary")}
-                      </FormLabel>
-                      <FormInput
-                        {...register("salary")}
-                        id="validation-form-1"
-                        type="number"
-                        name="salary"
-                        className={clsx({
-                          "border-danger": errors.salary,
-                        })}
-                        placeholder={t("Enter salary")}
-                      />
-                      {errors.salary && (
-                        <div className="mt-2 text-danger">
-                          {typeof errors.salary.message === "string" &&
-                            errors.salary.message}
-                        </div>
-                      )}
-                    </div>
-
-
-<div className="mt-3 input-form">
-                      <FormLabel
-                        htmlFor="validation-form-1"
-                        className="flex justify-start items-start flex-col w-full sm:flex-row"
-                      >
-                        {t("Salary Date")}
-                      </FormLabel>
-                      <FormInput
-                        {...register("hire_date")}
-                        id="validation-form-1"
-                        type="date"
-                        name="hire_date"
-                        className={clsx({
-                          "border-danger": errors.hire_date,
-                        })}
-                        placeholder={t("Enter hire_date")}
-                      />
-                      {errors.hire_date && (
-                        <div className="mt-2 text-danger">
-                          {typeof errors.hire_date.message === "string" &&
-                            errors.hire_date.message}
-                        </div>
-                      )}
-                    </div>
-
-
- <div className="mt-3 input-form">
-      <FormLabel
-        htmlFor="validation-form-1"
-        className="flex flex-col w-full sm:flex-row"
-      >
-        {t("Is Active")}
-      </FormLabel>
-          <div className="flex flex-col mt-2 sm:flex-row">
+          {/* Is Active - Full Width */}
+          <div className="input-form">
+            <FormLabel
+              htmlFor="is_active"
+              className="flex flex-col w-full sm:flex-row"
+            >
+              {t("Is Active")}
+            </FormLabel>
+            <div className="flex flex-col mt-2 sm:flex-row">
               <div>
-            <input
-              {...register('is_active')}
-              type="radio"
-              value={1}
-              className="mx-2"
-            />  {t('Active')}
-            <input
-              {...register('is_active')}
-              type="radio"
-              value={0}
-              className="mx-2"
-            /> {t('Inactive')}
-      </div>
+                <input
+                  {...register('is_active')}
+                  type="radio"
+                  value={1}
+                  className="mx-2"
+                />  {t('Active')}
+                <input
+                  {...register('is_active')}
+                  type="radio"
+                  value={0}
+                  className="mx-2"
+                /> {t('Inactive')}
+              </div>
+            </div>
+            {errors.is_active && (
+              <div className="mt-2 text-danger">
+                {typeof errors.is_active.message === "string" &&
+                  errors.is_active.message}
+              </div>
+            )}
           </div>
-      {errors.is_active && (
-        <div className="mt-2 text-danger">
-          {typeof errors.is_active.message === "string" &&
-            errors.is_active.message}
-        </div>
-      )}
-    </div>
     
-
-  <div className="mt-3 input-form">
-        <FormLabel
-          htmlFor="validation-form-6"
-          className="flex flex-col w-full sm:flex-row"
-        >
-          {t("Note")}
-        </FormLabel>
-        <FormTextarea
-          {...register("note")}
-          id="validation-form-6"
-          name="note"
-          className={clsx({
-            "border-danger": errors.note,
-          })}
-          placeholder={t("note")}
-        ></FormTextarea>
-        {errors.note && (
-          <div className="mt-2 text-danger">
-            {typeof errors.note.message ===
-              "string" && errors.note.message}
+          {/* Additional Note - Full Width */}
+          <div className="input-form">
+            <FormLabel
+              htmlFor="note"
+              className="flex flex-col w-full sm:flex-row"
+            >
+              {t("Note")}
+            </FormLabel>
+            <FormTextarea
+              {...register("note")}
+              id="note"
+              name="note"
+              className={clsx({
+                "border-danger": errors.note,
+              })}
+              placeholder={t("note")}
+            ></FormTextarea>
+            {errors.note && (
+              <div className="mt-2 text-danger">
+                {typeof errors.note.message ===
+                  "string" && errors.note.message}
+              </div>
+            )}
           </div>
-        )}
-      </div>
 
                   </div>
                       )}
@@ -964,8 +979,9 @@ return (
         onClose={() => {
           setShowUpdateModal(false);
         }}
+        size="xl"
       >
-        <Slideover.Panel className="  text-center overflow-y-auto max-h-[110vh]">
+        <Slideover.Panel className="text-center overflow-y-auto max-h-[110vh] max-w-5xl w-full">
           <form onSubmit={handleSubmit(onUpdate)}>
             <Slideover.Title>
               <h2 className="mr-auto text-base font-medium">{t("Edit Employee")}</h2>
@@ -979,323 +995,337 @@ return (
                     </div>
                   </div>
                 ) : (
-                  <div className=" w-full grid grid-cols-1  gap-4 gap-y-3">
+                  <div className="w-full grid grid-cols-1 gap-4 gap-y-3">
                     
-          <div className="w-full ">
-              <FileUpload endpoint={upload_url} type="image/*" className="w-full " setUploadedURL={setUploadPhoto}/>
+          {/* Image Upload - Full Width */}
+          <div className="w-full">
+              <FormLabel className="block mb-2 text-sm font-medium">
+                {t("Upload an Imag")}
+              </FormLabel>
+              <FileUpload endpoint={upload_url} type="image/*" className="w-full" setUploadedURL={setUploadPhoto}/>
           </div>
         
-<div className="mt-3 input-form">
-                      <FormLabel
-                        htmlFor="validation-form-1"
-                        className="flex justify-start items-start flex-col w-full sm:flex-row"
-                      >
-                        {t("First Name")}
-                      </FormLabel>
-                      <FormInput
-                        {...register("first_name")}
-                        id="validation-form-1"
-                        type="text"
-                        name="first_name"
-                        className={clsx({
-                          "border-danger": errors.first_name,
-                        })}
-                        placeholder={t("Enter first_name")}
-                      />
-                      {errors.first_name && (
-                        <div className="mt-2 text-danger">
-                          {typeof errors.first_name.message === "string" &&
-                            errors.first_name.message}
-                        </div>
-                      )}
-                    </div>
+          {/* Row 1: First Name & Last Name */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="input-form">
+              <FormLabel
+                htmlFor="edit_first_name"
+                className="flex justify-start items-start flex-col w-full sm:flex-row"
+              >
+                {t("First Name")}
+              </FormLabel>
+              <FormInput
+                {...register("first_name")}
+                id="edit_first_name"
+                type="text"
+                name="first_name"
+                className={clsx({
+                  "border-danger": errors.first_name,
+                })}
+                placeholder={t("Enter first_name")}
+              />
+              {errors.first_name && (
+                <div className="mt-2 text-danger">
+                  {typeof errors.first_name.message === "string" &&
+                    errors.first_name.message}
+                </div>
+              )}
+            </div>
 
+            <div className="input-form">
+              <FormLabel
+                htmlFor="edit_last_name"
+                className="flex justify-start items-start flex-col w-full sm:flex-row"
+              >
+                {t("Last Name")}
+              </FormLabel>
+              <FormInput
+                {...register("last_name")}
+                id="edit_last_name"
+                type="text"
+                name="last_name"
+                className={clsx({
+                  "border-danger": errors.last_name,
+                })}
+                placeholder={t("Enter last_name")}
+              />
+              {errors.last_name && (
+                <div className="mt-2 text-danger">
+                  {typeof errors.last_name.message === "string" &&
+                    errors.last_name.message}
+                </div>
+              )}
+            </div>
+          </div>
 
-<div className="mt-3 input-form">
-                      <FormLabel
-                        htmlFor="validation-form-1"
-                        className="flex justify-start items-start flex-col w-full sm:flex-row"
-                      >
-                        {t("Last Name")}
-                      </FormLabel>
-                      <FormInput
-                        {...register("last_name")}
-                        id="validation-form-1"
-                        type="text"
-                        name="last_name"
-                        className={clsx({
-                          "border-danger": errors.last_name,
-                        })}
-                        placeholder={t("Enter last_name")}
-                      />
-                      {errors.last_name && (
-                        <div className="mt-2 text-danger">
-                          {typeof errors.last_name.message === "string" &&
-                            errors.last_name.message}
-                        </div>
-                      )}
-                    </div>
+          {/* Row 2: Position & Email */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="input-form">
+              <FormLabel
+                htmlFor="edit_position"
+                className="flex justify-start items-start flex-col w-full sm:flex-row"
+              >
+                {t("Position")}
+              </FormLabel>
+              <FormInput
+                {...register("position")}
+                id="edit_position"
+                type="text"
+                name="position"
+                className={clsx({
+                  "border-danger": errors.position,
+                })}
+                placeholder={t("Enter position")}
+              />
+              {errors.position && (
+                <div className="mt-2 text-danger">
+                  {typeof errors.position.message === "string" &&
+                    errors.position.message}
+                </div>
+              )}
+            </div>
 
-<div className="mt-3 input-form">
-                      <FormLabel
-                        htmlFor="validation-form-1"
-                        className="flex justify-start items-start flex-col w-full sm:flex-row"
-                      >
-                        {t("Position")}
-                      </FormLabel>
-                      <FormInput
-                        {...register("position")}
-                        id="validation-form-1"
-                        type="text"
-                        name="position"
-                        className={clsx({
-                          "border-danger": errors.position,
-                        })}
-                        placeholder={t("Enter position")}
-                      />
-                      {errors.position && (
-                        <div className="mt-2 text-danger">
-                          {typeof errors.position.message === "string" &&
-                            errors.position.message}
-                        </div>
-                      )}
-                    </div>
+            <div className="input-form">
+              <FormLabel
+                htmlFor="edit_email"
+                className="flex justify-start items-start flex-col w-full sm:flex-row"
+              >
+                {t("Email")}
+              </FormLabel>
+              <FormInput
+                {...register("email")}
+                id="edit_email"
+                type="email"
+                name="email"
+                className={clsx({
+                  "border-danger": errors.email,
+                })}
+                placeholder={t("Enter email")}
+              />
+              {errors.email && (
+                <div className="mt-2 text-danger">
+                  {typeof errors.email.message === "string" &&
+                    errors.email.message}
+                </div>
+              )}
+            </div>
+          </div>
 
-   
+          {/* Row 3: Phone & WhatsApp */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="input-form">
+              <FormLabel
+                htmlFor="edit_phone"
+                className="flex justify-start items-start flex-col w-full sm:flex-row"
+              >
+                {t("Phone")}
+              </FormLabel>
+              <FormInput
+                {...register("phone")}
+                id="edit_phone"
+                type="text"
+                name="phone"
+                className={clsx({
+                  "border-danger": errors.phone,
+                })}
+                placeholder={t("Enter phone")}
+              />
+              {errors.phone && (
+                <div className="mt-2 text-danger">
+                  {typeof errors.phone.message === "string" &&
+                    errors.phone.message}
+                </div>
+              )}
+            </div>
 
-<div className="mt-3 input-form">
-                      <FormLabel
-                        htmlFor="validation-form-1"
-                        className="flex justify-start items-start flex-col w-full sm:flex-row"
-                      >
-                        {t("Email")}
-                      </FormLabel>
-                      <FormInput
-                        {...register("email")}
-                        id="validation-form-1"
-                        type="email"
-                        name="email"
-                        className={clsx({
-                          "border-danger": errors.email,
-                        })}
-                        placeholder={t("Enter email")}
-                      />
-                      {errors.email && (
-                        <div className="mt-2 text-danger">
-                          {typeof errors.email.message === "string" &&
-                            errors.email.message}
-                        </div>
-                      )}
-                    </div>
+            <div className="input-form">
+              <FormLabel
+                htmlFor="edit_whatsapp"
+                className="flex justify-start items-start flex-col w-full sm:flex-row"
+              >
+                {t("WhatsApp")}
+              </FormLabel>
+              <FormInput
+                {...register("whatsapp")}
+                id="edit_whatsapp"
+                type="text"
+                name="whatsapp"
+                className={clsx({
+                  "border-danger": errors.whatsapp,
+                })}
+                placeholder={t("Enter whatsapp")}
+              />
+              {errors.whatsapp && (
+                <div className="mt-2 text-danger">
+                  {typeof errors.whatsapp.message === "string" &&
+                    errors.whatsapp.message}
+                </div>
+              )}
+            </div>
+          </div>
 
+          {/* Row 4: WeChat & Birth Date */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="input-form">
+              <FormLabel
+                htmlFor="edit_wechat"
+                className="flex justify-start items-start flex-col w-full sm:flex-row"
+              >
+                {t("WeChat")}
+              </FormLabel>
+              <FormInput
+                {...register("wechat")}
+                id="edit_wechat"
+                type="text"
+                name="wechat"
+                className={clsx({
+                  "border-danger": errors.wechat,
+                })}
+                placeholder={t("Enter wechat")}
+              />
+              {errors.wechat && (
+                <div className="mt-2 text-danger">
+                  {typeof errors.wechat.message === "string" &&
+                    errors.wechat.message}
+                </div>
+              )}
+            </div>
 
-<div className="mt-3 input-form">
-                      <FormLabel
-                        htmlFor="validation-form-1"
-                        className="flex justify-start items-start flex-col w-full sm:flex-row"
-                      >
-                        {t("Phone")}
-                      </FormLabel>
-                      <FormInput
-                        {...register("phone")}
-                        id="validation-form-1"
-                        type="text"
-                        name="phone"
-                        className={clsx({
-                          "border-danger": errors.phone,
-                        })}
-                        placeholder={t("Enter phone")}
-                      />
-                      {errors.phone && (
-                        <div className="mt-2 text-danger">
-                          {typeof errors.phone.message === "string" &&
-                            errors.phone.message}
-                        </div>
-                      )}
-                    </div>
+            <div className="input-form">
+              <FormLabel
+                htmlFor="edit_birthdate"
+                className="flex justify-start items-start flex-col w-full sm:flex-row"
+              >
+                {t("Birth Date")}
+              </FormLabel>
+              <FormInput
+                {...register("birthdate")}
+                id="edit_birthdate"
+                type="date"
+                name="birthdate"
+                className={clsx({
+                  "border-danger": errors.birthdate,
+                })}
+                placeholder={t("Enter birthdate")}
+              />
+              {errors.birthdate && (
+                <div className="mt-2 text-danger">
+                  {typeof errors.birthdate.message === "string" &&
+                    errors.birthdate.message}
+                </div>
+              )}
+            </div>
+          </div>
 
-<div className="mt-3 input-form">
-                      <FormLabel
-                        htmlFor="validation-form-1"
-                        className="flex justify-start items-start flex-col w-full sm:flex-row"
-                      >
-                        {t("WhatsApp")}
-                      </FormLabel>
-                      <FormInput
-                        {...register("whatsapp")}
-                        id="validation-form-1"
-                        type="text"
-                        name="whatsapp"
-                        className={clsx({
-                          "border-danger": errors.whatsapp,
-                        })}
-                        placeholder={t("Enter whatsapp")}
-                      />
-                      {errors.whatsapp && (
-                        <div className="mt-2 text-danger">
-                          {typeof errors.whatsapp.message === "string" &&
-                            errors.whatsapp.message}
-                        </div>
-                      )}
-                    </div>
+          {/* Row 5: Salary & Hire Date */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="input-form">
+              <FormLabel
+                htmlFor="edit_salary"
+                className="flex justify-start items-start flex-col w-full sm:flex-row"
+              >
+                {t("Salary")}
+              </FormLabel>
+              <FormInput
+                {...register("salary")}
+                id="edit_salary"
+                type="number"
+                name="salary"
+                className={clsx({
+                  "border-danger": errors.salary,
+                })}
+                placeholder={t("Enter salary")}
+              />
+              {errors.salary && (
+                <div className="mt-2 text-danger">
+                  {typeof errors.salary.message === "string" &&
+                    errors.salary.message}
+                </div>
+              )}
+            </div>
 
-<div className="mt-3 input-form">
-                      <FormLabel
-                        htmlFor="validation-form-1"
-                        className="flex justify-start items-start flex-col w-full sm:flex-row"
-                      >
-                        {t("WeChat")}
-                      </FormLabel>
-                      <FormInput
-                        {...register("wechat")}
-                        id="validation-form-1"
-                        type="text"
-                        name="wechat"
-                        className={clsx({
-                          "border-danger": errors.wechat,
-                        })}
-                        placeholder={t("Enter wechat")}
-                      />
-                      {errors.wechat && (
-                        <div className="mt-2 text-danger">
-                          {typeof errors.wechat.message === "string" &&
-                            errors.wechat.message}
-                        </div>
-                      )}
-                    </div>
+            <div className="input-form">
+              <FormLabel
+                htmlFor="edit_hire_date"
+                className="flex justify-start items-start flex-col w-full sm:flex-row"
+              >
+                {t("Salary Date")}
+              </FormLabel>
+              <FormInput
+                {...register("hire_date")}
+                id="edit_hire_date"
+                type="date"
+                name="hire_date"
+                className={clsx({
+                  "border-danger": errors.hire_date,
+                })}
+                placeholder={t("Enter hire_date")}
+              />
+              {errors.hire_date && (
+                <div className="mt-2 text-danger">
+                  {typeof errors.hire_date.message === "string" &&
+                    errors.hire_date.message}
+                </div>
+              )}
+            </div>
+          </div>
 
-<div className="mt-3 input-form">
-                      <FormLabel
-                        htmlFor="validation-form-1"
-                        className="flex justify-start items-start flex-col w-full sm:flex-row"
-                      >
-                        {t("Birth Date")}
-                      </FormLabel>
-                      <FormInput
-                        {...register("birthdate")}
-                        id="validation-form-1"
-                        type="date"
-                        name="birthdate"
-                        className={clsx({
-                          "border-danger": errors.birthdate,
-                        })}
-                        placeholder={t("Enter birthdate")}
-                      />
-                      {errors.birthdate && (
-                        <div className="mt-2 text-danger">
-                          {typeof errors.birthdate.message === "string" &&
-                            errors.birthdate.message}
-                        </div>
-                      )}
-                    </div>
-
-<div className="mt-3 input-form">
-                      <FormLabel
-                        htmlFor="validation-form-1"
-                        className="flex justify-start items-start flex-col w-full sm:flex-row"
-                      >
-                        {t("Salary")}
-                      </FormLabel>
-                      <FormInput
-                        {...register("salary")}
-                        id="validation-form-1"
-                        type="number"
-                        name="salary"
-                        className={clsx({
-                          "border-danger": errors.salary,
-                        })}
-                        placeholder={t("Enter salary")}
-                      />
-                      {errors.salary && (
-                        <div className="mt-2 text-danger">
-                          {typeof errors.salary.message === "string" &&
-                            errors.salary.message}
-                        </div>
-                      )}
-                    </div>
-
-
-<div className="mt-3 input-form">
-                      <FormLabel
-                        htmlFor="validation-form-1"
-                        className="flex justify-start items-start flex-col w-full sm:flex-row"
-                      >
-                        {t("Salary Date")}
-                      </FormLabel>
-                      <FormInput
-                        {...register("hire_date")}
-                        id="validation-form-1"
-                        type="date"
-                        name="hire_date"
-                        className={clsx({
-                          "border-danger": errors.hire_date,
-                        })}
-                        placeholder={t("Enter hire_date")}
-                      />
-                      {errors.hire_date && (
-                        <div className="mt-2 text-danger">
-                          {typeof errors.hire_date.message === "string" &&
-                            errors.hire_date.message}
-                        </div>
-                      )}
-                    </div>
-
-
- <div className="mt-3 input-form">
-      <FormLabel
-        htmlFor="validation-form-1"
-        className="flex flex-col w-full sm:flex-row"
-      >
-        {t("Is Active")}
-      </FormLabel>
-          <div className="flex flex-col mt-2 sm:flex-row">
+          {/* Is Active - Full Width */}
+          <div className="input-form">
+            <FormLabel
+              htmlFor="edit_is_active"
+              className="flex flex-col w-full sm:flex-row"
+            >
+              {t("Is Active")}
+            </FormLabel>
+            <div className="flex flex-col mt-2 sm:flex-row">
               <div>
-            <input
-              {...register('is_active')}
-              type="radio"
-              value={1}
-              className="mx-2"
-            />  {t('Active')}
-            <input
-              {...register('is_active')}
-              type="radio"
-              value={0}
-              className="mx-2"
-            /> {t('Inactive')}
-      </div>
+                <input
+                  {...register('is_active')}
+                  type="radio"
+                  value={1}
+                  className="mx-2"
+                />  {t('Active')}
+                <input
+                  {...register('is_active')}
+                  type="radio"
+                  value={0}
+                  className="mx-2"
+                /> {t('Inactive')}
+              </div>
+            </div>
+            {errors.is_active && (
+              <div className="mt-2 text-danger">
+                {typeof errors.is_active.message === "string" &&
+                  errors.is_active.message}
+              </div>
+            )}
           </div>
-      {errors.is_active && (
-        <div className="mt-2 text-danger">
-          {typeof errors.is_active.message === "string" &&
-            errors.is_active.message}
-        </div>
-      )}
-    </div>
     
-
-  <div className="mt-3 input-form">
-        <FormLabel
-          htmlFor="validation-form-6"
-          className="flex flex-col w-full sm:flex-row"
-        >
-          {t("Note")}
-        </FormLabel>
-        <FormTextarea
-          {...register("note")}
-          id="validation-form-6"
-          name="note"
-          className={clsx({
-            "border-danger": errors.note,
-          })}
-          placeholder={t("note")}
-        ></FormTextarea>
-        {errors.note && (
-          <div className="mt-2 text-danger">
-            {typeof errors.note.message ===
-              "string" && errors.note.message}
+          {/* Additional Note - Full Width */}
+          <div className="input-form">
+            <FormLabel
+              htmlFor="edit_note"
+              className="flex flex-col w-full sm:flex-row"
+            >
+              {t("Note")}
+            </FormLabel>
+            <FormTextarea
+              {...register("note")}
+              id="edit_note"
+              name="note"
+              className={clsx({
+                "border-danger": errors.note,
+              })}
+              placeholder={t("note")}
+            ></FormTextarea>
+            {errors.note && (
+              <div className="mt-2 text-danger">
+                {typeof errors.note.message ===
+                  "string" && errors.note.message}
+              </div>
+            )}
           </div>
-        )}
-      </div>
 
                   </div>
                 )}
