@@ -83,9 +83,9 @@ class EmployeeController extends BaseController
           "last_name"=>"required|string|max:255",
           "position"=>"nullable|string|max:255",
           "email"=>"nullable|email|unique:employees,email",
-          "phone"=>"required|string",
-          "whatsapp"=>"nullable|string",
-          "wechat"=>"nullable|string",
+          "phone"=>"required|string|unique:employees,phone",
+          "whatsapp"=>"nullable|string|unique:employees,whatsapp",
+          "wechat"=>"nullable|string|unique:employees,wechat",
           "birthdate"=>"nullable|date",
           "salary"=>"nullable|numeric",
           "hire_date"=>"required|date",
@@ -96,7 +96,40 @@ class EmployeeController extends BaseController
         $validation = Validator::make($request->all() , $validationRules);
         if($validation->fails()){
             \Log::error('Employee Validation Failed:', $validation->errors()->toArray());
-            return $this->sendError("Invalid Values", ['errors' => $validation->errors()]);
+            
+            // Create user-friendly error messages
+            $errors = $validation->errors();
+            $friendlyErrors = [];
+            
+            foreach ($errors->toArray() as $field => $messages) {
+                foreach ($messages as $message) {
+                    if (strpos($message, 'has already been taken') !== false) {
+                        switch ($field) {
+                            case 'email':
+                                $friendlyErrors[] = 'This email address is already registered with another employee.';
+                                break;
+                            case 'phone':
+                                $friendlyErrors[] = 'This phone number is already registered with another employee.';
+                                break;
+                            case 'whatsapp':
+                                $friendlyErrors[] = 'This WhatsApp number is already registered with another employee.';
+                                break;
+                            case 'wechat':
+                                $friendlyErrors[] = 'This WeChat ID is already registered with another employee.';
+                                break;
+                            default:
+                                $friendlyErrors[] = ucfirst(str_replace('_', ' ', $field)) . ' is already taken.';
+                        }
+                    } else {
+                        $friendlyErrors[] = $message;
+                    }
+                }
+            }
+            
+            return $this->sendError("Validation failed", [
+                'errors' => $errors,
+                'message' => implode(' ', $friendlyErrors)
+            ]);
         }
         $validated=$validation->validated();
         
@@ -171,9 +204,9 @@ class EmployeeController extends BaseController
           "last_name"=>"required|string|max:255",
           "position"=>"nullable|string|max:255",
           "email"=>"nullable|email|unique:employees,email,".$employee->id,
-          "phone"=>"required|string",
-          "whatsapp"=>"nullable|string",
-          "wechat"=>"nullable|string",
+          "phone"=>"required|string|unique:employees,phone,".$employee->id,
+          "whatsapp"=>"nullable|string|unique:employees,whatsapp,".$employee->id,
+          "wechat"=>"nullable|string|unique:employees,wechat,".$employee->id,
           "birthdate"=>"nullable|date",
           "salary"=>"nullable|numeric",
           "hire_date"=>"required|date",
@@ -184,7 +217,40 @@ class EmployeeController extends BaseController
         $validation = Validator::make($request->all() , $validationRules);
         if($validation->fails()){
             \Log::error('Employee Update Validation Failed:', $validation->errors()->toArray());
-            return $this->sendError("Invalid Values", ['errors' => $validation->errors()]);
+            
+            // Create user-friendly error messages
+            $errors = $validation->errors();
+            $friendlyErrors = [];
+            
+            foreach ($errors->toArray() as $field => $messages) {
+                foreach ($messages as $message) {
+                    if (strpos($message, 'has already been taken') !== false) {
+                        switch ($field) {
+                            case 'email':
+                                $friendlyErrors[] = 'This email address is already registered with another employee.';
+                                break;
+                            case 'phone':
+                                $friendlyErrors[] = 'This phone number is already registered with another employee.';
+                                break;
+                            case 'whatsapp':
+                                $friendlyErrors[] = 'This WhatsApp number is already registered with another employee.';
+                                break;
+                            case 'wechat':
+                                $friendlyErrors[] = 'This WeChat ID is already registered with another employee.';
+                                break;
+                            default:
+                                $friendlyErrors[] = ucfirst(str_replace('_', ' ', $field)) . ' is already taken.';
+                        }
+                    } else {
+                        $friendlyErrors[] = $message;
+                    }
+                }
+            }
+            
+            return $this->sendError("Validation failed", [
+                'errors' => $errors,
+                'message' => implode(' ', $friendlyErrors)
+            ]);
         }
         $validated=$validation->validated();
         \Log::info('Employee Update Validation Passed:', $validated);
@@ -211,15 +277,33 @@ class EmployeeController extends BaseController
 
     public function destroy($id)
     {
-        $employee = Employee::findOrFail($id);
-        $employee->delete();
-
-
-
-$this->deleteFile($employee->photo);
-
-        //delete files uploaded
-        return $this->sendResponse(1, "employee deleted succesfully");
+        try {
+            $employee = Employee::findOrFail($id);
+            
+            // Store photo path before deletion
+            $photoPath = $employee->photo;
+            
+            // Delete associated user record first to avoid foreign key constraint
+            $user = User::where('employee_id', $id)->first();
+            if ($user) {
+                \Log::info('Deleting associated user:', ['user_id' => $user->id, 'employee_id' => $id]);
+                $user->delete();
+            }
+            
+            // Delete the employee record
+            $employee->delete();
+            
+            // Delete associated files after successful record deletion
+            if ($photoPath) {
+                $this->deleteFile($photoPath);
+            }
+            
+            \Log::info('Employee deleted successfully:', ['employee_id' => $id]);
+            return $this->sendResponse(1, "employee deleted successfully");
+        } catch (\Exception $e) {
+            \Log::error('Employee deletion failed:', ['error' => $e->getMessage(), 'trace' => $e->getTraceAsString()]);
+            return $this->sendError("Employee deletion failed", ['error' => $e->getMessage()]);
+        }
     }
 
     public function terminate(Request $request, $id){

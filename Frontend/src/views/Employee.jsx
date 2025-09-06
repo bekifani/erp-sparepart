@@ -379,6 +379,87 @@ note : yup.string().nullable(),
   };
 
   const formatErrorMessage = (error) => {
+    // First check if backend provided a friendly message (handle nested data structure)
+    if (error.data?.data?.message) {
+      return error.data.data.message;
+    }
+    
+    if (error.data?.message) {
+      return error.data.message;
+    }
+    
+    if (error.data?.data?.errors) {
+      // Handle nested data structure
+      const errors = error.data.data.errors;
+      const errorMessages = [];
+      
+      Object.keys(errors).forEach(field => {
+        const fieldErrors = errors[field];
+        if (Array.isArray(fieldErrors)) {
+          fieldErrors.forEach(msg => {
+            // Create user-friendly field names
+            let fieldName = field.replace('_', ' ');
+            switch (field) {
+              case 'first_name':
+                fieldName = 'First Name';
+                break;
+              case 'last_name':
+                fieldName = 'Last Name';
+                break;
+              case 'phone':
+                fieldName = 'Phone Number';
+                break;
+              case 'whatsapp':
+                fieldName = 'WhatsApp';
+                break;
+              case 'wechat':
+                fieldName = 'WeChat ID';
+                break;
+              case 'hire_date':
+                fieldName = 'Hire Date';
+                break;
+              case 'birthdate':
+                fieldName = 'Birth Date';
+                break;
+              case 'is_active':
+                fieldName = 'Status';
+                break;
+              default:
+                fieldName = fieldName.charAt(0).toUpperCase() + fieldName.slice(1);
+            }
+            
+            // Handle specific error types with user-friendly messages
+            if (msg.includes('has already been taken')) {
+              switch (field) {
+                case 'email':
+                  errorMessages.push('This email address is already registered with another employee.');
+                  break;
+                case 'phone':
+                  errorMessages.push('This phone number is already registered with another employee.');
+                  break;
+                case 'whatsapp':
+                  errorMessages.push('This WhatsApp number is already registered with another employee.');
+                  break;
+                case 'wechat':
+                  errorMessages.push('This WeChat ID is already registered with another employee.');
+                  break;
+                default:
+                  errorMessages.push(`${fieldName} is already taken.`);
+              }
+            } else if (msg.includes('required')) {
+              errorMessages.push(`${fieldName} is required.`);
+            } else if (msg.includes('email')) {
+              errorMessages.push('Please enter a valid email address.');
+            } else {
+              errorMessages.push(`${fieldName}: ${msg}`);
+            }
+          });
+        }
+      });
+      
+      return errorMessages.length > 0 ? errorMessages.join(' ') : 'Validation failed';
+    }
+    
     if (error.data?.errors) {
       // Extract validation errors and format them
       const errors = error.data.errors;
@@ -388,16 +469,67 @@ note : yup.string().nullable(),
         const fieldErrors = errors[field];
         if (Array.isArray(fieldErrors)) {
           fieldErrors.forEach(msg => {
-            errorMessages.push(`${field.replace('_', ' ').toUpperCase()}: ${msg}`);
+            // Create user-friendly field names
+            let fieldName = field.replace('_', ' ');
+            switch (field) {
+              case 'first_name':
+                fieldName = 'First Name';
+                break;
+              case 'last_name':
+                fieldName = 'Last Name';
+                break;
+              case 'phone':
+                fieldName = 'Phone Number';
+                break;
+              case 'whatsapp':
+                fieldName = 'WhatsApp';
+                break;
+              case 'wechat':
+                fieldName = 'WeChat ID';
+                break;
+              case 'hire_date':
+                fieldName = 'Hire Date';
+                break;
+              case 'birthdate':
+                fieldName = 'Birth Date';
+                break;
+              case 'is_active':
+                fieldName = 'Status';
+                break;
+              default:
+                fieldName = fieldName.charAt(0).toUpperCase() + fieldName.slice(1);
+            }
+            
+            // Handle specific error types with user-friendly messages
+            if (msg.includes('has already been taken')) {
+              switch (field) {
+                case 'email':
+                  errorMessages.push('This email address is already registered with another employee.');
+                  break;
+                case 'phone':
+                  errorMessages.push('This phone number is already registered with another employee.');
+                  break;
+                case 'whatsapp':
+                  errorMessages.push('This WhatsApp number is already registered with another employee.');
+                  break;
+                case 'wechat':
+                  errorMessages.push('This WeChat ID is already registered with another employee.');
+                  break;
+                default:
+                  errorMessages.push(`${fieldName} is already taken.`);
+              }
+            } else if (msg.includes('required')) {
+              errorMessages.push(`${fieldName} is required.`);
+            } else if (msg.includes('email')) {
+              errorMessages.push('Please enter a valid email address.');
+            } else {
+              errorMessages.push(`${fieldName}: ${msg}`);
+            }
           });
         }
       });
       
-      return errorMessages.length > 0 ? errorMessages.join(' | ') : 'Validation failed';
-    }
-    
-    if (error.data?.message) {
-      return error.data.message;
+      return errorMessages.length > 0 ? errorMessages.join(' ') : 'Validation failed';
     }
     
     if (error.message) {
@@ -412,14 +544,17 @@ note : yup.string().nullable(),
       const response = await createEmployee(data);
       if (response.error) {
         const errorMsg = formatErrorMessage(response.error);
-        setToastMessage(t("Failed to create employee") + ": " + errorMsg);
+        setToastMessage(errorMsg);
+        console.error('Employee creation failed:', response.error);
       } else {
         setToastMessage(t("Employee created successfully"));
         setRefetch(true);
         setShowCreateModal(false);
       }
     } catch (error) {
-      setToastMessage(t("Failed to create employee") + ": " + (error.message || t("Network or server error")));
+      const errorMsg = t("Failed to create employee") + ": " + (error.message || t("Network or server error"));
+      setToastMessage(errorMsg);
+      console.error('Employee creation error:', error);
     }
     basicStickyNotification.current?.showToast();
     // Auto-hide toast after 7 seconds
@@ -433,7 +568,8 @@ note : yup.string().nullable(),
       const response = await updateEmployee(data);
       if (response.error) {
         const errorMsg = formatErrorMessage(response.error);
-        setToastMessage(t("Failed to update employee") + ": " + errorMsg);
+        setToastMessage(errorMsg);
+        console.error('Employee update failed:', response.error);
         setShowUpdateModal(true);
       } else {
         setToastMessage(t("Employee updated successfully"));
@@ -441,7 +577,9 @@ note : yup.string().nullable(),
         setShowUpdateModal(false);
       }
     } catch (error) {
-      setToastMessage(t("Failed to update employee") + ": " + (error.message || t("Network or server error")));
+      const errorMsg = t("Failed to update employee") + ": " + (error.message || t("Network or server error"));
+      setToastMessage(errorMsg);
+      console.error('Employee update error:', error);
       setShowUpdateModal(true);
     }
     basicStickyNotification.current?.showToast();
@@ -458,14 +596,17 @@ note : yup.string().nullable(),
         const response = await deleteEmployee(id);
         if (response.error) {
           const errorMsg = formatErrorMessage(response.error);
-          setToastMessage(t("Failed to delete employee") + ": " + errorMsg);
+          setToastMessage(errorMsg);
+          console.error('Employee deletion failed:', response.error);
         } else {
           setToastMessage(t("Employee deleted successfully"));
           setRefetch(true);
         }
       }
     catch (error) {
-      setToastMessage(t("Failed to delete employee") + ": " + (error.message || t("Network or server error")));
+      const errorMsg = t("Failed to delete employee") + ": " + (error.message || t("Network or server error"));
+      setToastMessage(errorMsg);
+      console.error('Employee deletion error:', error);
     }
     basicStickyNotification.current?.showToast();
     // Auto-hide toast after 7 seconds
@@ -481,14 +622,17 @@ note : yup.string().nullable(),
         const response = await terminateUser(id);
         if (response.error) {
           const errorMsg = formatErrorMessage(response.error);
-          setToastMessage(t("Failed to terminate employee") + ": " + errorMsg);
+          setToastMessage(errorMsg);
+          console.error('Employee termination failed:', response.error);
         } else {
           setToastMessage(t("Employee terminated successfully"));
           setRefetch(true);
         }
       }
     catch (error) {
-      setToastMessage(t("Failed to terminate employee") + ": " + (error.message || t("Network or server error")));
+      const errorMsg = t("Failed to terminate employee") + ": " + (error.message || t("Network or server error"));
+      setToastMessage(errorMsg);
+      console.error('Employee termination error:', error);
     }
     basicStickyNotification.current?.showToast();
     // Auto-hide toast after 7 seconds
@@ -503,14 +647,17 @@ note : yup.string().nullable(),
         const response = await activateEmployeeAccount(id);
         if (response.error) {
           const errorMsg = formatErrorMessage(response.error);
-          setToastMessage(t("Failed to activate employee account") + ": " + errorMsg);
+          setToastMessage(errorMsg);
+          console.error('Employee activation failed:', response.error);
         } else {
           setToastMessage(t("Employee account activated successfully"));
           setRefetch(true);
         }
       }
     catch (error) {
-      setToastMessage(t("Failed to activate employee account") + ": " + (error.message || t("Network or server error")));
+      const errorMsg = t("Failed to activate employee account") + ": " + (error.message || t("Network or server error"));
+      setToastMessage(errorMsg);
+      console.error('Employee activation error:', error);
     }
     basicStickyNotification.current?.showToast();
     // Auto-hide toast after 7 seconds
