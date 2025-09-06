@@ -8,10 +8,11 @@ use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Facades\Log;
 use Mail;
 class CustomerController extends BaseController
 {
-    protected $searchableColumns = ['name_surname', 'shipping_mark', 'country', 'address', 'email', 'phone_number', 'whatsapp', 'wechat_id', 'image', 'additional_note'];
+    protected $searchableColumns = ['name_surname', 'shipping_mark', 'country', 'address', 'email', 'phone_number', 'position', 'birth_date', 'whatsapp', 'wechat_id', 'image', 'additional_note'];
 
     public function index(Request $request)
     {
@@ -36,6 +37,13 @@ class CustomerController extends BaseController
             }
         }
         $customer = $query->paginate($perPage); 
+        
+        // Log the customer data to check if new fields are included
+        Log::info('Customer index response:', [
+            'first_customer' => $customer->items() ? $customer->items()[0] : null,
+            'total_count' => $customer->total()
+        ]);
+        
         $data = [
             "data" => $customer->toArray(), 
             'current_page' => $customer->currentPage(),
@@ -76,14 +84,17 @@ class CustomerController extends BaseController
         $validationRules = [
           
           "name_surname"=>"required|string|max:255",
-          "shipping_mark"=>"nullable|string|max:255",
+          "shipping_mark"=>"nullable|string|max:255|unique:customers,shipping_mark",
           "country"=>"nullable|string|max:255",
           "address"=>"nullable|string|max:255",
           "email"=>"required|email|unique:customers,email",
-          "phone_number"=>"nullable|string|max:20",
-          "whatsapp"=>"nullable|string|max:20",
-          "wechat_id"=>"nullable|string|max:255",
+          "phone_number"=>"nullable|string|max:20|unique:customers,phone_number",
+          "position"=>"nullable|string|max:255",
+          "birth_date"=>"nullable|date",
+          "whatsapp"=>"nullable|string|max:20|unique:customers,whatsapp",
+          "wechat_id"=>"nullable|string|max:255|unique:customers,wechat_id",
           "image"=>"nullable|",
+          "image_source"=>"nullable|string|in:upload,camera",
           "additional_note"=>"nullable|string",
           
 
@@ -99,6 +110,63 @@ class CustomerController extends BaseController
 
         
         //file uploads
+
+        // Handle image field based on source type
+        if (isset($validated['image']) && !empty($validated['image'])) {
+            $imageSource = $validated['image_source'] ?? null;
+            
+            if ($imageSource === 'camera') {
+                // Handle camera-captured images (base64 data)
+                $base64Data = $validated['image'];
+                
+                // Handle both array format {data: 'base64...', type: 'image/jpeg'} and string format
+                if (is_array($validated['image']) && isset($validated['image']['data'])) {
+                    $base64Data = $validated['image']['data'];
+                }
+                
+                // Remove data URL prefix if present
+                if (strpos($base64Data, 'data:image') === 0) {
+                    $base64Data = substr($base64Data, strpos($base64Data, ',') + 1);
+                }
+                
+                // Decode base64 and save as file with generated name
+                $decodedImageData = base64_decode($base64Data);
+                if ($decodedImageData !== false) {
+                    $fileName = 'customer_image_' . time() . '.jpg';
+                    $filePath = 'uploads/' . $fileName;
+                    Storage::disk('public')->put($filePath, $decodedImageData);
+                    $validated['image'] = $fileName;
+                }
+            } elseif ($imageSource === 'upload') {
+                // Handle uploaded files - keep original filename as is
+                // The image field already contains the filename from FileUpload component
+                // No processing needed, just keep the original filename
+            } else {
+                // Fallback: try to detect if it's base64 or filename
+                $base64Data = $validated['image'];
+                
+                if (is_array($validated['image']) && isset($validated['image']['data'])) {
+                    $base64Data = $validated['image']['data'];
+                }
+                
+                if (strpos($base64Data, 'data:image') === 0) {
+                    $base64Data = substr($base64Data, strpos($base64Data, ',') + 1);
+                }
+                
+                $decodedImageData = base64_decode($base64Data);
+                if ($decodedImageData !== false && base64_encode($decodedImageData) === $base64Data) {
+                    // It's base64 data, treat as camera capture
+                    $fileName = 'customer_image_' . time() . '.jpg';
+                    $filePath = 'uploads/' . $fileName;
+                    Storage::disk('public')->put($filePath, $decodedImageData);
+                    $validated['image'] = $fileName;
+                }
+                // Otherwise, keep as filename (uploaded file)
+            }
+        }
+        
+        // Remove image_source from validated data as it's not a database field
+        unset($validated['image_source']);
 
         $customer = Customer::create($validated);
         
@@ -116,9 +184,7 @@ class CustomerController extends BaseController
         ];
         $user = User::create($user_data);
         
-        // Update customer with user_id
-        $customer->user_id = $user->id;
-        $customer->save();
+        // No need to update customer with user_id - relationship is now one-way
         
         // Send password via email if available
         if($customer->email != null) {
@@ -139,6 +205,10 @@ class CustomerController extends BaseController
     public function show($id)
     {
         $customer = Customer::findOrFail($id);
+        Log::info('Customer show response:', [
+            'customer_id' => $id,
+            'customer_data' => $customer->toArray()
+        ]);
         return $this->sendResponse($customer, "");
     }
 
@@ -151,14 +221,17 @@ class CustomerController extends BaseController
 
           
           "name_surname"=>"required|string|max:255",
-          "shipping_mark"=>"nullable|string|max:255",
+          "shipping_mark"=>"nullable|string|max:255|unique:customers,shipping_mark," . $id,
           "country"=>"nullable|string|max:255",
           "address"=>"nullable|string|max:255",
           "email"=>"required|email|unique:customers,email," . $id,
-          "phone_number"=>"nullable|string|max:20",
-          "whatsapp"=>"nullable|string|max:20",
-          "wechat_id"=>"nullable|string|max:255",
+          "phone_number"=>"nullable|string|max:20|unique:customers,phone_number," . $id,
+          "position"=>"nullable|string|max:255",
+          "birth_date"=>"nullable|date",
+          "whatsapp"=>"nullable|string|max:20|unique:customers,whatsapp," . $id,
+          "wechat_id"=>"nullable|string|max:255|unique:customers,wechat_id," . $id,
           "image"=>"nullable|",
+          "image_source"=>"nullable|string|in:upload,camera",
           "additional_note"=>"nullable|string",
           
         ];
@@ -174,18 +247,100 @@ class CustomerController extends BaseController
 
         //file uploads update
 
+        // Handle image field based on source type
+        if (isset($validated['image']) && !empty($validated['image'])) {
+            $imageSource = $validated['image_source'] ?? null;
+            
+            if ($imageSource === 'camera') {
+                // Handle camera-captured images (base64 data)
+                $base64Data = $validated['image'];
+                
+                // Handle both array format {data: 'base64...', type: 'image/jpeg'} and string format
+                if (is_array($validated['image']) && isset($validated['image']['data'])) {
+                    $base64Data = $validated['image']['data'];
+                }
+                
+                // Remove data URL prefix if present
+                if (strpos($base64Data, 'data:image') === 0) {
+                    $base64Data = substr($base64Data, strpos($base64Data, ',') + 1);
+                }
+                
+                // Decode base64 and save as file with generated name
+                $decodedImageData = base64_decode($base64Data);
+                if ($decodedImageData !== false) {
+                    // Delete old image file if it exists
+                    if ($customer->image && Storage::disk('public')->exists('uploads/' . $customer->image)) {
+                        Storage::disk('public')->delete('uploads/' . $customer->image);
+                    }
+                    
+                    $fileName = 'customer_image_' . time() . '.jpg';
+                    $filePath = 'uploads/' . $fileName;
+                    Storage::disk('public')->put($filePath, $decodedImageData);
+                    $validated['image'] = $fileName;
+                }
+            } elseif ($imageSource === 'upload') {
+                // Handle uploaded files - keep original filename as is
+                // The image field already contains the filename from FileUpload component
+                // No processing needed, just keep the original filename
+            } else {
+                // Fallback for existing images or when source is not specified
+                $imageData = $validated['image'];
+                
+                // Check if this is base64 data or an existing filename
+                $isBase64 = false;
+                
+                // Handle array format {data: 'base64...', type: 'image/jpeg'}
+                if (is_array($imageData) && isset($imageData['data'])) {
+                    $imageData = $imageData['data'];
+                    $isBase64 = true;
+                }
+                
+                // Check if it starts with data URL prefix
+                if (strpos($imageData, 'data:image') === 0) {
+                    $isBase64 = true;
+                    $imageData = substr($imageData, strpos($imageData, ',') + 1);
+                }
+                
+                // Check if it's a valid base64 string (not just a filename)
+                if (!$isBase64) {
+                    $testDecode = base64_decode($imageData, true);
+                    if ($testDecode !== false && base64_encode($testDecode) === $imageData) {
+                        $isBase64 = true;
+                    }
+                }
+                
+                if ($isBase64) {
+                    // Process as new base64 image
+                    $decodedImageData = base64_decode($imageData);
+                    if ($decodedImageData !== false) {
+                        // Delete old image file if it exists
+                        if ($customer->image && Storage::disk('public')->exists('uploads/' . $customer->image)) {
+                            Storage::disk('public')->delete('uploads/' . $customer->image);
+                        }
+                        
+                        $fileName = 'customer_image_' . time() . '.jpg';
+                        $filePath = 'uploads/' . $fileName;
+                        Storage::disk('public')->put($filePath, $decodedImageData);
+                        $validated['image'] = $fileName;
+                    }
+                }
+                // If not base64, keep the existing filename as is (no processing needed)
+            }
+        }
+        
+        // Remove image_source from validated data as it's not a database field
+        unset($validated['image_source']);
+
         $customer->update($validated);
         
         // Update associated user if exists
-        if($customer->user_id) {
-            $user = User::find($customer->user_id);
-            if($user) {
-                $user->update([
-                    "name" => $customer->name_surname,
-                    "email" => $customer->email,
-                    "phone" => $customer->phone_number
-                ]);
-            }
+        $user = $customer->user;
+        if($user) {
+            $user->update([
+                "name" => $customer->name_surname,
+                "email" => $customer->email,
+                "phone" => $customer->phone_number
+            ]);
         }
         
         return $this->sendResponse($customer, "customer updated successfully");
@@ -193,15 +348,26 @@ class CustomerController extends BaseController
 
     public function destroy($id)
     {
-        $customer = Customer::findOrFail($id);
-        $customer->delete();
-
-
-
-$this->deleteFile($customer->image);
-
-        //delete files uploaded
-        return $this->sendResponse(1, "customer deleted succesfully");
+        try {
+            $customer = Customer::findOrFail($id);
+            
+            // Store file path before deleting customer record
+            $imagePath = $customer->image;
+            
+            // Delete customer record - associated user will be auto-deleted via cascade
+            $customer->delete();
+            
+            // Delete associated files after customer is deleted
+            if($imagePath) {
+                $this->deleteFile($imagePath);
+            }
+            
+            return $this->sendResponse(1, "customer deleted successfully");
+            
+        } catch (\Exception $e) {
+            Log::error('Customer deletion error: ' . $e->getMessage());
+            return $this->sendError("Error deleting customer", ['error' => $e->getMessage()]);
+        }
     }
 
     public function deleteFile($filePath) {

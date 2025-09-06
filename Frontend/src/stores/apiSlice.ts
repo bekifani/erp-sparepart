@@ -134,6 +134,7 @@ export const {
     useLazyGetCustomerDetailQuery,
     useDeleteCustomerMutation,
     useGetCustomersQuery,
+    useSearchCustomerQuery,
 
 
     useCreateSupplierMutation,

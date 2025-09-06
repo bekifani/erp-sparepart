@@ -105,7 +105,7 @@ const FileUpload = ({endpoint, type, setUploadedURL}) => {
         type="button"
         onClick={() => handleUpload()} // Start upload manually
       >
-        {t('ጫን')}
+        {t('Upload Files')}
       </button>
     </div>
   );

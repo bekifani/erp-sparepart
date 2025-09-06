@@ -26,4 +26,7 @@
               method: "DELETE",
           }),
       }),
+      searchCustomer: builder.query({
+          query: (search_term) => `search_customer/${search_term}`,
+      }),
   });

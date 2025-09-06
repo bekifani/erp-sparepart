@@ -13,7 +13,7 @@ use App\Helpers\SmsHelper;
 use Mail;
 class EmployeeController extends BaseController
 {
-    protected $searchableColumns = ['photo', 'first_name', 'last_name', 'email', 'phone', 'salary', 'hire_date', 'is_active', 'note'];
+    protected $searchableColumns = ['photo', 'first_name', 'last_name', 'position', 'email', 'phone', 'whatsapp', 'wechat', 'birthdate', 'salary', 'hire_date', 'is_active', 'note'];
 
     public function index(Request $request)
     {
@@ -74,39 +74,97 @@ class EmployeeController extends BaseController
 
     public function store(Request $request)
     {
+        // Debug: Log the incoming request data
+        \Log::info('Employee Store Request Data:', $request->all());
+        
         $validationRules = [
           "photo"=>"required",
           "first_name"=>"required|string|max:255",
           "last_name"=>"required|string|max:255",
+          "position"=>"nullable|string|max:255",
           "email"=>"nullable|email|unique:employees,email",
-          "phone"=>"nullable|string",
+          "phone"=>"required|string|unique:employees,phone",
+          "whatsapp"=>"nullable|string|unique:employees,whatsapp",
+          "wechat"=>"nullable|string|unique:employees,wechat",
+          "birthdate"=>"nullable|date",
           "salary"=>"nullable|numeric",
           "hire_date"=>"required|date",
           "is_active"=>"required|boolean",
-          "note"=>"nullable|string|min:2",
+          "note"=>"nullable|string",
         ];
 
         $validation = Validator::make($request->all() , $validationRules);
         if($validation->fails()){
-            return $this->sendError("Invalid Values", ['errors' => $validation->errors()]);
+            \Log::error('Employee Validation Failed:', $validation->errors()->toArray());
+            
+            // Create user-friendly error messages
+            $errors = $validation->errors();
+            $friendlyErrors = [];
+            
+            foreach ($errors->toArray() as $field => $messages) {
+                foreach ($messages as $message) {
+                    if (strpos($message, 'has already been taken') !== false) {
+                        switch ($field) {
+                            case 'email':
+                                $friendlyErrors[] = 'This email address is already registered with another employee.';
+                                break;
+                            case 'phone':
+                                $friendlyErrors[] = 'This phone number is already registered with another employee.';
+                                break;
+                            case 'whatsapp':
+                                $friendlyErrors[] = 'This WhatsApp number is already registered with another employee.';
+                                break;
+                            case 'wechat':
+                                $friendlyErrors[] = 'This WeChat ID is already registered with another employee.';
+                                break;
+                            default:
+                                $friendlyErrors[] = ucfirst(str_replace('_', ' ', $field)) . ' is already taken.';
+                        }
+                    } else {
+                        $friendlyErrors[] = $message;
+                    }
+                }
+            }
+            
+            return $this->sendError("Validation failed", [
+                'errors' => $errors,
+                'message' => implode(' ', $friendlyErrors)
+            ]);
         }
         $validated=$validation->validated();
-        //file uploads
-
-        $employee = Employee::create($validated);
-        // create user here 
-        $password = rand(10000, 99999);
-        $user_data = [
-            "name" => $employee->first_name . ' ' . $employee->last_name,
-            "email" => $employee->email,
-            "phone" => $employee->phone, 
-            "type" => "Employee",
-            "employee_id" => $employee->id,
-            "email_verified_at" => now(),
-            "phone_verified_at" => now(),
-            "password" => bcrypt(strval($password))
-        ];
-        User::create($user_data);
+        
+        // Convert date formats from ISO to MySQL date format
+        if (isset($validated['birthdate']) && $validated['birthdate']) {
+            $validated['birthdate'] = date('Y-m-d', strtotime($validated['birthdate']));
+        }
+        if (isset($validated['hire_date']) && $validated['hire_date']) {
+            $validated['hire_date'] = date('Y-m-d', strtotime($validated['hire_date']));
+        }
+        
+        try {
+            $employee = Employee::create($validated);
+            \Log::info('Employee created successfully:', ['id' => $employee->id]);
+            
+            // create user here 
+            $password = rand(10000, 99999);
+            $user_data = [
+                "name" => $employee->first_name . ' ' . $employee->last_name,
+                "email" => $employee->email,
+                "phone" => $employee->phone, 
+                "type" => "Employee",
+                "employee_id" => $employee->id,
+                "email_verified_at" => now(),
+                "phone_verified_at" => now(),
+                "password" => bcrypt(strval($password))
+            ];
+            
+            \Log::info('Creating user with data:', $user_data);
+            User::create($user_data);
+            \Log::info('User created successfully');
+        } catch (\Exception $e) {
+            \Log::error('Employee creation failed:', ['error' => $e->getMessage(), 'trace' => $e->getTraceAsString()]);
+            return $this->sendError("Employee creation failed", ['error' => $e->getMessage()]);
+        }
         // Send SMS Or Email
         if($employee->email != null) {
             $user_email = $employee->email;
@@ -133,49 +191,119 @@ class EmployeeController extends BaseController
 
     public function update(Request $request, $id)
     {
+        // Debug: Log the incoming request data and ID
+        \Log::info('Employee Update Request:', ['id' => $id, 'data' => $request->all()]);
+        
         $employee = Employee::findOrFail($id);
+        \Log::info('Employee found for update:', ['employee_id' => $employee->id]);
+        
          $validationRules = [
             //for update
-
-          
-          "photo"=>"required|",
+          "photo"=>"nullable",
           "first_name"=>"required|string|max:255",
           "last_name"=>"required|string|max:255",
-          "email"=>"required|email",
-          "phone"=>"nullable|string",
+          "position"=>"nullable|string|max:255",
+          "email"=>"nullable|email|unique:employees,email,".$employee->id,
+          "phone"=>"required|string|unique:employees,phone,".$employee->id,
+          "whatsapp"=>"nullable|string|unique:employees,whatsapp,".$employee->id,
+          "wechat"=>"nullable|string|unique:employees,wechat,".$employee->id,
+          "birthdate"=>"nullable|date",
           "salary"=>"nullable|numeric",
           "hire_date"=>"required|date",
           "is_active"=>"required|boolean",
-          "note"=>"nullable|string|min:2",
-          
+          "note"=>"nullable|string",
         ];
 
         $validation = Validator::make($request->all() , $validationRules);
         if($validation->fails()){
-            return $this->sendError("Invalid Values", ['errors' => $validation->errors()]);
+            \Log::error('Employee Update Validation Failed:', $validation->errors()->toArray());
+            
+            // Create user-friendly error messages
+            $errors = $validation->errors();
+            $friendlyErrors = [];
+            
+            foreach ($errors->toArray() as $field => $messages) {
+                foreach ($messages as $message) {
+                    if (strpos($message, 'has already been taken') !== false) {
+                        switch ($field) {
+                            case 'email':
+                                $friendlyErrors[] = 'This email address is already registered with another employee.';
+                                break;
+                            case 'phone':
+                                $friendlyErrors[] = 'This phone number is already registered with another employee.';
+                                break;
+                            case 'whatsapp':
+                                $friendlyErrors[] = 'This WhatsApp number is already registered with another employee.';
+                                break;
+                            case 'wechat':
+                                $friendlyErrors[] = 'This WeChat ID is already registered with another employee.';
+                                break;
+                            default:
+                                $friendlyErrors[] = ucfirst(str_replace('_', ' ', $field)) . ' is already taken.';
+                        }
+                    } else {
+                        $friendlyErrors[] = $message;
+                    }
+                }
+            }
+            
+            return $this->sendError("Validation failed", [
+                'errors' => $errors,
+                'message' => implode(' ', $friendlyErrors)
+            ]);
         }
         $validated=$validation->validated();
-
-
-
+        \Log::info('Employee Update Validation Passed:', $validated);
+        
+        // Convert date formats from ISO to MySQL date format
+        if (isset($validated['birthdate']) && $validated['birthdate']) {
+            $validated['birthdate'] = date('Y-m-d', strtotime($validated['birthdate']));
+        }
+        if (isset($validated['hire_date']) && $validated['hire_date']) {
+            $validated['hire_date'] = date('Y-m-d', strtotime($validated['hire_date']));
+        }
 
         //file uploads update
 
-        $employee->update($validated);
-        return $this->sendResponse($employee, "employee updated successfully");
+        try {
+            $employee->update($validated);
+            \Log::info('Employee updated successfully:', ['employee_id' => $employee->id]);
+            return $this->sendResponse($employee, "employee updated successfully");
+        } catch (\Exception $e) {
+            \Log::error('Employee update failed:', ['error' => $e->getMessage(), 'trace' => $e->getTraceAsString()]);
+            return $this->sendError("Employee update failed", ['error' => $e->getMessage()]);
+        }
     }
 
     public function destroy($id)
     {
-        $employee = Employee::findOrFail($id);
-        $employee->delete();
-
-
-
-$this->deleteFile($employee->photo);
-
-        //delete files uploaded
-        return $this->sendResponse(1, "employee deleted succesfully");
+        try {
+            $employee = Employee::findOrFail($id);
+            
+            // Store photo path before deletion
+            $photoPath = $employee->photo;
+            
+            // Delete associated user record first to avoid foreign key constraint
+            $user = User::where('employee_id', $id)->first();
+            if ($user) {
+                \Log::info('Deleting associated user:', ['user_id' => $user->id, 'employee_id' => $id]);
+                $user->delete();
+            }
+            
+            // Delete the employee record
+            $employee->delete();
+            
+            // Delete associated files after successful record deletion
+            if ($photoPath) {
+                $this->deleteFile($photoPath);
+            }
+            
+            \Log::info('Employee deleted successfully:', ['employee_id' => $id]);
+            return $this->sendResponse(1, "employee deleted successfully");
+        } catch (\Exception $e) {
+            \Log::error('Employee deletion failed:', ['error' => $e->getMessage(), 'trace' => $e->getTraceAsString()]);
+            return $this->sendError("Employee deletion failed", ['error' => $e->getMessage()]);
+        }
     }
 
     public function terminate(Request $request, $id){

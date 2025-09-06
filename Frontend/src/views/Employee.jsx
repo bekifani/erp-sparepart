@@ -39,6 +39,8 @@ const media_url = useSelector((state)=>state.auth.media_url)
   const [showUpdateModal, setShowUpdateModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [showTerminateModal, setShowTerminateModal] = useState(false);
+  const [showViewModal, setShowViewModal] = useState(false);
+  const [viewData, setViewData] = useState(null);
   const [editorData, setEditorData] = useState("")
   const [confirmationMessage, setConfirmationMessage] =
     useState(t("Are you Sure Do You want to Delete Employee"));
@@ -74,31 +76,6 @@ const media_url = useSelector((state)=>state.auth.media_url)
   }
   const [data, setData] = useState([
     {
-      title: t("Id"),
-      minWidth: 50,
-      responsive: 0,
-      field: "id",
-      vertAlign: "middle",
-      print: true,
-      download: true,
-    },
-   
-    {
-      title: t("Photo"),
-      minWidth: 200,
-      field: "photo",
-      hozAlign: "center",
-      headerHozAlign: "center",
-      vertAlign: "middle",
-      print: true,
-      download: true,
-      formatter(cell) {
-      return getMiniDisplay(cell.getData().photo)
-      }
-    },
-    
-
-    {
       title: t("First Name"),
       minWidth: 200,
       field: "first_name",
@@ -107,9 +84,7 @@ const media_url = useSelector((state)=>state.auth.media_url)
       vertAlign: "middle",
       print: true,
       download: true,
-      
     },
-    
 
     {
       title: t("Last Name"),
@@ -120,11 +95,24 @@ const media_url = useSelector((state)=>state.auth.media_url)
       vertAlign: "middle",
       print: true,
       download: true,
-      
+    },
+   
+    {
+      title: t("Image"),
+      minWidth: 100,
+      field: "photo",
+      hozAlign: "center",
+      headerHozAlign: "center",
+      vertAlign: "middle",
+      print: true,
+      download: true,
+      formatter(cell) {
+        return getMiniDisplay(cell.getData().photo)
+      }
     },
     
     {
-      title: t("Email"),
+      title: t("E-mail"),
       minWidth: 200,
       field: "email",
       hozAlign: "center",
@@ -132,46 +120,83 @@ const media_url = useSelector((state)=>state.auth.media_url)
       vertAlign: "middle",
       print: true,
       download: true,
-      
     },
-    
 
     {
       title: t("Phone"),
-      minWidth: 200,
+      minWidth: 150,
       field: "phone",
       hozAlign: "center",
       headerHozAlign: "center",
       vertAlign: "middle",
       print: true,
       download: true,
-      
     },
     
+    {
+      title: t("Position"),
+      minWidth: 150,
+      field: "position",
+      hozAlign: "center",
+      headerHozAlign: "center",
+      vertAlign: "middle",
+      print: true,
+      download: true,
+    },
+    
+    {
+      title: t("Birth date"),
+      minWidth: 120,
+      field: "birthdate",
+      hozAlign: "center",
+      headerHozAlign: "center",
+      vertAlign: "middle",
+      print: true,
+      download: true,
+    },
+    
+    {
+      title: t("WhatsApp"),
+      minWidth: 150,
+      field: "whatsapp",
+      hozAlign: "center",
+      headerHozAlign: "center",
+      vertAlign: "middle",
+      print: true,
+      download: true,
+    },
+    
+    {
+      title: t("Wechat"),
+      minWidth: 150,
+      field: "wechat",
+      hozAlign: "center",
+      headerHozAlign: "center",
+      vertAlign: "middle",
+      print: true,
+      download: true,
+    },
 
     {
       title: t("Salary"),
-      minWidth: 200,
+      minWidth: 120,
       field: "salary",
       hozAlign: "center",
       headerHozAlign: "center",
       vertAlign: "middle",
       print: true,
       download: true,
-      
     },
-    
 
     {
-      title: t("Hire Date"),
-      minWidth: 200,
+      title: t("Salary date"),
+      minWidth: 120,
       field: "hire_date",
       hozAlign: "center",
       headerHozAlign: "center",
       vertAlign: "middle",
       print: true,
       download: true,
-      
     },
     
 
@@ -195,7 +220,7 @@ const media_url = useSelector((state)=>state.auth.media_url)
     
 
     {
-      title: t("Note"),
+      title: t("Additional note"),
       minWidth: 200,
       field: "note",
       hozAlign: "center",
@@ -203,7 +228,6 @@ const media_url = useSelector((state)=>state.auth.media_url)
       vertAlign: "middle",
       print: true,
       download: true,
-      
     },
     
 
@@ -222,6 +246,11 @@ const media_url = useSelector((state)=>state.auth.media_url)
         const element = stringToHTML(
           `<div class="flex items-center lg:justify-center"></div>`
         );
+        const viewBtn =
+          stringToHTML(`<div class="flex items-center lg:justify-center">
+              <a class="view-btn flex items-center mr-3" href="javascript:;">
+                <i data-lucide="eye" class="w-3.5 h-3.5 stroke-[1.7] mr-1.5"></i> ${t('View')}
+              </a>`);        
         const a =
           stringToHTML(`<div class="flex items-center lg:justify-center">
               <a class="delete-btn flex items-center mr-3" href="javascript:;">
@@ -242,6 +271,11 @@ const media_url = useSelector((state)=>state.auth.media_url)
                 <i data-lucide="circle-x" class="w-3.5 h-3.5 stroke-[1.7]  mr-1.5"></i> ${t('Activate Employee')}
               </a>
             </div>`);
+        viewBtn.addEventListener("click", function () {
+          const data = cell.getData();
+          setViewData(data);
+          setShowViewModal(true);
+        });
         a.addEventListener("click", function () {
           const data = cell.getData();
           Object.keys(data).forEach((key) => {
@@ -272,6 +306,8 @@ const media_url = useSelector((state)=>state.auth.media_url)
         });
         let permission = "Employee";
 
+        // Always show view button
+        element.append(viewBtn);
         if(hasPermission(permission.toLowerCase()+'-edit')){
           element.append(a)
         }
@@ -288,7 +324,7 @@ const media_url = useSelector((state)=>state.auth.media_url)
       },
     },
 ]);
-  const [searchColumns, setSearchColumns] = useState(['first_name', 'last_name', 'email', 'phone', 'salary', 'hire_date', 'is_active', 'note', ]);
+  const [searchColumns, setSearchColumns] = useState(['first_name', 'last_name', 'position', 'email', 'phone', 'whatsapp', 'wechat', 'birthdate', 'salary', 'hire_date', 'is_active', 'note']);
 
   // schema
   const schema = yup
@@ -296,9 +332,16 @@ const media_url = useSelector((state)=>state.auth.media_url)
      photo : yup.string().required(t('The Photo field is required')), 
 first_name : yup.string().required(t('The First Name field is required')), 
 last_name : yup.string().required(t('The Last Name field is required')), 
+position : yup.string().nullable(), 
+email : yup.string().email(t('Please enter a valid email')).nullable(), 
 phone : yup.string().required(t('The Phone field is required')), 
+whatsapp : yup.string().nullable(), 
+wechat : yup.string().nullable(), 
+birthdate : yup.date().nullable(), 
+salary : yup.number().nullable(), 
+hire_date : yup.date().required(t('The Hire Date field is required')), 
 is_active : yup.string().required(t('The Is Active field is required')), 
-note : yup.string().required(t('The Note field is required')), 
+note : yup.string().nullable(), 
 
     })
     .required();
@@ -349,70 +392,292 @@ note : yup.string().required(t('The Note field is required')),
     return ReactDOMServer.renderToString(element); // Convert JSX to HTML string
   };
 
+  const formatErrorMessage = (error) => {
+    // First check if backend provided a friendly message (handle nested data structure)
+    if (error.data?.data?.message) {
+      return error.data.data.message;
+    }
+    
+    if (error.data?.message) {
+      return error.data.message;
+    }
+    
+    if (error.data?.data?.errors) {
+      // Handle nested data structure
+      const errors = error.data.data.errors;
+      const errorMessages = [];
+      
+      Object.keys(errors).forEach(field => {
+        const fieldErrors = errors[field];
+        if (Array.isArray(fieldErrors)) {
+          fieldErrors.forEach(msg => {
+            // Create user-friendly field names
+            let fieldName = field.replace('_', ' ');
+            switch (field) {
+              case 'first_name':
+                fieldName = 'First Name';
+                break;
+              case 'last_name':
+                fieldName = 'Last Name';
+                break;
+              case 'phone':
+                fieldName = 'Phone Number';
+                break;
+              case 'whatsapp':
+                fieldName = 'WhatsApp';
+                break;
+              case 'wechat':
+                fieldName = 'WeChat ID';
+                break;
+              case 'hire_date':
+                fieldName = 'Hire Date';
+                break;
+              case 'birthdate':
+                fieldName = 'Birth Date';
+                break;
+              case 'is_active':
+                fieldName = 'Status';
+                break;
+              default:
+                fieldName = fieldName.charAt(0).toUpperCase() + fieldName.slice(1);
+            }
+            
+            // Handle specific error types with user-friendly messages
+            if (msg.includes('has already been taken')) {
+              switch (field) {
+                case 'email':
+                  errorMessages.push('This email address is already registered with another employee.');
+                  break;
+                case 'phone':
+                  errorMessages.push('This phone number is already registered with another employee.');
+                  break;
+                case 'whatsapp':
+                  errorMessages.push('This WhatsApp number is already registered with another employee.');
+                  break;
+                case 'wechat':
+                  errorMessages.push('This WeChat ID is already registered with another employee.');
+                  break;
+                default:
+                  errorMessages.push(`${fieldName} is already taken.`);
+              }
+            } else if (msg.includes('required')) {
+              errorMessages.push(`${fieldName} is required.`);
+            } else if (msg.includes('email')) {
+              errorMessages.push('Please enter a valid email address.');
+            } else {
+              errorMessages.push(`${fieldName}: ${msg}`);
+            }
+          });
+        }
+      });
+      
+      return errorMessages.length > 0 ? errorMessages.join(' ') : 'Validation failed';
+    }
+    
+    if (error.data?.errors) {
+      // Extract validation errors and format them
+      const errors = error.data.errors;
+      const errorMessages = [];
+      
+      Object.keys(errors).forEach(field => {
+        const fieldErrors = errors[field];
+        if (Array.isArray(fieldErrors)) {
+          fieldErrors.forEach(msg => {
+            // Create user-friendly field names
+            let fieldName = field.replace('_', ' ');
+            switch (field) {
+              case 'first_name':
+                fieldName = 'First Name';
+                break;
+              case 'last_name':
+                fieldName = 'Last Name';
+                break;
+              case 'phone':
+                fieldName = 'Phone Number';
+                break;
+              case 'whatsapp':
+                fieldName = 'WhatsApp';
+                break;
+              case 'wechat':
+                fieldName = 'WeChat ID';
+                break;
+              case 'hire_date':
+                fieldName = 'Hire Date';
+                break;
+              case 'birthdate':
+                fieldName = 'Birth Date';
+                break;
+              case 'is_active':
+                fieldName = 'Status';
+                break;
+              default:
+                fieldName = fieldName.charAt(0).toUpperCase() + fieldName.slice(1);
+            }
+            
+            // Handle specific error types with user-friendly messages
+            if (msg.includes('has already been taken')) {
+              switch (field) {
+                case 'email':
+                  errorMessages.push('This email address is already registered with another employee.');
+                  break;
+                case 'phone':
+                  errorMessages.push('This phone number is already registered with another employee.');
+                  break;
+                case 'whatsapp':
+                  errorMessages.push('This WhatsApp number is already registered with another employee.');
+                  break;
+                case 'wechat':
+                  errorMessages.push('This WeChat ID is already registered with another employee.');
+                  break;
+                default:
+                  errorMessages.push(`${fieldName} is already taken.`);
+              }
+            } else if (msg.includes('required')) {
+              errorMessages.push(`${fieldName} is required.`);
+            } else if (msg.includes('email')) {
+              errorMessages.push('Please enter a valid email address.');
+            } else {
+              errorMessages.push(`${fieldName}: ${msg}`);
+            }
+          });
+        }
+      });
+      
+      return errorMessages.length > 0 ? errorMessages.join(' ') : 'Validation failed';
+    }
+    
+    if (error.message) {
+      return error.message;
+    }
+    
+    return 'An unexpected error occurred';
+  };
+
   const onCreate = async (data) => {
     try {
       const response = await createEmployee(data);
-      setToastMessage(t("Employee created successfully."));
+      if (response.error) {
+        const errorMsg = formatErrorMessage(response.error);
+        setToastMessage(errorMsg);
+        console.error('Employee creation failed:', response.error);
+      } else {
+        setToastMessage(t("Employee created successfully"));
+        setRefetch(true);
+        setShowCreateModal(false);
+      }
     } catch (error) {
-      setToastMessage(t("Error creating Employee."));
+      const errorMsg = t("Failed to create employee") + ": " + (error.message || t("Network or server error"));
+      setToastMessage(errorMsg);
+      console.error('Employee creation error:', error);
     }
     basicStickyNotification.current?.showToast();
-    setRefetch(true);
-    setShowCreateModal(false);
+    // Auto-hide toast after 7 seconds
+    setTimeout(() => {
+      basicStickyNotification.current?.hideToast();
+    }, 7000);
   };
 
   const onUpdate = async (data) => {
-    setShowUpdateModal(false)
     try {
       const response = await updateEmployee(data);
-      setToastMessage(t('Employee updated successfully'));
-      setRefetch(true)
+      if (response.error) {
+        const errorMsg = formatErrorMessage(response.error);
+        setToastMessage(errorMsg);
+        console.error('Employee update failed:', response.error);
+        setShowUpdateModal(true);
+      } else {
+        setToastMessage(t("Employee updated successfully"));
+        setRefetch(true);
+        setShowUpdateModal(false);
+      }
     } catch (error) {
-      setShowUpdateModal(true)
-      setToastMessage(t('Employee deletion failed'));
+      const errorMsg = t("Failed to update employee") + ": " + (error.message || t("Network or server error"));
+      setToastMessage(errorMsg);
+      console.error('Employee update error:', error);
+      setShowUpdateModal(true);
     }
     basicStickyNotification.current?.showToast();
+    // Auto-hide toast after 7 seconds
+    setTimeout(() => {
+      basicStickyNotification.current?.hideToast();
+    }, 7000);
   };
 
   const onDelete = async () => {
     let id = getValues("id");
     setShowDeleteModal(false)
     try {
-        const response = deleteEmployee(id);
-        setToastMessage(t("Employee deleted successfully."));
-        setRefetch(true);
+        const response = await deleteEmployee(id);
+        if (response.error) {
+          const errorMsg = formatErrorMessage(response.error);
+          setToastMessage(errorMsg);
+          console.error('Employee deletion failed:', response.error);
+        } else {
+          setToastMessage(t("Employee deleted successfully"));
+          setRefetch(true);
+        }
       }
     catch (error) {
-      setToastMessage(t("Error deleting Employee."));
+      const errorMsg = t("Failed to delete employee") + ": " + (error.message || t("Network or server error"));
+      setToastMessage(errorMsg);
+      console.error('Employee deletion error:', error);
     }
     basicStickyNotification.current?.showToast();
+    // Auto-hide toast after 7 seconds
+    setTimeout(() => {
+      basicStickyNotification.current?.hideToast();
+    }, 7000);
   };  
   
   const terminateEmployee = async () => {
     let id = getValues("id");
     setShowTerminateModal(false)
     try {
-        const response = terminateUser(id);
-        setToastMessage(t("Employee Terminated."));
-        setRefetch(true);
+        const response = await terminateUser(id);
+        if (response.error) {
+          const errorMsg = formatErrorMessage(response.error);
+          setToastMessage(errorMsg);
+          console.error('Employee termination failed:', response.error);
+        } else {
+          setToastMessage(t("Employee terminated successfully"));
+          setRefetch(true);
+        }
       }
     catch (error) {
-      setToastMessage(t("Error Terminating Employee."));
+      const errorMsg = t("Failed to terminate employee") + ": " + (error.message || t("Network or server error"));
+      setToastMessage(errorMsg);
+      console.error('Employee termination error:', error);
     }
     basicStickyNotification.current?.showToast();
+    // Auto-hide toast after 7 seconds
+    setTimeout(() => {
+      basicStickyNotification.current?.hideToast();
+    }, 7000);
   }
 
   const activateEmployee = async () => {
     let id = getValues("id");
     try {
-        await activateEmployeeAccount(id);
-        setToastMessage(t("Employee Account Activated."));
-        setRefetch(true);
+        const response = await activateEmployeeAccount(id);
+        if (response.error) {
+          const errorMsg = formatErrorMessage(response.error);
+          setToastMessage(errorMsg);
+          console.error('Employee activation failed:', response.error);
+        } else {
+          setToastMessage(t("Employee account activated successfully"));
+          setRefetch(true);
+        }
       }
     catch (error) {
-      setToastMessage(t("Error Activating Account."));
+      const errorMsg = t("Failed to activate employee account") + ": " + (error.message || t("Network or server error"));
+      setToastMessage(errorMsg);
+      console.error('Employee activation error:', error);
     }
     basicStickyNotification.current?.showToast();
+    // Auto-hide toast after 7 seconds
+    setTimeout(() => {
+      basicStickyNotification.current?.hideToast();
+    }, 7000);
   }
 
 return (
@@ -493,14 +758,120 @@ return (
         </Slideover.Panel>
       </Slideover>
 
+      {/* View Employee Details Slideover */}
+      <Slideover
+        open={showViewModal}
+        onClose={() => {
+          setShowViewModal(false);
+          setViewData(null);
+        }}
+        size="xl"
+      >
+        <Slideover.Panel className="text-left overflow-y-auto max-h-[110vh]">
+          <Slideover.Title>
+            <h2 className="mr-auto text-base font-medium">{t("Employee Details")}</h2>
+          </Slideover.Title>
+          <Slideover.Description className="p-6">
+            {viewData && (
+              <div className="space-y-6">
+                {/* Employee Photo */}
+                {viewData.photo && (
+                  <div className="flex justify-center mb-6">
+                    <img 
+                      src={media_url + viewData.photo} 
+                      alt="Employee Photo" 
+                      className="w-64 h-64 rounded-lg object-cover border-4 border-gray-200 shadow-lg"
+                    />
+                  </div>
+                )}
+
+                {/* Basic Information */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">{t("First Name")}</label>
+                    <div className="p-3 bg-gray-50 rounded-md border">{viewData.first_name || '-'}</div>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">{t("Last Name")}</label>
+                    <div className="p-3 bg-gray-50 rounded-md border">{viewData.last_name || '-'}</div>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">{t("Position")}</label>
+                    <div className="p-3 bg-gray-50 rounded-md border">{viewData.position || '-'}</div>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">{t("Email")}</label>
+                    <div className="p-3 bg-gray-50 rounded-md border">{viewData.email || '-'}</div>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">{t("Phone")}</label>
+                    <div className="p-3 bg-gray-50 rounded-md border">{viewData.phone || '-'}</div>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">{t("Birth Date")}</label>
+                    <div className="p-3 bg-gray-50 rounded-md border">{viewData.birthdate || '-'}</div>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">{t("WhatsApp")}</label>
+                    <div className="p-3 bg-gray-50 rounded-md border">{viewData.whatsapp || '-'}</div>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">{t("WeChat")}</label>
+                    <div className="p-3 bg-gray-50 rounded-md border">{viewData.wechat || '-'}</div>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">{t("Salary")}</label>
+                    <div className="p-3 bg-gray-50 rounded-md border">{viewData.salary || '-'}</div>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">{t("Hire Date")}</label>
+                    <div className="p-3 bg-gray-50 rounded-md border">{viewData.hire_date || '-'}</div>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">{t("Status")}</label>
+                    <div className="p-3 bg-gray-50 rounded-md border">
+                      <span className={`px-2 py-1 rounded-full text-xs ${viewData.is_active == 1 ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
+                        {viewData.is_active == 1 ? t("Active") : t("Not Active")}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Additional Note */}
+                {viewData.note && (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">{t("Additional Note")}</label>
+                    <div className="p-3 bg-gray-50 rounded-md border min-h-[80px]">{viewData.note}</div>
+                  </div>
+                )}
+              </div>
+            )}
+          </Slideover.Description>
+          <div className="px-6 pb-6">
+            <Button
+              type="button"
+              variant="outline-secondary"
+              onClick={() => {
+                setShowViewModal(false);
+                setViewData(null);
+              }}
+              className="w-full"
+            >
+              {t("Close")}
+            </Button>
+          </div>
+        </Slideover.Panel>
+      </Slideover>
+
       <Slideover
        
         open={showCreateModal}
         onClose={() => {
           setShowCreateModal(false);
         }}
+        size="xl"
       >
-        <Slideover.Panel className="  text-center overflow-y-auto max-h-[110vh]">
+        <Slideover.Panel className="text-center overflow-y-auto max-h-[110vh] max-w-5xl w-full">
           <form onSubmit={handleSubmit(onCreate)}>
             <Slideover.Title>
               <h2 className="mr-auto text-base font-medium">{t("Add New Employee")}</h2>
@@ -514,225 +885,337 @@ return (
                     </div>
                   </div>
                 ) : (
-                  <div className=" w-full grid grid-cols-1 gap-4 gap-y-3">
+                  <div className="w-full grid grid-cols-1 gap-4 gap-y-3">
                     
-          <div className="w-full ">
-              <FileUpload endpoint={upload_url} type="image/*" className="w-full " setUploadedURL={setUploadPhoto}/>
+          {/* Image Upload - Full Width */}
+          <div className="w-full">
+              <FormLabel className="block mb-2 text-sm font-medium">
+                {t("Upload an Image")}
+              </FormLabel>
+              <FileUpload endpoint={upload_url} type="image/*" className="w-full" setUploadedURL={setUploadPhoto}/>
           </div>
         
-<div className="mt-3 input-form">
-                      <FormLabel
-                        htmlFor="validation-form-1"
-                        className="flex justify-start items-start flex-col w-full sm:flex-row"
-                      >
-                        {t("First Name")}
-                      </FormLabel>
-                      <FormInput
-                        {...register("first_name")}
-                        id="validation-form-1"
-                        type="text"
-                        name="first_name"
-                        className={clsx({
-                          "border-danger": errors.first_name,
-                        })}
-                        placeholder={t("Enter first_name")}
-                      />
-                      {errors.first_name && (
-                        <div className="mt-2 text-danger">
-                          {typeof errors.first_name.message === "string" &&
-                            errors.first_name.message}
-                        </div>
-                      )}
-                    </div>
+          {/* Row 1: First Name & Last Name */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="input-form">
+              <FormLabel
+                htmlFor="first_name"
+                className="flex justify-start items-start flex-col w-full sm:flex-row"
+              >
+                {t("First Name")}
+              </FormLabel>
+              <FormInput
+                {...register("first_name")}
+                id="first_name"
+                type="text"
+                name="first_name"
+                className={clsx({
+                  "border-danger": errors.first_name,
+                })}
+                placeholder={t("Enter first_name")}
+              />
+              {errors.first_name && (
+                <div className="mt-2 text-danger">
+                  {typeof errors.first_name.message === "string" &&
+                    errors.first_name.message}
+                </div>
+              )}
+            </div>
 
+            <div className="input-form">
+              <FormLabel
+                htmlFor="last_name"
+                className="flex justify-start items-start flex-col w-full sm:flex-row"
+              >
+                {t("Last Name")}
+              </FormLabel>
+              <FormInput
+                {...register("last_name")}
+                id="last_name"
+                type="text"
+                name="last_name"
+                className={clsx({
+                  "border-danger": errors.last_name,
+                })}
+                placeholder={t("Enter last_name")}
+              />
+              {errors.last_name && (
+                <div className="mt-2 text-danger">
+                  {typeof errors.last_name.message === "string" &&
+                    errors.last_name.message}
+                </div>
+              )}
+            </div>
+          </div>
 
-<div className="mt-3 input-form">
-                      <FormLabel
-                        htmlFor="validation-form-1"
-                        className="flex justify-start items-start flex-col w-full sm:flex-row"
-                      >
-                        {t("Last Name")}
-                      </FormLabel>
-                      <FormInput
-                        {...register("last_name")}
-                        id="validation-form-1"
-                        type="text"
-                        name="last_name"
-                        className={clsx({
-                          "border-danger": errors.last_name,
-                        })}
-                        placeholder={t("Enter last_name")}
-                      />
-                      {errors.last_name && (
-                        <div className="mt-2 text-danger">
-                          {typeof errors.last_name.message === "string" &&
-                            errors.last_name.message}
-                        </div>
-                      )}
-                    </div>
+          {/* Row 2: Position & Email */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="input-form">
+              <FormLabel
+                htmlFor="position"
+                className="flex justify-start items-start flex-col w-full sm:flex-row"
+              >
+                {t("Position")}
+              </FormLabel>
+              <FormInput
+                {...register("position")}
+                id="position"
+                type="text"
+                name="position"
+                className={clsx({
+                  "border-danger": errors.position,
+                })}
+                placeholder={t("Enter position")}
+              />
+              {errors.position && (
+                <div className="mt-2 text-danger">
+                  {typeof errors.position.message === "string" &&
+                    errors.position.message}
+                </div>
+              )}
+            </div>
 
+            <div className="input-form">
+              <FormLabel
+                htmlFor="email"
+                className="flex justify-start items-start flex-col w-full sm:flex-row"
+              >
+                {t("Email")}
+              </FormLabel>
+              <FormInput
+                {...register("email")}
+                id="email"
+                type="email"
+                name="email"
+                className={clsx({
+                  "border-danger": errors.email,
+                })}
+                placeholder={t("Enter email")}
+              />
+              {errors.email && (
+                <div className="mt-2 text-danger">
+                  {typeof errors.email.message === "string" &&
+                    errors.email.message}
+                </div>
+              )}
+            </div>
+          </div>
 
-   
+          {/* Row 3: Phone & WhatsApp */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="input-form">
+              <FormLabel
+                htmlFor="phone"
+                className="flex justify-start items-start flex-col w-full sm:flex-row"
+              >
+                {t("Phone")}
+              </FormLabel>
+              <FormInput
+                {...register("phone")}
+                id="phone"
+                type="text"
+                name="phone"
+                className={clsx({
+                  "border-danger": errors.phone,
+                })}
+                placeholder={t("Enter phone")}
+              />
+              {errors.phone && (
+                <div className="mt-2 text-danger">
+                  {typeof errors.phone.message === "string" &&
+                    errors.phone.message}
+                </div>
+              )}
+            </div>
 
-<div className="mt-3 input-form">
-                      <FormLabel
-                        htmlFor="validation-form-1"
-                        className="flex justify-start items-start flex-col w-full sm:flex-row"
-                      >
-                        {t("Email")}
-                      </FormLabel>
-                      <FormInput
-                        {...register("email")}
-                        id="validation-form-1"
-                        type="email"
-                        name="email"
-                        className={clsx({
-                          "border-danger": errors.email,
-                        })}
-                        placeholder={t("Enter email")}
-                      />
-                      {errors.email && (
-                        <div className="mt-2 text-danger">
-                          {typeof errors.email.message === "string" &&
-                            errors.email.message}
-                        </div>
-                      )}
-                    </div>
+            <div className="input-form">
+              <FormLabel
+                htmlFor="whatsapp"
+                className="flex justify-start items-start flex-col w-full sm:flex-row"
+              >
+                {t("WhatsApp")}
+              </FormLabel>
+              <FormInput
+                {...register("whatsapp")}
+                id="whatsapp"
+                type="text"
+                name="whatsapp"
+                className={clsx({
+                  "border-danger": errors.whatsapp,
+                })}
+                placeholder={t("Enter whatsapp")}
+              />
+              {errors.whatsapp && (
+                <div className="mt-2 text-danger">
+                  {typeof errors.whatsapp.message === "string" &&
+                    errors.whatsapp.message}
+                </div>
+              )}
+            </div>
+          </div>
 
+          {/* Row 4: WeChat & Birth Date */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="input-form">
+              <FormLabel
+                htmlFor="wechat"
+                className="flex justify-start items-start flex-col w-full sm:flex-row"
+              >
+                {t("WeChat")}
+              </FormLabel>
+              <FormInput
+                {...register("wechat")}
+                id="wechat"
+                type="text"
+                name="wechat"
+                className={clsx({
+                  "border-danger": errors.wechat,
+                })}
+                placeholder={t("Enter wechat")}
+              />
+              {errors.wechat && (
+                <div className="mt-2 text-danger">
+                  {typeof errors.wechat.message === "string" &&
+                    errors.wechat.message}
+                </div>
+              )}
+            </div>
 
-<div className="mt-3 input-form">
-                      <FormLabel
-                        htmlFor="validation-form-1"
-                        className="flex justify-start items-start flex-col w-full sm:flex-row"
-                      >
-                        {t("Phone")}
-                      </FormLabel>
-                      <FormInput
-                        {...register("phone")}
-                        id="validation-form-1"
-                        type="text"
-                        name="phone"
-                        className={clsx({
-                          "border-danger": errors.phone,
-                        })}
-                        placeholder={t("Enter phone")}
-                      />
-                      {errors.phone && (
-                        <div className="mt-2 text-danger">
-                          {typeof errors.phone.message === "string" &&
-                            errors.phone.message}
-                        </div>
-                      )}
-                    </div>
+            <div className="input-form">
+              <FormLabel
+                htmlFor="birthdate"
+                className="flex justify-start items-start flex-col w-full sm:flex-row"
+              >
+                {t("Birth Date")}
+              </FormLabel>
+              <FormInput
+                {...register("birthdate")}
+                id="birthdate"
+                type="date"
+                name="birthdate"
+                className={clsx({
+                  "border-danger": errors.birthdate,
+                })}
+                placeholder={t("Enter birthdate")}
+              />
+              {errors.birthdate && (
+                <div className="mt-2 text-danger">
+                  {typeof errors.birthdate.message === "string" &&
+                    errors.birthdate.message}
+                </div>
+              )}
+            </div>
+          </div>
 
+          {/* Row 5: Salary & Hire Date */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="input-form">
+              <FormLabel
+                htmlFor="salary"
+                className="flex justify-start items-start flex-col w-full sm:flex-row"
+              >
+                {t("Salary")}
+              </FormLabel>
+              <FormInput
+                {...register("salary")}
+                id="salary"
+                type="number"
+                name="salary"
+                className={clsx({
+                  "border-danger": errors.salary,
+                })}
+                placeholder={t("Enter salary")}
+              />
+              {errors.salary && (
+                <div className="mt-2 text-danger">
+                  {typeof errors.salary.message === "string" &&
+                    errors.salary.message}
+                </div>
+              )}
+            </div>
 
-<div className="mt-3 input-form">
-                      <FormLabel
-                        htmlFor="validation-form-1"
-                        className="flex justify-start items-start flex-col w-full sm:flex-row"
-                      >
-                        {t("Salary")}
-                      </FormLabel>
-                      <FormInput
-                        {...register("salary")}
-                        id="validation-form-1"
-                        type="number"
-                        name="salary"
-                        className={clsx({
-                          "border-danger": errors.salary,
-                        })}
-                        placeholder={t("Enter salary")}
-                      />
-                      {errors.salary && (
-                        <div className="mt-2 text-danger">
-                          {typeof errors.salary.message === "string" &&
-                            errors.salary.message}
-                        </div>
-                      )}
-                    </div>
+            <div className="input-form">
+              <FormLabel
+                htmlFor="hire_date"
+                className="flex justify-start items-start flex-col w-full sm:flex-row"
+              >
+                {t("Salary Date")}
+              </FormLabel>
+              <FormInput
+                {...register("hire_date")}
+                id="hire_date"
+                type="date"
+                name="hire_date"
+                className={clsx({
+                  "border-danger": errors.hire_date,
+                })}
+                placeholder={t("Enter hire_date")}
+              />
+              {errors.hire_date && (
+                <div className="mt-2 text-danger">
+                  {typeof errors.hire_date.message === "string" &&
+                    errors.hire_date.message}
+                </div>
+              )}
+            </div>
+          </div>
 
-
-<div className="mt-3 input-form">
-                      <FormLabel
-                        htmlFor="validation-form-1"
-                        className="flex justify-start items-start flex-col w-full sm:flex-row"
-                      >
-                        {t("Hire Date")}
-                      </FormLabel>
-                      <FormInput
-                        {...register("hire_date")}
-                        id="validation-form-1"
-                        type="date"
-                        name="hire_date"
-                        className={clsx({
-                          "border-danger": errors.hire_date,
-                        })}
-                        placeholder={t("Enter hire_date")}
-                      />
-                      {errors.hire_date && (
-                        <div className="mt-2 text-danger">
-                          {typeof errors.hire_date.message === "string" &&
-                            errors.hire_date.message}
-                        </div>
-                      )}
-                    </div>
-
-
- <div className="mt-3 input-form">
-      <FormLabel
-        htmlFor="validation-form-1"
-        className="flex flex-col w-full sm:flex-row"
-      >
-        {t("Is Active")}
-      </FormLabel>
-          <div className="flex flex-col mt-2 sm:flex-row">
+          {/* Is Active - Full Width */}
+          <div className="input-form">
+            <FormLabel
+              htmlFor="is_active"
+              className="flex flex-col w-full sm:flex-row"
+            >
+              {t("Is Active")}
+            </FormLabel>
+            <div className="flex flex-col mt-2 sm:flex-row">
               <div>
-            <input
-              {...register('is_active')}
-              type="radio"
-              value={1}
-              className="mx-2"
-            />  {t('Active')}
-            <input
-              {...register('is_active')}
-              type="radio"
-              value={0}
-              className="mx-2"
-            /> {t('Inactive')}
-      </div>
+                <input
+                  {...register('is_active')}
+                  type="radio"
+                  value={1}
+                  className="mx-2"
+                />  {t('Active')}
+                <input
+                  {...register('is_active')}
+                  type="radio"
+                  value={0}
+                  className="mx-2"
+                /> {t('Inactive')}
+              </div>
+            </div>
+            {errors.is_active && (
+              <div className="mt-2 text-danger">
+                {typeof errors.is_active.message === "string" &&
+                  errors.is_active.message}
+              </div>
+            )}
           </div>
-      {errors.is_active && (
-        <div className="mt-2 text-danger">
-          {typeof errors.is_active.message === "string" &&
-            errors.is_active.message}
-        </div>
-      )}
-    </div>
     
-
-  <div className="mt-3 input-form">
-        <FormLabel
-          htmlFor="validation-form-6"
-          className="flex flex-col w-full sm:flex-row"
-        >
-          {t("Note")}
-        </FormLabel>
-        <FormTextarea
-          {...register("note")}
-          id="validation-form-6"
-          name="note"
-          className={clsx({
-            "border-danger": errors.note,
-          })}
-          placeholder={t("note")}
-        ></FormTextarea>
-        {errors.note && (
-          <div className="mt-2 text-danger">
-            {typeof errors.note.message ===
-              "string" && errors.note.message}
+          {/* Additional Note - Full Width */}
+          <div className="input-form">
+            <FormLabel
+              htmlFor="note"
+              className="flex flex-col w-full sm:flex-row"
+            >
+              {t("Note")}
+            </FormLabel>
+            <FormTextarea
+              {...register("note")}
+              id="note"
+              name="note"
+              className={clsx({
+                "border-danger": errors.note,
+              })}
+              placeholder={t("note")}
+            ></FormTextarea>
+            {errors.note && (
+              <div className="mt-2 text-danger">
+                {typeof errors.note.message ===
+                  "string" && errors.note.message}
+              </div>
+            )}
           </div>
-        )}
-      </div>
 
                   </div>
                       )}
@@ -762,8 +1245,9 @@ return (
         onClose={() => {
           setShowUpdateModal(false);
         }}
+        size="xl"
       >
-        <Slideover.Panel className="  text-center overflow-y-auto max-h-[110vh]">
+        <Slideover.Panel className="text-center overflow-y-auto max-h-[110vh] max-w-5xl w-full">
           <form onSubmit={handleSubmit(onUpdate)}>
             <Slideover.Title>
               <h2 className="mr-auto text-base font-medium">{t("Edit Employee")}</h2>
@@ -777,225 +1261,337 @@ return (
                     </div>
                   </div>
                 ) : (
-                  <div className=" w-full grid grid-cols-1  gap-4 gap-y-3">
+                  <div className="w-full grid grid-cols-1 gap-4 gap-y-3">
                     
-          <div className="w-full ">
-              <FileUpload endpoint={upload_url} type="image/*" className="w-full " setUploadedURL={setUploadPhoto}/>
+          {/* Image Upload - Full Width */}
+          <div className="w-full">
+              <FormLabel className="block mb-2 text-sm font-medium">
+                {t("Upload an Imag")}
+              </FormLabel>
+              <FileUpload endpoint={upload_url} type="image/*" className="w-full" setUploadedURL={setUploadPhoto}/>
           </div>
         
-<div className="mt-3 input-form">
-                      <FormLabel
-                        htmlFor="validation-form-1"
-                        className="flex justify-start items-start flex-col w-full sm:flex-row"
-                      >
-                        {t("First Name")}
-                      </FormLabel>
-                      <FormInput
-                        {...register("first_name")}
-                        id="validation-form-1"
-                        type="text"
-                        name="first_name"
-                        className={clsx({
-                          "border-danger": errors.first_name,
-                        })}
-                        placeholder={t("Enter first_name")}
-                      />
-                      {errors.first_name && (
-                        <div className="mt-2 text-danger">
-                          {typeof errors.first_name.message === "string" &&
-                            errors.first_name.message}
-                        </div>
-                      )}
-                    </div>
+          {/* Row 1: First Name & Last Name */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="input-form">
+              <FormLabel
+                htmlFor="edit_first_name"
+                className="flex justify-start items-start flex-col w-full sm:flex-row"
+              >
+                {t("First Name")}
+              </FormLabel>
+              <FormInput
+                {...register("first_name")}
+                id="edit_first_name"
+                type="text"
+                name="first_name"
+                className={clsx({
+                  "border-danger": errors.first_name,
+                })}
+                placeholder={t("Enter first_name")}
+              />
+              {errors.first_name && (
+                <div className="mt-2 text-danger">
+                  {typeof errors.first_name.message === "string" &&
+                    errors.first_name.message}
+                </div>
+              )}
+            </div>
 
+            <div className="input-form">
+              <FormLabel
+                htmlFor="edit_last_name"
+                className="flex justify-start items-start flex-col w-full sm:flex-row"
+              >
+                {t("Last Name")}
+              </FormLabel>
+              <FormInput
+                {...register("last_name")}
+                id="edit_last_name"
+                type="text"
+                name="last_name"
+                className={clsx({
+                  "border-danger": errors.last_name,
+                })}
+                placeholder={t("Enter last_name")}
+              />
+              {errors.last_name && (
+                <div className="mt-2 text-danger">
+                  {typeof errors.last_name.message === "string" &&
+                    errors.last_name.message}
+                </div>
+              )}
+            </div>
+          </div>
 
-<div className="mt-3 input-form">
-                      <FormLabel
-                        htmlFor="validation-form-1"
-                        className="flex justify-start items-start flex-col w-full sm:flex-row"
-                      >
-                        {t("Last Name")}
-                      </FormLabel>
-                      <FormInput
-                        {...register("last_name")}
-                        id="validation-form-1"
-                        type="text"
-                        name="last_name"
-                        className={clsx({
-                          "border-danger": errors.last_name,
-                        })}
-                        placeholder={t("Enter last_name")}
-                      />
-                      {errors.last_name && (
-                        <div className="mt-2 text-danger">
-                          {typeof errors.last_name.message === "string" &&
-                            errors.last_name.message}
-                        </div>
-                      )}
-                    </div>
+          {/* Row 2: Position & Email */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="input-form">
+              <FormLabel
+                htmlFor="edit_position"
+                className="flex justify-start items-start flex-col w-full sm:flex-row"
+              >
+                {t("Position")}
+              </FormLabel>
+              <FormInput
+                {...register("position")}
+                id="edit_position"
+                type="text"
+                name="position"
+                className={clsx({
+                  "border-danger": errors.position,
+                })}
+                placeholder={t("Enter position")}
+              />
+              {errors.position && (
+                <div className="mt-2 text-danger">
+                  {typeof errors.position.message === "string" &&
+                    errors.position.message}
+                </div>
+              )}
+            </div>
 
+            <div className="input-form">
+              <FormLabel
+                htmlFor="edit_email"
+                className="flex justify-start items-start flex-col w-full sm:flex-row"
+              >
+                {t("Email")}
+              </FormLabel>
+              <FormInput
+                {...register("email")}
+                id="edit_email"
+                type="email"
+                name="email"
+                className={clsx({
+                  "border-danger": errors.email,
+                })}
+                placeholder={t("Enter email")}
+              />
+              {errors.email && (
+                <div className="mt-2 text-danger">
+                  {typeof errors.email.message === "string" &&
+                    errors.email.message}
+                </div>
+              )}
+            </div>
+          </div>
 
-   
+          {/* Row 3: Phone & WhatsApp */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="input-form">
+              <FormLabel
+                htmlFor="edit_phone"
+                className="flex justify-start items-start flex-col w-full sm:flex-row"
+              >
+                {t("Phone")}
+              </FormLabel>
+              <FormInput
+                {...register("phone")}
+                id="edit_phone"
+                type="text"
+                name="phone"
+                className={clsx({
+                  "border-danger": errors.phone,
+                })}
+                placeholder={t("Enter phone")}
+              />
+              {errors.phone && (
+                <div className="mt-2 text-danger">
+                  {typeof errors.phone.message === "string" &&
+                    errors.phone.message}
+                </div>
+              )}
+            </div>
 
-<div className="mt-3 input-form">
-                      <FormLabel
-                        htmlFor="validation-form-1"
-                        className="flex justify-start items-start flex-col w-full sm:flex-row"
-                      >
-                        {t("Email")}
-                      </FormLabel>
-                      <FormInput
-                        {...register("email")}
-                        id="validation-form-1"
-                        type="email"
-                        name="email"
-                        className={clsx({
-                          "border-danger": errors.email,
-                        })}
-                        placeholder={t("Enter email")}
-                      />
-                      {errors.email && (
-                        <div className="mt-2 text-danger">
-                          {typeof errors.email.message === "string" &&
-                            errors.email.message}
-                        </div>
-                      )}
-                    </div>
+            <div className="input-form">
+              <FormLabel
+                htmlFor="edit_whatsapp"
+                className="flex justify-start items-start flex-col w-full sm:flex-row"
+              >
+                {t("WhatsApp")}
+              </FormLabel>
+              <FormInput
+                {...register("whatsapp")}
+                id="edit_whatsapp"
+                type="text"
+                name="whatsapp"
+                className={clsx({
+                  "border-danger": errors.whatsapp,
+                })}
+                placeholder={t("Enter whatsapp")}
+              />
+              {errors.whatsapp && (
+                <div className="mt-2 text-danger">
+                  {typeof errors.whatsapp.message === "string" &&
+                    errors.whatsapp.message}
+                </div>
+              )}
+            </div>
+          </div>
 
+          {/* Row 4: WeChat & Birth Date */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="input-form">
+              <FormLabel
+                htmlFor="edit_wechat"
+                className="flex justify-start items-start flex-col w-full sm:flex-row"
+              >
+                {t("WeChat")}
+              </FormLabel>
+              <FormInput
+                {...register("wechat")}
+                id="edit_wechat"
+                type="text"
+                name="wechat"
+                className={clsx({
+                  "border-danger": errors.wechat,
+                })}
+                placeholder={t("Enter wechat")}
+              />
+              {errors.wechat && (
+                <div className="mt-2 text-danger">
+                  {typeof errors.wechat.message === "string" &&
+                    errors.wechat.message}
+                </div>
+              )}
+            </div>
 
-<div className="mt-3 input-form">
-                      <FormLabel
-                        htmlFor="validation-form-1"
-                        className="flex justify-start items-start flex-col w-full sm:flex-row"
-                      >
-                        {t("Phone")}
-                      </FormLabel>
-                      <FormInput
-                        {...register("phone")}
-                        id="validation-form-1"
-                        type="text"
-                        name="phone"
-                        className={clsx({
-                          "border-danger": errors.phone,
-                        })}
-                        placeholder={t("Enter phone")}
-                      />
-                      {errors.phone && (
-                        <div className="mt-2 text-danger">
-                          {typeof errors.phone.message === "string" &&
-                            errors.phone.message}
-                        </div>
-                      )}
-                    </div>
+            <div className="input-form">
+              <FormLabel
+                htmlFor="edit_birthdate"
+                className="flex justify-start items-start flex-col w-full sm:flex-row"
+              >
+                {t("Birth Date")}
+              </FormLabel>
+              <FormInput
+                {...register("birthdate")}
+                id="edit_birthdate"
+                type="date"
+                name="birthdate"
+                className={clsx({
+                  "border-danger": errors.birthdate,
+                })}
+                placeholder={t("Enter birthdate")}
+              />
+              {errors.birthdate && (
+                <div className="mt-2 text-danger">
+                  {typeof errors.birthdate.message === "string" &&
+                    errors.birthdate.message}
+                </div>
+              )}
+            </div>
+          </div>
 
+          {/* Row 5: Salary & Hire Date */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="input-form">
+              <FormLabel
+                htmlFor="edit_salary"
+                className="flex justify-start items-start flex-col w-full sm:flex-row"
+              >
+                {t("Salary")}
+              </FormLabel>
+              <FormInput
+                {...register("salary")}
+                id="edit_salary"
+                type="number"
+                name="salary"
+                className={clsx({
+                  "border-danger": errors.salary,
+                })}
+                placeholder={t("Enter salary")}
+              />
+              {errors.salary && (
+                <div className="mt-2 text-danger">
+                  {typeof errors.salary.message === "string" &&
+                    errors.salary.message}
+                </div>
+              )}
+            </div>
 
-<div className="mt-3 input-form">
-                      <FormLabel
-                        htmlFor="validation-form-1"
-                        className="flex justify-start items-start flex-col w-full sm:flex-row"
-                      >
-                        {t("Salary")}
-                      </FormLabel>
-                      <FormInput
-                        {...register("salary")}
-                        id="validation-form-1"
-                        type="number"
-                        name="salary"
-                        className={clsx({
-                          "border-danger": errors.salary,
-                        })}
-                        placeholder={t("Enter salary")}
-                      />
-                      {errors.salary && (
-                        <div className="mt-2 text-danger">
-                          {typeof errors.salary.message === "string" &&
-                            errors.salary.message}
-                        </div>
-                      )}
-                    </div>
+            <div className="input-form">
+              <FormLabel
+                htmlFor="edit_hire_date"
+                className="flex justify-start items-start flex-col w-full sm:flex-row"
+              >
+                {t("Salary Date")}
+              </FormLabel>
+              <FormInput
+                {...register("hire_date")}
+                id="edit_hire_date"
+                type="date"
+                name="hire_date"
+                className={clsx({
+                  "border-danger": errors.hire_date,
+                })}
+                placeholder={t("Enter hire_date")}
+              />
+              {errors.hire_date && (
+                <div className="mt-2 text-danger">
+                  {typeof errors.hire_date.message === "string" &&
+                    errors.hire_date.message}
+                </div>
+              )}
+            </div>
+          </div>
 
-
-<div className="mt-3 input-form">
-                      <FormLabel
-                        htmlFor="validation-form-1"
-                        className="flex justify-start items-start flex-col w-full sm:flex-row"
-                      >
-                        {t("Hire Date")}
-                      </FormLabel>
-                      <FormInput
-                        {...register("hire_date")}
-                        id="validation-form-1"
-                        type="date"
-                        name="hire_date"
-                        className={clsx({
-                          "border-danger": errors.hire_date,
-                        })}
-                        placeholder={t("Enter hire_date")}
-                      />
-                      {errors.hire_date && (
-                        <div className="mt-2 text-danger">
-                          {typeof errors.hire_date.message === "string" &&
-                            errors.hire_date.message}
-                        </div>
-                      )}
-                    </div>
-
-
- <div className="mt-3 input-form">
-      <FormLabel
-        htmlFor="validation-form-1"
-        className="flex flex-col w-full sm:flex-row"
-      >
-        {t("Is Active")}
-      </FormLabel>
-          <div className="flex flex-col mt-2 sm:flex-row">
+          {/* Is Active - Full Width */}
+          <div className="input-form">
+            <FormLabel
+              htmlFor="edit_is_active"
+              className="flex flex-col w-full sm:flex-row"
+            >
+              {t("Is Active")}
+            </FormLabel>
+            <div className="flex flex-col mt-2 sm:flex-row">
               <div>
-            <input
-              {...register('is_active')}
-              type="radio"
-              value={1}
-              className="mx-2"
-            />  {t('Active')}
-            <input
-              {...register('is_active')}
-              type="radio"
-              value={0}
-              className="mx-2"
-            /> {t('Inactive')}
-      </div>
+                <input
+                  {...register('is_active')}
+                  type="radio"
+                  value={1}
+                  className="mx-2"
+                />  {t('Active')}
+                <input
+                  {...register('is_active')}
+                  type="radio"
+                  value={0}
+                  className="mx-2"
+                /> {t('Inactive')}
+              </div>
+            </div>
+            {errors.is_active && (
+              <div className="mt-2 text-danger">
+                {typeof errors.is_active.message === "string" &&
+                  errors.is_active.message}
+              </div>
+            )}
           </div>
-      {errors.is_active && (
-        <div className="mt-2 text-danger">
-          {typeof errors.is_active.message === "string" &&
-            errors.is_active.message}
-        </div>
-      )}
-    </div>
     
-
-  <div className="mt-3 input-form">
-        <FormLabel
-          htmlFor="validation-form-6"
-          className="flex flex-col w-full sm:flex-row"
-        >
-          {t("Note")}
-        </FormLabel>
-        <FormTextarea
-          {...register("note")}
-          id="validation-form-6"
-          name="note"
-          className={clsx({
-            "border-danger": errors.note,
-          })}
-          placeholder={t("note")}
-        ></FormTextarea>
-        {errors.note && (
-          <div className="mt-2 text-danger">
-            {typeof errors.note.message ===
-              "string" && errors.note.message}
+          {/* Additional Note - Full Width */}
+          <div className="input-form">
+            <FormLabel
+              htmlFor="edit_note"
+              className="flex flex-col w-full sm:flex-row"
+            >
+              {t("Note")}
+            </FormLabel>
+            <FormTextarea
+              {...register("note")}
+              id="edit_note"
+              name="note"
+              className={clsx({
+                "border-danger": errors.note,
+              })}
+              placeholder={t("note")}
+            ></FormTextarea>
+            {errors.note && (
+              <div className="mt-2 text-danger">
+                {typeof errors.note.message ===
+                  "string" && errors.note.message}
+              </div>
+            )}
           </div>
-        )}
-      </div>
 
                   </div>
                 )}

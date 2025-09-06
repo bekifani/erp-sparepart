@@ -13,7 +13,7 @@ use Illuminate\Notifications\Notifiable;
 class Employee extends Model
 {
     use HasFactory, LogsActivity, Notifiable;
-    public $fillable = ['photo', 'first_name', 'last_name', 'designation_id', 'email', 'phone', 'salary', 'hire_date', 'is_active', 'note'];
+    public $fillable = ['photo', 'first_name', 'last_name', 'position', 'email', 'phone', 'whatsapp', 'wechat', 'birthdate', 'salary', 'hire_date', 'is_active', 'note'];
     protected static $logAttributes = ['*'];
     public $guarded = [];
 
