@@ -1432,6 +1432,7 @@ return (
           refetch={refetch}
           setRefetch={setRefetch}
           permission={"Customer"}
+          page_name={"Customer"}
         />
       </Can>
     </div>

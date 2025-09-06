@@ -84,7 +84,7 @@ class CustomerController extends BaseController
         $validationRules = [
           
           "name_surname"=>"required|string|max:255",
-          "shipping_mark"=>"nullable|string|max:255",
+          "shipping_mark"=>"nullable|string|max:255|unique:customers,shipping_mark",
           "country"=>"nullable|string|max:255",
           "address"=>"nullable|string|max:255",
           "email"=>"required|email|unique:customers,email",
@@ -221,7 +221,7 @@ class CustomerController extends BaseController
 
           
           "name_surname"=>"required|string|max:255",
-          "shipping_mark"=>"nullable|string|max:255",
+          "shipping_mark"=>"nullable|string|max:255|unique:customers,shipping_mark," . $id,
           "country"=>"nullable|string|max:255",
           "address"=>"nullable|string|max:255",
           "email"=>"required|email|unique:customers,email," . $id,
