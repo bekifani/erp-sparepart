@@ -725,7 +725,6 @@ return (
         onClose={() => {
           setShowDeleteModal(false);
         }}
-        size="xl"
       >
         <Slideover.Panel>
           <div className="p-5 text-center   text-center overflow-y-auto max-h-[110vh]">
