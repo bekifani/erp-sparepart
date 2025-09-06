@@ -402,7 +402,13 @@ additional_note : yup.string().nullable(),
     }
     
     try {
-      const response = await createCustomer(data);
+      // Add image source information to the data
+      const submitData = { ...data };
+      if (imageSource) {
+        submitData.image_source = imageSource; // 'upload' or 'camera'
+      }
+      
+      const response = await createCustomer(submitData);
       console.log('🟡 API response:', response);
       
       if (response && (response.success === true || response.data?.success === true)) {
@@ -518,7 +524,13 @@ additional_note : yup.string().nullable(),
 const onUpdate = async (data) => {
   try {
     console.log('🟡 Updating customer with data:', data);
-    const response = await updateCustomer(data);
+    // Add image source information to the data
+    const submitData = { ...data };
+    if (imageSource) {
+      submitData.image_source = imageSource; // 'upload' or 'camera'
+    }
+    
+    const response = await updateCustomer(submitData);
     console.log('🟡 Update customer response:', response);
       
     if (response && (response.success === true || response.data?.success === true)) {

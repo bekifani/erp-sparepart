@@ -94,6 +94,7 @@ class CustomerController extends BaseController
           "whatsapp"=>"nullable|string|max:20|unique:customers,whatsapp",
           "wechat_id"=>"nullable|string|max:255|unique:customers,wechat_id",
           "image"=>"nullable|",
+          "image_source"=>"nullable|string|in:upload,camera",
           "additional_note"=>"nullable|string",
           
 
@@ -110,32 +111,62 @@ class CustomerController extends BaseController
         
         //file uploads
 
-        // Handle image field - convert base64 data to file path (for camera capture)
+        // Handle image field based on source type
         if (isset($validated['image']) && !empty($validated['image'])) {
-            $base64Data = $validated['image'];
+            $imageSource = $validated['image_source'] ?? null;
             
-            // Handle both array format {data: 'base64...', type: 'image/jpeg'} and string format
-            if (is_array($validated['image']) && isset($validated['image']['data'])) {
-                $base64Data = $validated['image']['data'];
-            }
-            
-            // Remove data URL prefix if present
-            if (strpos($base64Data, 'data:image') === 0) {
-                $base64Data = substr($base64Data, strpos($base64Data, ',') + 1);
-            }
-            
-            // Decode base64 and save as file
-            $decodedImageData = base64_decode($base64Data);
-            if ($decodedImageData !== false) {
-                $fileName = 'customer_image_' . time() . '.jpg';
-                $filePath = 'uploads/' . $fileName;
-                Storage::disk('public')->put($filePath, $decodedImageData);
-                $validated['image'] = $fileName; // Store only filename, not full path
+            if ($imageSource === 'camera') {
+                // Handle camera-captured images (base64 data)
+                $base64Data = $validated['image'];
+                
+                // Handle both array format {data: 'base64...', type: 'image/jpeg'} and string format
+                if (is_array($validated['image']) && isset($validated['image']['data'])) {
+                    $base64Data = $validated['image']['data'];
+                }
+                
+                // Remove data URL prefix if present
+                if (strpos($base64Data, 'data:image') === 0) {
+                    $base64Data = substr($base64Data, strpos($base64Data, ',') + 1);
+                }
+                
+                // Decode base64 and save as file with generated name
+                $decodedImageData = base64_decode($base64Data);
+                if ($decodedImageData !== false) {
+                    $fileName = 'customer_image_' . time() . '.jpg';
+                    $filePath = 'uploads/' . $fileName;
+                    Storage::disk('public')->put($filePath, $decodedImageData);
+                    $validated['image'] = $fileName;
+                }
+            } elseif ($imageSource === 'upload') {
+                // Handle uploaded files - keep original filename as is
+                // The image field already contains the filename from FileUpload component
+                // No processing needed, just keep the original filename
             } else {
-                // If base64 decode fails, treat as regular file path
-                // This handles cases where image is already a file path from FileUpload component
+                // Fallback: try to detect if it's base64 or filename
+                $base64Data = $validated['image'];
+                
+                if (is_array($validated['image']) && isset($validated['image']['data'])) {
+                    $base64Data = $validated['image']['data'];
+                }
+                
+                if (strpos($base64Data, 'data:image') === 0) {
+                    $base64Data = substr($base64Data, strpos($base64Data, ',') + 1);
+                }
+                
+                $decodedImageData = base64_decode($base64Data);
+                if ($decodedImageData !== false && base64_encode($decodedImageData) === $base64Data) {
+                    // It's base64 data, treat as camera capture
+                    $fileName = 'customer_image_' . time() . '.jpg';
+                    $filePath = 'uploads/' . $fileName;
+                    Storage::disk('public')->put($filePath, $decodedImageData);
+                    $validated['image'] = $fileName;
+                }
+                // Otherwise, keep as filename (uploaded file)
             }
         }
+        
+        // Remove image_source from validated data as it's not a database field
+        unset($validated['image_source']);
 
         $customer = Customer::create($validated);
         
@@ -200,6 +231,7 @@ class CustomerController extends BaseController
           "whatsapp"=>"nullable|string|max:20|unique:customers,whatsapp," . $id,
           "wechat_id"=>"nullable|string|max:255|unique:customers,wechat_id," . $id,
           "image"=>"nullable|",
+          "image_source"=>"nullable|string|in:upload,camera",
           "additional_note"=>"nullable|string",
           
         ];
@@ -215,32 +247,89 @@ class CustomerController extends BaseController
 
         //file uploads update
 
-        // Handle image field - convert base64 data to file path (for camera capture)
+        // Handle image field based on source type
         if (isset($validated['image']) && !empty($validated['image'])) {
-            $base64Data = $validated['image'];
+            $imageSource = $validated['image_source'] ?? null;
             
-            // Handle both array format {data: 'base64...', type: 'image/jpeg'} and string format
-            if (is_array($validated['image']) && isset($validated['image']['data'])) {
-                $base64Data = $validated['image']['data'];
-            }
-            
-            // Remove data URL prefix if present
-            if (strpos($base64Data, 'data:image') === 0) {
-                $base64Data = substr($base64Data, strpos($base64Data, ',') + 1);
-            }
-            
-            // Decode base64 and save as file
-            $decodedImageData = base64_decode($base64Data);
-            if ($decodedImageData !== false) {
-                $fileName = 'customer_image_' . time() . '.jpg';
-                $filePath = 'uploads/' . $fileName;
-                Storage::disk('public')->put($filePath, $decodedImageData);
-                $validated['image'] = $fileName; // Store only filename, not full path
+            if ($imageSource === 'camera') {
+                // Handle camera-captured images (base64 data)
+                $base64Data = $validated['image'];
+                
+                // Handle both array format {data: 'base64...', type: 'image/jpeg'} and string format
+                if (is_array($validated['image']) && isset($validated['image']['data'])) {
+                    $base64Data = $validated['image']['data'];
+                }
+                
+                // Remove data URL prefix if present
+                if (strpos($base64Data, 'data:image') === 0) {
+                    $base64Data = substr($base64Data, strpos($base64Data, ',') + 1);
+                }
+                
+                // Decode base64 and save as file with generated name
+                $decodedImageData = base64_decode($base64Data);
+                if ($decodedImageData !== false) {
+                    // Delete old image file if it exists
+                    if ($customer->image && Storage::disk('public')->exists('uploads/' . $customer->image)) {
+                        Storage::disk('public')->delete('uploads/' . $customer->image);
+                    }
+                    
+                    $fileName = 'customer_image_' . time() . '.jpg';
+                    $filePath = 'uploads/' . $fileName;
+                    Storage::disk('public')->put($filePath, $decodedImageData);
+                    $validated['image'] = $fileName;
+                }
+            } elseif ($imageSource === 'upload') {
+                // Handle uploaded files - keep original filename as is
+                // The image field already contains the filename from FileUpload component
+                // No processing needed, just keep the original filename
             } else {
-                // If base64 decode fails, treat as regular file path
-                // This handles cases where image is already a file path from FileUpload component
+                // Fallback for existing images or when source is not specified
+                $imageData = $validated['image'];
+                
+                // Check if this is base64 data or an existing filename
+                $isBase64 = false;
+                
+                // Handle array format {data: 'base64...', type: 'image/jpeg'}
+                if (is_array($imageData) && isset($imageData['data'])) {
+                    $imageData = $imageData['data'];
+                    $isBase64 = true;
+                }
+                
+                // Check if it starts with data URL prefix
+                if (strpos($imageData, 'data:image') === 0) {
+                    $isBase64 = true;
+                    $imageData = substr($imageData, strpos($imageData, ',') + 1);
+                }
+                
+                // Check if it's a valid base64 string (not just a filename)
+                if (!$isBase64) {
+                    $testDecode = base64_decode($imageData, true);
+                    if ($testDecode !== false && base64_encode($testDecode) === $imageData) {
+                        $isBase64 = true;
+                    }
+                }
+                
+                if ($isBase64) {
+                    // Process as new base64 image
+                    $decodedImageData = base64_decode($imageData);
+                    if ($decodedImageData !== false) {
+                        // Delete old image file if it exists
+                        if ($customer->image && Storage::disk('public')->exists('uploads/' . $customer->image)) {
+                            Storage::disk('public')->delete('uploads/' . $customer->image);
+                        }
+                        
+                        $fileName = 'customer_image_' . time() . '.jpg';
+                        $filePath = 'uploads/' . $fileName;
+                        Storage::disk('public')->put($filePath, $decodedImageData);
+                        $validated['image'] = $fileName;
+                    }
+                }
+                // If not base64, keep the existing filename as is (no processing needed)
             }
         }
+        
+        // Remove image_source from validated data as it's not a database field
+        unset($validated['image_source']);
 
         $customer->update($validated);
         
