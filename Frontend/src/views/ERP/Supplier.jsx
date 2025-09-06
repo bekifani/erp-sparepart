@@ -22,6 +22,7 @@ import Can from "@/helpers/PermissionChecker/index.js";
 import { useTranslation } from "react-i18next";
 import LoadingIcon from "@/components/Base/LoadingIcon/index.tsx";
 import FileUpload from "@/helpers/ui/FileUpload.jsx";
+import CameraCapture from "@/helpers/ui/CameraCapture.jsx";
 import TomSelectSearch from "@/helpers/ui/Tomselect.jsx";
 import { useSelector } from "react-redux";
 import { ClassicEditor } from "@/components/Base/Ckeditor";
@@ -36,6 +37,7 @@ function index_main() {
   const [showUpdateModal, setShowUpdateModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [editorData, setEditorData] = useState("")
+  const [capturedImages, setCapturedImages] = useState([]);
   const [confirmationMessage, setConfirmationMessage] =
     useState(t("Are you Sure Do You want to Delete Supplier"));
 
@@ -417,6 +419,40 @@ function index_main() {
     setValue('images', []);
   };
 
+  // Camera capture functionality
+  const handleImageCapture = (blob, imageUrl) => {
+    console.log('🟡 handleImageCapture called with:', { blob, imageUrl });
+    if (blob && imageUrl) {
+      // Convert blob to base64 string for form validation
+      const base64String = blob.data || blob;
+      console.log('📸 Adding captured image:', base64String.substring(0, 50) + '...');
+      
+      // Add captured image to the images array
+      setCapturedImages(prev => {
+        const newCaptured = [...prev, base64String];
+        // Combine uploaded and captured images
+        const allImages = [...uploadedImages, ...newCaptured];
+        setValue('images', allImages);
+        return newCaptured;
+      });
+    }
+  };
+
+  const removeCapturedImage = (index) => {
+    setCapturedImages((prev) => {
+      const next = prev.filter((_, i) => i !== index);
+      // Combine uploaded and remaining captured images
+      const allImages = [...uploadedImages, ...next];
+      setValue('images', allImages);
+      return next;
+    });
+  };
+
+  const clearCapturedImages = () => {
+    setCapturedImages([]);
+    setValue('images', uploadedImages); // Keep only uploaded images
+  };
+
   const [refetch, setRefetch] = useState(false);
   const getMiniDisplay = (url) => {
     let data = app_url +'/api/file/' + url;
@@ -450,30 +486,209 @@ function index_main() {
       console.log('Supplier create payload:', data);
       const response = await createSupplier(data);
       console.log('Supplier create response:', response);
+      
+      if (response?.error) {
+        console.error('🔴 Supplier creation failed:', response.error);
+        let errorMessage = t("Error creating Supplier");
+        
+        // Check multiple possible error structures
+        const errorSources = [
+          response?.error?.data?.data?.errors,
+          response?.error?.data?.errors,
+          response?.error?.data?.message,
+          response?.error?.message
+        ];
+        
+        let validationErrors = null;
+        for (const errorSource of errorSources) {
+          if (errorSource && typeof errorSource === 'object') {
+            validationErrors = errorSource;
+            break;
+          } else if (typeof errorSource === 'string') {
+            errorMessage = errorSource;
+            break;
+          }
+        }
+        
+        if (validationErrors) {
+          const errorFields = Object.keys(validationErrors);
+          if (errorFields.length > 0) {
+            const firstFieldErrors = validationErrors[errorFields[0]];
+            if (Array.isArray(firstFieldErrors) && firstFieldErrors.length > 0) {
+              errorMessage = firstFieldErrors[0];
+            } else if (typeof firstFieldErrors === 'string') {
+              errorMessage = firstFieldErrors;
+            }
+          }
+        }
+        
+        setToastMessage(errorMessage);
+        basicStickyNotification.current?.showToast();
+        return;
+      }
+      
       setToastMessage(t("Supplier created successfully."));
       clearUploadedImages();
+      setCapturedImages([]);
+      setRefetch(true);
+      setShowCreateModal(false);
     } catch (error) {
-      console.error('Supplier create error:', error);
-      setToastMessage(t("Error creating Supplier."));
+      console.error('🔴 Exception in onCreate:', error);
+      let errorMessage = t("Error creating Supplier");
+      
+      // Check multiple possible error structures in catch block
+      const errorSources = [
+        error?.error?.data?.data?.errors,
+        error?.error?.data?.errors,
+        error?.response?.data?.data?.errors,
+        error?.response?.data?.errors,
+        error?.data?.data?.errors,
+        error?.data?.errors
+      ];
+      
+      let validationErrors = null;
+      for (const errorSource of errorSources) {
+        if (errorSource && typeof errorSource === 'object') {
+          validationErrors = errorSource;
+          break;
+        }
+      }
+      
+      if (validationErrors) {
+        const errorFields = Object.keys(validationErrors);
+        if (errorFields.length > 0) {
+          const firstFieldErrors = validationErrors[errorFields[0]];
+          if (Array.isArray(firstFieldErrors) && firstFieldErrors.length > 0) {
+            errorMessage = firstFieldErrors[0];
+          } else if (typeof firstFieldErrors === 'string') {
+            errorMessage = firstFieldErrors;
+          }
+        }
+      } else {
+        // Fallback to general error messages
+        const generalErrorSources = [
+          error?.error?.data?.message,
+          error?.response?.data?.message,
+          error?.data?.message,
+          error?.message
+        ];
+        
+        for (const errorSource of generalErrorSources) {
+          if (typeof errorSource === 'string') {
+            errorMessage = errorSource;
+            break;
+          }
+        }
+      }
+      
+      setToastMessage(errorMessage);
     }
     basicStickyNotification.current?.showToast();
-    setRefetch(true);
-    setShowCreateModal(false);
   };
 
   const onUpdate = async (data) => {
-    setShowUpdateModal(false)
     try {
       console.log('Supplier update payload:', data);
       const response = await updateSupplier(data);
       console.log('Supplier update response:', response);
+      
+      if (response?.error) {
+        console.error('🔴 Supplier update failed:', response.error);
+        let errorMessage = t("Error updating Supplier");
+        
+        // Check multiple possible error structures
+        const errorSources = [
+          response?.error?.data?.data?.errors,
+          response?.error?.data?.errors,
+          response?.error?.data?.message,
+          response?.error?.message
+        ];
+        
+        let validationErrors = null;
+        for (const errorSource of errorSources) {
+          if (errorSource && typeof errorSource === 'object') {
+            validationErrors = errorSource;
+            break;
+          } else if (typeof errorSource === 'string') {
+            errorMessage = errorSource;
+            break;
+          }
+        }
+        
+        if (validationErrors) {
+          const errorFields = Object.keys(validationErrors);
+          if (errorFields.length > 0) {
+            const firstFieldErrors = validationErrors[errorFields[0]];
+            if (Array.isArray(firstFieldErrors) && firstFieldErrors.length > 0) {
+              errorMessage = firstFieldErrors[0];
+            } else if (typeof firstFieldErrors === 'string') {
+              errorMessage = firstFieldErrors;
+            }
+          }
+        }
+        
+        setToastMessage(errorMessage);
+        setShowUpdateModal(true);
+        basicStickyNotification.current?.showToast();
+        return;
+      }
+      
       setToastMessage(t('Supplier updated successfully'));
-      setRefetch(true)
+      setRefetch(true);
       clearUploadedImages();
+      setCapturedImages([]);
+      setShowUpdateModal(false);
     } catch (error) {
-      setShowUpdateModal(true)
-      console.error('Supplier update error:', error);
-      setToastMessage(t('Supplier deletion failed'));
+      console.error('🔴 Exception in onUpdate:', error);
+      let errorMessage = t("Error updating Supplier");
+      
+      // Check multiple possible error structures in catch block
+      const errorSources = [
+        error?.error?.data?.data?.errors,
+        error?.error?.data?.errors,
+        error?.response?.data?.data?.errors,
+        error?.response?.data?.errors,
+        error?.data?.data?.errors,
+        error?.data?.errors
+      ];
+      
+      let validationErrors = null;
+      for (const errorSource of errorSources) {
+        if (errorSource && typeof errorSource === 'object') {
+          validationErrors = errorSource;
+          break;
+        }
+      }
+      
+      if (validationErrors) {
+        const errorFields = Object.keys(validationErrors);
+        if (errorFields.length > 0) {
+          const firstFieldErrors = validationErrors[errorFields[0]];
+          if (Array.isArray(firstFieldErrors) && firstFieldErrors.length > 0) {
+            errorMessage = firstFieldErrors[0];
+          } else if (typeof firstFieldErrors === 'string') {
+            errorMessage = firstFieldErrors;
+          }
+        }
+      } else {
+        // Fallback to general error messages
+        const generalErrorSources = [
+          error?.error?.data?.message,
+          error?.response?.data?.message,
+          error?.data?.message,
+          error?.message
+        ];
+        
+        for (const errorSource of generalErrorSources) {
+          if (typeof errorSource === 'string') {
+            errorMessage = errorSource;
+            break;
+          }
+        }
+      }
+      
+      setToastMessage(errorMessage);
+      setShowUpdateModal(true);
     }
     basicStickyNotification.current?.showToast();
   };
@@ -501,10 +716,20 @@ function index_main() {
   useEffect(() => {
     if (showCreateModal) {
       clearUploadedImages();
+      setCapturedImages([]);
       // Optionally reset only images field, keep other fields intact
       // reset({ images: [] }, { keepValues: true });
     }
   }, [showCreateModal]);
+
+  useEffect(() => {
+    if (showUpdateModal) {
+      // When editing, load existing images
+      const currentImages = getValues('images') || [];
+      setUploadedImages(currentImages);
+      setCapturedImages([]);
+    }
+  }, [showUpdateModal]);
 
   return (
     <div>
@@ -807,18 +1032,55 @@ function index_main() {
 
 
           <div className="w-full md:col-span-2">
-              <FileUpload endpoint={upload_url} type="image/*" className="w-full " setUploadedURL={addUploadedImage}/>
-              <div className="flex flex-wrap gap-2 mt-3">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* File Upload Section */}
+                <div>
+                  <label className="text-sm font-medium text-gray-700 mb-2 block">{t("Upload Images")}</label>
+                  <FileUpload endpoint={upload_url} type="image/*" className="w-full" setUploadedURL={addUploadedImage}/>
+                </div>
+                
+                {/* Camera Capture Section */}
+                <div>
+                  <label className="text-sm font-medium text-gray-700 mb-2 block">{t("Take Pictures")}</label>
+                  <CameraCapture 
+                    onCapture={handleImageCapture}
+                    className="w-full"
+                  />
+                </div>
+              </div>
+              {/* Display all images (uploaded + captured) */}
+              <div className="flex flex-wrap gap-2 mt-4">
+                {/* Uploaded Images */}
                 {uploadedImages.map((url, idx) => (
-                  <div key={idx} className="relative">
+                  <div key={`uploaded-${idx}`} className="relative">
                     <img src={`${media_url + url}`} alt="" className="w-16 h-16 rounded object-cover" />
                     <button type="button" className="absolute -top-2 -right-2 bg-danger text-white rounded-full w-6 h-6 flex items-center justify-center text-xs" onClick={() => removeUploadedImage(idx)}>×</button>
+                    <div className="absolute bottom-0 left-0 bg-blue-500 text-white text-xs px-1 rounded-tr">📁</div>
+                  </div>
+                ))}
+                
+                {/* Captured Images */}
+                {capturedImages.map((base64, idx) => (
+                  <div key={`captured-${idx}`} className="relative">
+                    <img src={base64} alt="" className="w-16 h-16 rounded object-cover" />
+                    <button type="button" className="absolute -top-2 -right-2 bg-danger text-white rounded-full w-6 h-6 flex items-center justify-center text-xs" onClick={() => removeCapturedImage(idx)}>×</button>
+                    <div className="absolute bottom-0 left-0 bg-green-500 text-white text-xs px-1 rounded-tr">📸</div>
                   </div>
                 ))}
               </div>
-              {uploadedImages.length > 0 && (
-                <div className="mt-2">
-                  <Button type="button" variant="outline-secondary" onClick={clearUploadedImages}>{t('Clear images')}</Button>
+              
+              {/* Clear buttons */}
+              {(uploadedImages.length > 0 || capturedImages.length > 0) && (
+                <div className="mt-3 flex gap-2">
+                  {uploadedImages.length > 0 && (
+                    <Button type="button" variant="outline-secondary" onClick={clearUploadedImages}>{t('Clear uploaded')}</Button>
+                  )}
+                  {capturedImages.length > 0 && (
+                    <Button type="button" variant="outline-secondary" onClick={clearCapturedImages}>{t('Clear captured')}</Button>
+                  )}
+                  {(uploadedImages.length > 0 || capturedImages.length > 0) && (
+                    <Button type="button" variant="outline-danger" onClick={() => { clearUploadedImages(); clearCapturedImages(); }}>{t('Clear all images')}</Button>
+                  )}
                 </div>
               )}
           </div>
@@ -1156,18 +1418,55 @@ function index_main() {
 
 
           <div className="w-full md:col-span-2">
-              <FileUpload endpoint={upload_url} type="image/*" className="w-full " setUploadedURL={addUploadedImage}/>
-              <div className="flex flex-wrap gap-2 mt-3">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* File Upload Section */}
+                <div>
+                  <label className="text-sm font-medium text-gray-700 mb-2 block">{t("Upload Images")}</label>
+                  <FileUpload endpoint={upload_url} type="image/*" className="w-full" setUploadedURL={addUploadedImage}/>
+                </div>
+                
+                {/* Camera Capture Section */}
+                <div>
+                  <label className="text-sm font-medium text-gray-700 mb-2 block">{t("Take Pictures")}</label>
+                  <CameraCapture 
+                    onCapture={handleImageCapture}
+                    className="w-full"
+                  />
+                </div>
+              </div>
+              {/* Display all images (uploaded + captured) */}
+              <div className="flex flex-wrap gap-2 mt-4">
+                {/* Uploaded Images */}
                 {uploadedImages.map((url, idx) => (
-                  <div key={idx} className="relative">
+                  <div key={`uploaded-${idx}`} className="relative">
                     <img src={`${media_url + url}`} alt="" className="w-16 h-16 rounded object-cover" />
                     <button type="button" className="absolute -top-2 -right-2 bg-danger text-white rounded-full w-6 h-6 flex items-center justify-center text-xs" onClick={() => removeUploadedImage(idx)}>×</button>
+                    <div className="absolute bottom-0 left-0 bg-blue-500 text-white text-xs px-1 rounded-tr">📁</div>
+                  </div>
+                ))}
+                
+                {/* Captured Images */}
+                {capturedImages.map((base64, idx) => (
+                  <div key={`captured-${idx}`} className="relative">
+                    <img src={base64} alt="" className="w-16 h-16 rounded object-cover" />
+                    <button type="button" className="absolute -top-2 -right-2 bg-danger text-white rounded-full w-6 h-6 flex items-center justify-center text-xs" onClick={() => removeCapturedImage(idx)}>×</button>
+                    <div className="absolute bottom-0 left-0 bg-green-500 text-white text-xs px-1 rounded-tr">📸</div>
                   </div>
                 ))}
               </div>
-              {uploadedImages.length > 0 && (
-                <div className="mt-2">
-                  <Button type="button" variant="outline-secondary" onClick={clearUploadedImages}>{t('Clear images')}</Button>
+              
+              {/* Clear buttons */}
+              {(uploadedImages.length > 0 || capturedImages.length > 0) && (
+                <div className="mt-3 flex gap-2">
+                  {uploadedImages.length > 0 && (
+                    <Button type="button" variant="outline-secondary" onClick={clearUploadedImages}>{t('Clear uploaded')}</Button>
+                  )}
+                  {capturedImages.length > 0 && (
+                    <Button type="button" variant="outline-secondary" onClick={clearCapturedImages}>{t('Clear captured')}</Button>
+                  )}
+                  {(uploadedImages.length > 0 || capturedImages.length > 0) && (
+                    <Button type="button" variant="outline-danger" onClick={() => { clearUploadedImages(); clearCapturedImages(); }}>{t('Clear all images')}</Button>
+                  )}
                 </div>
               )}
           </div>

@@ -113,9 +113,9 @@ class SupplierController extends BaseController
             "code" => "nullable|string|max:255",
             "address" => "nullable|string|max:255",
             "email" => "required|email|unique:suppliers,email",
-            "phone_number" => "nullable|string|max:20",
-            "whatsapp" => "nullable|string|max:20",
-            "wechat_id" => "nullable|string|max:255",
+            "phone_number" => "nullable|string|max:20|unique:suppliers,phone_number",
+            "whatsapp" => "nullable|string|max:20|unique:suppliers,whatsapp",
+            "wechat_id" => "nullable|string|max:255|unique:suppliers,wechat_id",
             "images" => "nullable|array",
             "images.*" => "nullable|string",
             "number_of_products" => "nullable|numeric",
@@ -127,7 +127,26 @@ class SupplierController extends BaseController
         $validation = Validator::make($request->all(), $validationRules);
         if ($validation->fails()) {
             Log::error('Supplier validation failed:', $validation->errors()->toArray());
-            return $this->sendError("Invalid Values", ['errors' => $validation->errors()]);
+            
+            // Enhanced error handling with descriptive messages
+            $errors = $validation->errors();
+            $friendlyErrors = [];
+            
+            foreach ($errors->all() as $error) {
+                if (strpos($error, 'email has already been taken') !== false) {
+                    $friendlyErrors[] = 'This email address is already registered with another supplier.';
+                } elseif (strpos($error, 'phone number has already been taken') !== false) {
+                    $friendlyErrors[] = 'This phone number is already registered with another supplier.';
+                } elseif (strpos($error, 'whatsapp has already been taken') !== false) {
+                    $friendlyErrors[] = 'This WhatsApp number is already registered with another supplier.';
+                } elseif (strpos($error, 'wechat id has already been taken') !== false) {
+                    $friendlyErrors[] = 'This WeChat ID is already registered with another supplier.';
+                } else {
+                    $friendlyErrors[] = $error;
+                }
+            }
+            
+            return $this->sendError($friendlyErrors[0] ?? "Invalid Values", ['errors' => $validation->errors()]);
         }
         
         $validated = $validation->validated();
@@ -141,20 +160,76 @@ class SupplierController extends BaseController
             $supplier = Supplier::create($validated);
             Log::info('Supplier created successfully:', $supplier->toArray());
     
-            // Handle images - store them directly as paths (frontend should handle uploads)
+            // Handle images - process base64 data and file uploads
             if (!empty($images)) {
-                $payload = collect($images)->filter()->map(function($path) use ($supplier) {
-                    return [
-                        'supplier_id' => $supplier->id,
-                        'image' => $path, // Store the path directly as sent from frontend
-                        'created_at' => now(),
-                        'updated_at' => now(),
-                    ];
-                })->values()->all();
+                $processedImages = [];
                 
-                if (!empty($payload)) {
-                    SupplierImage::insert($payload);
-                    Log::info('Supplier images inserted:', ['count' => count($payload)]);
+                Log::info('Processing supplier images:', [
+                    'supplier_id' => $supplier->id,
+                    'total_images' => count($images),
+                    'image_types' => array_map(function($img) {
+                        if (is_string($img) && strpos($img, 'data:image') === 0) {
+                            return 'base64_camera';
+                        } else {
+                            return 'uploaded_file: ' . $img;
+                        }
+                    }, $images)
+                ]);
+                
+                foreach ($images as $index => $imageData) {
+                    $fileName = null;
+                    
+                    Log::info("Processing image {$index}:", [
+                        'type' => gettype($imageData),
+                        'is_base64' => is_string($imageData) && strpos($imageData, 'data:image') === 0,
+                        'data_preview' => is_string($imageData) ? substr($imageData, 0, 50) : $imageData
+                    ]);
+                    
+                    // Check if it's base64 data (camera capture)
+                    if (is_string($imageData) && strpos($imageData, 'data:image') === 0) {
+                        // Extract base64 data
+                        $base64Data = substr($imageData, strpos($imageData, ',') + 1);
+                        
+                        // Decode and save as file
+                        $decodedImageData = base64_decode($base64Data);
+                        if ($decodedImageData !== false) {
+                            // Use microtime to ensure unique filenames even when processing multiple images quickly
+                            $fileName = 'supplier_image_' . time() . '_' . $index . '_' . rand(1000, 9999) . '.jpg';
+                            $filePath = 'uploads/' . $fileName;
+                            Storage::disk('public')->put($filePath, $decodedImageData);
+                            Log::info("Base64 image saved:", ['fileName' => $fileName, 'size' => strlen($decodedImageData)]);
+                        } else {
+                            Log::error("Failed to decode base64 image at index {$index}");
+                        }
+                    } else {
+                        // It's already a filename from file upload
+                        $fileName = $imageData;
+                        Log::info("Using uploaded filename:", ['fileName' => $fileName]);
+                    }
+                    
+                    if ($fileName) {
+                        $processedImages[] = [
+                            'supplier_id' => $supplier->id,
+                            'image' => $fileName,
+                            'created_at' => now(),
+                            'updated_at' => now(),
+                        ];
+                        Log::info("Added to processed images:", ['fileName' => $fileName]);
+                    } else {
+                        Log::warning("No filename generated for image at index {$index}");
+                    }
+                }
+                
+                Log::info('Final processed images:', [
+                    'count' => count($processedImages),
+                    'filenames' => array_column($processedImages, 'image')
+                ]);
+                
+                if (!empty($processedImages)) {
+                    SupplierImage::insert($processedImages);
+                    Log::info('Supplier images inserted successfully:', ['count' => count($processedImages)]);
+                } else {
+                    Log::warning('No images to insert - processedImages array is empty');
                 }
             }
     
@@ -177,9 +252,6 @@ class SupplierController extends BaseController
     {
         $supplier = Supplier::findOrFail($id);
          $validationRules = [
-          
-
-          
           "supplier"=>"required|string|max:255",
           "name_surname"=>"required|string|max:255",
           "occupation"=>"nullable|string|max:255",
@@ -187,21 +259,38 @@ class SupplierController extends BaseController
           "address"=>"nullable|string|max:255",
           // allow the same email for the record being updated
           "email"=>"required|email|unique:suppliers,email,{$supplier->id}",
-          "phone_number"=>"nullable|string|max:20",
-          "whatsapp"=>"nullable|string|max:20",
-          "wechat_id"=>"nullable|string|max:255",
+          "phone_number"=>"nullable|string|max:20|unique:suppliers,phone_number,{$supplier->id}",
+          "whatsapp"=>"nullable|string|max:20|unique:suppliers,whatsapp,{$supplier->id}",
+          "wechat_id"=>"nullable|string|max:255|unique:suppliers,wechat_id,{$supplier->id}",
           "images"=>"nullable|array",
           "images.*"=>"nullable|string",
           "number_of_products"=>"nullable|numeric",
           "category_of_products"=>"nullable|string|max:255",
           "name_of_products"=>"nullable|string|max:255",
           "additional_note"=>"nullable|string",
-          
         ];
 
         $validation = Validator::make($request->all() , $validationRules);
         if($validation->fails()){
-            return $this->sendError("Invalid Values", ['errors' => $validation->errors()]);
+            // Enhanced error handling with descriptive messages for update
+            $errors = $validation->errors();
+            $friendlyErrors = [];
+            
+            foreach ($errors->all() as $error) {
+                if (strpos($error, 'email has already been taken') !== false) {
+                    $friendlyErrors[] = 'This email address is already registered with another supplier.';
+                } elseif (strpos($error, 'phone number has already been taken') !== false) {
+                    $friendlyErrors[] = 'This phone number is already registered with another supplier.';
+                } elseif (strpos($error, 'whatsapp has already been taken') !== false) {
+                    $friendlyErrors[] = 'This WhatsApp number is already registered with another supplier.';
+                } elseif (strpos($error, 'wechat id has already been taken') !== false) {
+                    $friendlyErrors[] = 'This WeChat ID is already registered with another supplier.';
+                } else {
+                    $friendlyErrors[] = $error;
+                }
+            }
+            
+            return $this->sendError($friendlyErrors[0] ?? "Invalid Values", ['errors' => $validation->errors()]);
         }
         $validated=$validation->validated();
 
@@ -214,16 +303,41 @@ class SupplierController extends BaseController
         if (is_array($images)) {
             // replace strategy: delete existing image rows then insert provided
             SupplierImage::where('supplier_id', $supplier->id)->delete();
-            $payload = collect($images)->filter()->map(function($path) use ($supplier) {
-                return [
-                    'supplier_id' => $supplier->id,
-                    'image' => $path,
-                    'created_at' => now(),
-                    'updated_at' => now(),
-                ];
-            })->values()->all();
-            if (!empty($payload)) {
-                SupplierImage::insert($payload);
+            
+            $processedImages = [];
+            
+            foreach ($images as $imageData) {
+                $fileName = null;
+                
+                // Check if it's base64 data (camera capture)
+                if (is_string($imageData) && strpos($imageData, 'data:image') === 0) {
+                    // Extract base64 data
+                    $base64Data = substr($imageData, strpos($imageData, ',') + 1);
+                    
+                    // Decode and save as file
+                    $decodedImageData = base64_decode($base64Data);
+                    if ($decodedImageData !== false) {
+                        $fileName = 'supplier_image_' . time() . '_' . rand(1000, 9999) . '.jpg';
+                        $filePath = 'uploads/' . $fileName;
+                        Storage::disk('public')->put($filePath, $decodedImageData);
+                    }
+                } else {
+                    // It's already a filename from file upload
+                    $fileName = $imageData;
+                }
+                
+                if ($fileName) {
+                    $processedImages[] = [
+                        'supplier_id' => $supplier->id,
+                        'image' => $fileName,
+                        'created_at' => now(),
+                        'updated_at' => now(),
+                    ];
+                }
+            }
+            
+            if (!empty($processedImages)) {
+                SupplierImage::insert($processedImages);
             }
         }
         return $this->sendResponse($supplier, "supplier updated successfully");
