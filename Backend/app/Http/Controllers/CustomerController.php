@@ -128,9 +128,9 @@ class CustomerController extends BaseController
             $decodedImageData = base64_decode($base64Data);
             if ($decodedImageData !== false) {
                 $fileName = 'customer_image_' . time() . '.jpg';
-                $filePath = 'uploads/data/' . $fileName;
+                $filePath = 'uploads/' . $fileName;
                 Storage::disk('public')->put($filePath, $decodedImageData);
-                $validated['image'] = $filePath;
+                $validated['image'] = $fileName; // Store only filename, not full path
             } else {
                 // If base64 decode fails, treat as regular file path
                 // This handles cases where image is already a file path from FileUpload component
@@ -233,9 +233,9 @@ class CustomerController extends BaseController
             $decodedImageData = base64_decode($base64Data);
             if ($decodedImageData !== false) {
                 $fileName = 'customer_image_' . time() . '.jpg';
-                $filePath = 'uploads/data/' . $fileName;
+                $filePath = 'uploads/' . $fileName;
                 Storage::disk('public')->put($filePath, $decodedImageData);
-                $validated['image'] = $filePath;
+                $validated['image'] = $fileName; // Store only filename, not full path
             } else {
                 // If base64 decode fails, treat as regular file path
                 // This handles cases where image is already a file path from FileUpload component

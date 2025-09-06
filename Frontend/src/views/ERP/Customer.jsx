@@ -335,14 +335,17 @@ additional_note : yup.string().nullable(),
               const base64String = blob.data || blob;
               setValue('image', base64String);
               trigger('image'); // Trigger validation for image field
+              
+              // Set captured image with the actual blob data for preview
               setCapturedImage({
-                blob: imageUrl,
+                blob: base64String, // Use the base64 string for preview
                 url: imageUrl
               });
               setImageSource('camera');
               // Clear uploaded image when capturing
               setUploadedImage(null);
               console.log('🟡 Image captured and set in form as string:', typeof base64String);
+              console.log('🟡 CapturedImage preview data:', base64String.substring(0, 50) + '...');
             } else {
               console.error('🔴 Invalid capture data:', { blob, imageUrl });
             }
@@ -409,19 +412,104 @@ additional_note : yup.string().nullable(),
         basicStickyNotification.current?.showToast();
       } else {
         console.error('🔴 API returned error:', response);
-        const errorMessage = response?.data?.message || response?.message || 'Unknown error';
+        let errorMessage = t("Error creating Customer");
         
-        if (response?.data?.errors) {
-          const validationErrors = Object.values(response.data.errors).flat();
-          setToastMessage(validationErrors.join(', '));
-        } else {
-          setToastMessage(errorMessage);
+        // Check multiple possible error structures
+        const errorSources = [
+          response?.error?.data?.data?.errors,  // RTK Query error structure
+          response?.data?.data?.errors,         // Direct API response
+          response?.error?.data?.errors,        // Alternative error structure
+          response?.data?.errors                // Simple error structure
+        ];
+        
+        let validationErrors = null;
+        for (const errorSource of errorSources) {
+          if (errorSource && typeof errorSource === 'object') {
+            validationErrors = errorSource;
+            break;
+          }
         }
+        
+        if (validationErrors) {
+          const errorFields = Object.keys(validationErrors);
+          if (errorFields.length > 0) {
+            // Get the first validation error message
+            const firstFieldErrors = validationErrors[errorFields[0]];
+            if (Array.isArray(firstFieldErrors) && firstFieldErrors.length > 0) {
+              errorMessage = firstFieldErrors[0];
+            } else if (typeof firstFieldErrors === 'string') {
+              errorMessage = firstFieldErrors;
+            }
+          }
+        } else {
+          // Fallback to general error messages
+          const generalErrorSources = [
+            response?.error?.data?.message,
+            response?.data?.message,
+            response?.message,
+            response?.error
+          ];
+          
+          for (const errorSource of generalErrorSources) {
+            if (errorSource && typeof errorSource === 'string') {
+              errorMessage = errorSource;
+              break;
+            }
+          }
+        }
+        
+        setToastMessage(errorMessage);
         basicStickyNotification.current?.showToast();
       }
     } catch (error) {
       console.error('🔴 Exception in onCreate:', error);
-      const errorMessage = error?.response?.data?.message || error?.message || 'Network error occurred';
+      let errorMessage = t("Error creating Customer");
+      
+      // Check multiple possible error structures in catch block
+      const errorSources = [
+        error?.error?.data?.data?.errors,
+        error?.error?.data?.errors,
+        error?.response?.data?.data?.errors,
+        error?.response?.data?.errors,
+        error?.data?.data?.errors,
+        error?.data?.errors
+      ];
+      
+      let validationErrors = null;
+      for (const errorSource of errorSources) {
+        if (errorSource && typeof errorSource === 'object') {
+          validationErrors = errorSource;
+          break;
+        }
+      }
+      
+      if (validationErrors) {
+        const errorFields = Object.keys(validationErrors);
+        if (errorFields.length > 0) {
+          const firstFieldErrors = validationErrors[errorFields[0]];
+          if (Array.isArray(firstFieldErrors) && firstFieldErrors.length > 0) {
+            errorMessage = firstFieldErrors[0];
+          } else if (typeof firstFieldErrors === 'string') {
+            errorMessage = firstFieldErrors;
+          }
+        }
+      } else {
+        // Fallback to general error messages
+        const generalErrorSources = [
+          error?.error?.data?.message,
+          error?.response?.data?.message,
+          error?.data?.message,
+          error?.message
+        ];
+        
+        for (const errorSource of generalErrorSources) {
+          if (errorSource && typeof errorSource === 'string') {
+            errorMessage = errorSource;
+            break;
+          }
+        }
+      }
+      
       setToastMessage(errorMessage);
       basicStickyNotification.current?.showToast();
     }
@@ -438,62 +526,106 @@ const onUpdate = async (data) => {
       setRefetch(true);
       setShowUpdateModal(false);
     } else {
-      // Handle validation errors specifically
-      if (response?.error?.data?.data?.errors) {
-        const validationErrors = response.error.data.data.errors;
-        const errorFields = Object.keys(validationErrors);
-        if (errorFields.length > 0) {
-          const firstError = validationErrors[errorFields[0]][0];
-          setToastMessage(firstError);
+      // Handle validation errors with comprehensive error extraction
+      let errorMessage = t("Error updating Customer");
+      
+      // Check multiple possible error structures
+      const errorSources = [
+        response?.error?.data?.data?.errors,  // RTK Query error structure
+        response?.data?.data?.errors,         // Direct API response
+        response?.error?.data?.errors,        // Alternative error structure
+        response?.data?.errors                // Simple error structure
+      ];
+      
+      let validationErrors = null;
+      for (const errorSource of errorSources) {
+        if (errorSource && typeof errorSource === 'object') {
+          validationErrors = errorSource;
+          break;
         }
-      } else if (response?.data?.data?.errors) {
-        const validationErrors = response.data.data.errors;
+      }
+      
+      if (validationErrors) {
         const errorFields = Object.keys(validationErrors);
         if (errorFields.length > 0) {
-          const firstError = validationErrors[errorFields[0]][0];
-          setToastMessage(firstError);
+          // Get the first validation error message
+          const firstFieldErrors = validationErrors[errorFields[0]];
+          if (Array.isArray(firstFieldErrors) && firstFieldErrors.length > 0) {
+            errorMessage = firstFieldErrors[0];
+          } else if (typeof firstFieldErrors === 'string') {
+            errorMessage = firstFieldErrors;
+          }
         }
       } else {
-        const errorMsg = response?.error?.data?.message || response?.message || response?.error || 'Unknown error occurred';
-        setToastMessage(`${t("Error updating Customer")}: ${errorMsg}`);
+        // Fallback to general error messages
+        const generalErrorSources = [
+          response?.error?.data?.message,
+          response?.data?.message,
+          response?.message,
+          response?.error
+        ];
+        
+        for (const errorSource of generalErrorSources) {
+          if (errorSource && typeof errorSource === 'string') {
+            errorMessage = errorSource;
+            break;
+          }
+        }
       }
+      
+      setToastMessage(errorMessage);
       console.error('🔴 Update failed with response:', response);
       setShowUpdateModal(true);
     }
   } catch (error) {
     console.error('🔴 Update customer error:', error);
     let errorMessage = t("Error updating Customer");
-      
-    if (error?.error?.data?.data?.errors) {
-      // Handle validation errors from error.error.data.data.errors structure
-      const validationErrors = error.error.data.data.errors;
-      const errorFields = Object.keys(validationErrors);
-      if (errorFields.length > 0) {
-        const firstError = validationErrors[errorFields[0]][0];
-        errorMessage = firstError;
+    
+    // Check multiple possible error structures in catch block
+    const errorSources = [
+      error?.error?.data?.data?.errors,
+      error?.error?.data?.errors,
+      error?.response?.data?.data?.errors,
+      error?.response?.data?.errors,
+      error?.data?.data?.errors,
+      error?.data?.errors
+    ];
+    
+    let validationErrors = null;
+    for (const errorSource of errorSources) {
+      if (errorSource && typeof errorSource === 'object') {
+        validationErrors = errorSource;
+        break;
       }
-    } else if (error?.error?.data?.errors) {
-      // Handle validation errors from error.error.data.errors structure
-      const validationErrors = error.error.data.errors;
-      const errorFields = Object.keys(validationErrors);
-      if (errorFields.length > 0) {
-        const firstError = validationErrors[errorFields[0]][0];
-        errorMessage = firstError;
-      }
-    } else if (error.response?.data?.data?.errors) {
-      // Handle validation errors from error.response.data.data.errors structure
-      const validationErrors = error.response.data.data.errors;
-      const errorFields = Object.keys(validationErrors);
-      if (errorFields.length > 0) {
-        const firstError = validationErrors[errorFields[0]][0];
-        errorMessage = firstError;
-      }
-    } else if (error.response?.data?.message) {
-      errorMessage = error.response.data.message;
-    } else if (error.message) {
-      errorMessage = `${t("Error")}: ${error.message}`;
     }
+    
+    if (validationErrors) {
+      const errorFields = Object.keys(validationErrors);
+      if (errorFields.length > 0) {
+        const firstFieldErrors = validationErrors[errorFields[0]];
+        if (Array.isArray(firstFieldErrors) && firstFieldErrors.length > 0) {
+          errorMessage = firstFieldErrors[0];
+        } else if (typeof firstFieldErrors === 'string') {
+          errorMessage = firstFieldErrors;
+        }
+      }
+    } else {
+      // Fallback to general error messages
+      const generalErrorSources = [
+        error?.error?.data?.message,
+        error?.response?.data?.message,
+        error?.data?.message,
+        error?.message
+      ];
       
+      for (const errorSource of generalErrorSources) {
+        if (errorSource && typeof errorSource === 'string') {
+          errorMessage = errorSource;
+          break;
+        }
+      }
+    }
+    
     setToastMessage(errorMessage);
     setShowUpdateModal(true);
   }
@@ -686,7 +818,7 @@ return (
                         <div className="mt-2 flex items-start gap-3">
                           <div className="flex-shrink-0">
                             <img 
-                              src={uploadedImage || capturedImage?.blob || capturedImage?.url} 
+                              src={uploadedImage || capturedImage?.url || capturedImage?.blob} 
                               alt="Customer Image" 
                               className="w-32 h-32 object-cover rounded border shadow-sm"
                               onError={(e) => {
@@ -697,7 +829,7 @@ return (
                                 e.target.style.display = 'none';
                               }}
                               onLoad={(e) => {
-                                console.log('✅ Image loaded successfully:', e.target.src);
+                                console.log('✅ CREATE Image loaded successfully:', e.target.src);
                                 console.log('✅ uploadedImage state:', uploadedImage);
                                 console.log('✅ capturedImage state:', capturedImage);
                               }}
@@ -1018,7 +1150,7 @@ return (
                         <div className="mt-2 flex items-start gap-3">
                           <div className="flex-shrink-0">
                             <img 
-                              src={uploadedImage || capturedImage?.blob || capturedImage?.url} 
+                              src={uploadedImage || capturedImage?.url || capturedImage?.blob} 
                               alt="Customer Image" 
                               className="w-32 h-32 object-cover rounded border shadow-sm"
                               onError={(e) => {
@@ -1029,7 +1161,7 @@ return (
                                 e.target.style.display = 'none';
                               }}
                               onLoad={(e) => {
-                                console.log('✅ Image loaded successfully:', e.target.src);
+                                console.log('✅ CREATE Image loaded successfully:', e.target.src);
                                 console.log('✅ uploadedImage state:', uploadedImage);
                                 console.log('✅ capturedImage state:', capturedImage);
                               }}
