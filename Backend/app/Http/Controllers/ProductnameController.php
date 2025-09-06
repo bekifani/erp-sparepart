@@ -5,11 +5,14 @@ namespace App\Http\Controllers;
 use App\Http\Controllers\BaseController;
 use App\Models\Productname;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
+
 class ProductnameController extends BaseController
 {
-    protected $searchableColumns = ['product_name', 'hs_code', 'name_az', 'description_en', 'name_ru', 'name_cn', 'category_id', 'product_name_code', 'additional_note', 'product_qty'];
+    protected $searchableColumns = ['hs_code', 'name_az', 'description_en', 'name_ru', 'name_cn', 'category_id', 'product_name_code', 'additional_note', 'product_qty'];
 
     public function index(Request $request)
     {
@@ -55,15 +58,42 @@ class ProductnameController extends BaseController
                 'message' => 'Please enter a search term.'
             ], 400);
         }
-        $results = Productname::where(function ($query) use ($searchTerm) {
-            foreach ($this->searchableColumns as $column) {
+
+        // Debug request context
+        Log::info('ProductnameController@search called', [
+            'search_term' => $searchTerm,
+            'x_tenant' => $request->header('X-Tenant'),
+        ]);
+
+        // Filter columns against actual table schema to avoid querying non-existent columns (per-tenant safety)
+        $table = (new \App\Models\Productname())->getTable();
+        $existingColumns = Schema::hasTable($table) ? Schema::getColumnListing($table) : [];
+        $allowedSearchColumns = array_values(array_intersect($this->searchableColumns, $existingColumns));
+        $selectColumns = array_values(array_intersect([
+            'id', 'hs_code', 'name_az', 'description_en', 'name_ru', 'name_cn', 'category_id', 'product_name_code', 'additional_note', 'product_qty'
+        ], $existingColumns));
+
+        Log::info('ProductnameController@search columns', [
+            'table' => $table,
+            'existingColumns' => $existingColumns,
+            'allowedSearchColumns' => $allowedSearchColumns,
+            'selectColumns' => $selectColumns,
+        ]);
+
+        if (empty($allowedSearchColumns)) {
+            return $this->sendResponse(["data" => [], "message" => "No searchable columns available"], 'search results for productname');
+        }
+
+        $results = Productname::where(function ($query) use ($searchTerm, $allowedSearchColumns) {
+            foreach ($allowedSearchColumns as $column) {
                 $query->orWhere($column, 'like', "%$searchTerm%");
             }
-        })->select('id', 'product_name', 'hs_code', 'name_az', 'description_en', 'name_ru', 'name_cn', 'category_id', 'product_name_code', 'additional_note', 'product_qty')
+        })
+        ->select(!empty($selectColumns) ? $selectColumns : ['id'])
         ->paginate(20);
+
         return $this->sendResponse($results , 'search results for productname');
     }
-
 
     public function store(Request $request)
     {
@@ -73,14 +103,14 @@ class ProductnameController extends BaseController
         ]);
 
         $validationRules = [
-          "product_name"=>"required|string|max:255",
           "hs_code"=>"nullable|string|max:255",
           "name_az"=>"required|string|max:255",
           "description_en"=>"required|string|max:255",
           "name_ru"=>"required|string|max:255",
           "name_cn"=>"required|string|max:255",
           "category_id"=>"required|integer|exists:categors,id",
-          "product_name_code"=>"required|string|unique:productnames,product_name_code|max:255",
+          // product_name_code is now optional; if not provided we will auto-generate
+          "product_name_code"=>"nullable|string|unique:productnames,product_name_code|max:255",
           "additional_note"=>"nullable|string",
           "product_qty"=>"nullable|numeric",
         ];
@@ -97,6 +127,14 @@ class ProductnameController extends BaseController
         \Log::info('Validation passed, creating productname', [
             'validated_data' => $validated
         ]);
+
+        // Auto-generate product_name_code if not provided: MAX(product_name_code as number)+1
+        if (!array_key_exists('product_name_code', $validated) || $validated['product_name_code'] === null || $validated['product_name_code'] === '') {
+            $next = \DB::table('productnames')
+                ->select(\DB::raw('COALESCE(MAX(CAST(product_name_code AS UNSIGNED)),0)+1 AS next'))
+                ->value('next');
+            $validated['product_name_code'] = (string)($next ?? 1);
+        }
 
         try {
             $productname = Productname::create($validated);
@@ -119,19 +157,18 @@ class ProductnameController extends BaseController
         return $this->sendResponse($productname, "");
     }
 
-
     public function update(Request $request, $id)
     {
         $productname = Productname::findOrFail($id);
          $validationRules = [
-          "product_name"=>"required|string|max:255",
           "hs_code"=>"nullable|string|max:255",
           "name_az"=>"required|string|max:255",
           "description_en"=>"required|string|max:255",
           "name_ru"=>"required|string|max:255",
           "name_cn"=>"required|string|max:255",
           "category_id"=>"required|integer|exists:categors,id",
-          "product_name_code"=>"required|string|unique:productnames,product_name_code,".$id."|max:255",
+          // allow nullable on update; keep uniqueness if provided
+          "product_name_code"=>"nullable|string|unique:productnames,product_name_code,".$id."|max:255",
           "additional_note"=>"nullable|string",
           "product_qty"=>"nullable|numeric",
         ];
@@ -142,11 +179,6 @@ class ProductnameController extends BaseController
         }
         $validated=$validation->validated();
 
-
-
-
-        //file uploads update
-
         $productname->update($validated);
         return $this->sendResponse($productname, "productname updated successfully");
     }
@@ -156,11 +188,6 @@ class ProductnameController extends BaseController
         $productname = Productname::findOrFail($id);
         $productname->delete();
 
-
-
-
-
-        //delete files uploaded
         return $this->sendResponse(1, "productname deleted succesfully");
     }
 

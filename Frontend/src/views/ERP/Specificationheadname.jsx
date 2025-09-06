@@ -1,4 +1,3 @@
-
 import "@/assets/css/vendors/tabulator.css";
 import Lucide from "@/components/Base/Lucide";
 import ReactDOMServer from 'react-dom/server';
@@ -230,27 +229,100 @@ translate_ch : yup.string().required(t('The Translate Ch field is required')),
     return ReactDOMServer.renderToString(element); // Convert JSX to HTML string
   };
 
+  // Extract meaningful error message from server/RTK Query responses
+  const getErrorMessage = (err, fallback = t("An error occurred")) => {
+    try {
+      const data = err?.data || err?.error || err;
+      const firstError = data?.errors && typeof data.errors === 'object'
+        ? Object.values(data.errors).flat().find(Boolean)
+        : null;
+      return data?.message || firstError || err?.message || fallback;
+    } catch (_) {
+      return fallback;
+    }
+  };
+
+  // Pre-submit duplicate check for headname (case-insensitive)
+  const headnameExists = async (name, excludeId = null) => {
+    try {
+      const url = new URL(`${app_url}/api/specificationheadname`);
+      // Use Tabulator-like filter expected by index endpoints
+      url.searchParams.set('size', '1');
+      url.searchParams.set('filter[0][field]', 'headname');
+      url.searchParams.set('filter[0][type]', 'like');
+      url.searchParams.set('filter[0][value]', name);
+      const res = await fetch(url.toString(), { credentials: 'include' });
+      const json = await res.json();
+      const rows = json?.data?.data || [];
+      if (rows.length === 0) return false;
+      // Basic case-insensitive comparison and optional id exclusion
+      const match = rows.find(r => (r.headname || '').toLowerCase() === (name || '').toLowerCase());
+      if (!match) return false;
+      if (excludeId && String(match.id) === String(excludeId)) return false;
+      return true;
+    } catch (_) {
+      // On error, do not block; let backend enforce if present
+      return false;
+    }
+  };
+
   const onCreate = async (data) => {
+    const valid = await trigger();
+    if (!valid) {
+      setToastMessage(t("Please fix the validation errors."));
+      basicStickyNotification.current?.showToast();
+      return;
+    }
+    // Duplicate check
+    const exists = await headnameExists(data.headname);
+    if (exists) {
+      setToastMessage(t("Headname already exists."));
+      basicStickyNotification.current?.showToast();
+      return;
+    }
     try {
       const response = await createSpecificationheadname(data);
-      setToastMessage(t("Specificationheadname created successfully."));
+      if (response && response.success !== false && !response.error) {
+        setToastMessage(t("Specificationheadname created successfully."));
+        setRefetch(true);
+        setShowCreateModal(false);
+      } else {
+        const msg = response?.data?.message || response?.error?.data?.message || response?.message || t('Creation failed');
+        throw new Error(msg);
+      }
     } catch (error) {
-      setToastMessage(t("Error creating Specificationheadname."));
+      setToastMessage(getErrorMessage(error, t("Error creating Specificationheadname.")));
     }
     basicStickyNotification.current?.showToast();
-    setRefetch(true);
-    setShowCreateModal(false);
   };
 
   const onUpdate = async (data) => {
+    const valid = await trigger();
+    if (!valid) {
+      setToastMessage(t("Please fix the validation errors."));
+      basicStickyNotification.current?.showToast();
+      return;
+    }
+    // Duplicate check excluding current id
+    const exists = await headnameExists(data.headname, data.id);
+    if (exists) {
+      setToastMessage(t("Headname already exists."));
+      basicStickyNotification.current?.showToast();
+      return;
+    }
     setShowUpdateModal(false)
     try {
       const response = await updateSpecificationheadname(data);
-      setToastMessage(t('Specificationheadname updated successfully'));
-      setRefetch(true)
+      if (response && response.success !== false && !response.error) {
+        setToastMessage(t('Specificationheadname updated successfully'));
+        setRefetch(true)
+      } else {
+        const msg = response?.data?.message || response?.error?.data?.message || response?.message || t('Update failed');
+        throw new Error(msg);
+      }
     } catch (error) {
       setShowUpdateModal(true)
-      setToastMessage(t('Specificationheadname deletion failed'));
+      setToastMessage(getErrorMessage(error, t('Error updating Specificationheadname.')));
     }
     basicStickyNotification.current?.showToast();
   };
@@ -615,6 +687,7 @@ return (
         getRef={(el) => {
           basicStickyNotification.current = el;
         }}
+        options={{ duration: 3000 }}
         className="flex flex-col sm:flex-row"
       >
         <div className="font-medium">{toastMessage}</div>

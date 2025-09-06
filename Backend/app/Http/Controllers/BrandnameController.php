@@ -8,10 +8,12 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\Log; 
+use Illuminate\Support\Facades\DB;
 
 class BrandnameController extends BaseController
 {
-    protected $searchableColumns = ['brand_code', 'brand_name', 'name_az', 'name_ru', 'name_cn', 'number_of_products'];
+    // Search only by brand name; number_of_products is computed aggregate
+    protected $searchableColumns = ['brand_name'];
 
     public function index(Request $request)
     {
@@ -20,15 +22,30 @@ class BrandnameController extends BaseController
             'params' => $request->all()
         ]);
 
-        $sortBy = 'id';
+        $sortBy = 'brandnames.id';
         $sortDir = 'desc';
         if ($request['sort']) {
-            $sortBy = $request['sort'][0]['field'];
+            $sortBy = $request['sort'][0]['field'] === 'number_of_products'
+                ? 'number_of_products' // will sort by alias via orderByRaw below
+                : 'brandnames.' . $request['sort'][0]['field'];
             $sortDir = $request['sort'][0]['dir'];
         }
         $perPage = $request->query('size', 10); 
         $filters = $request['filter'];
-        $query = Brandname::orderBy($sortBy, $sortDir);
+        $query = Brandname::query()
+            ->leftJoin('products', 'products.brand_id', '=', 'brandnames.id')
+            ->select([
+                'brandnames.id',
+                'brandnames.brand_name',
+                DB::raw('COUNT(products.id) as number_of_products'),
+            ])
+            ->groupBy('brandnames.id', 'brandnames.brand_name');
+        // Apply sorting (handle aggregate alias separately)
+        if (isset($request['sort'][0]['field']) && $request['sort'][0]['field'] === 'number_of_products') {
+            $query->orderByRaw('number_of_products ' . $sortDir);
+        } else {
+            $query->orderBy($sortBy, $sortDir);
+        }
         if ($filters) {
             foreach ($filters as $filter) {
                 $field = $filter['field'];
@@ -37,7 +54,12 @@ class BrandnameController extends BaseController
                 if ($operator == 'like') {
                     $searchTerm = '%' . $searchTerm . '%';
                 }
-                $query->where($field, $operator, $searchTerm);
+                if ($field === 'number_of_products') {
+                    // aggregate; use HAVING
+                    $query->having('number_of_products', $operator, $searchTerm);
+                } else {
+                    $query->where('brandnames.' . $field, $operator, $searchTerm);
+                }
             }
         }
         $brandname = $query->paginate($perPage); 
@@ -71,12 +93,18 @@ class BrandnameController extends BaseController
                 'message' => 'Please enter a search term.'
             ], 400);
         }
-        $results = Brandname::where(function ($query) use ($searchTerm) {
-            foreach ($this->searchableColumns as $column) {
-                $query->orWhere($column, 'like', "%$searchTerm%");
-            }
-        })->select('id', 'brand_code', 'brand_name', 'name_az', 'name_ru', 'name_cn', 'number_of_products')
-        ->paginate(20);
+        $results = Brandname::query()
+            ->leftJoin('products', 'products.brand_id', '=', 'brandnames.id')
+            ->select([
+                'brandnames.id',
+                'brandnames.brand_name',
+                DB::raw('COUNT(products.id) as number_of_products'),
+            ])
+            ->groupBy('brandnames.id', 'brandnames.brand_name')
+            ->where(function ($query) use ($searchTerm) {
+                $query->orWhere('brandnames.brand_name', 'like', "%$searchTerm%");
+            })
+            ->paginate(20);
         return $this->sendResponse($results, 'search results for brandname');
     }
 
@@ -88,11 +116,7 @@ class BrandnameController extends BaseController
         ]);
 
         $validationRules = [
-            "brand_code" => "required|string|unique:brandnames,brand_code|max:255",
             "brand_name" => "required|string|max:255",
-            "name_az" => "nullable|string|max:255",
-            "name_ru" => "nullable|string|max:255",
-            "name_cn" => "nullable|string|max:255", 
             "number_of_products" => "nullable|numeric",
         ];
 
@@ -126,11 +150,7 @@ class BrandnameController extends BaseController
 
         $brandname = Brandname::findOrFail($id);
         $validationRules = [
-            "brand_code" => "required|string|unique:brandnames,brand_code," . $id . "|max:255",
             "brand_name" => "required|string|max:255",
-            "name_az" => "nullable|string|max:255",
-            "name_ru" => "nullable|string|max:255",
-            "name_cn" => "nullable|string|max:255",
             "number_of_products" => "nullable|numeric",
         ];
 

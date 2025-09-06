@@ -54,17 +54,27 @@ const nestedMenu = (menu: Array<Menu | string>, location: Location, permissions:
           (menuItem.subMenu && findActiveMenu(menuItem.subMenu, location))) &&
         !menuItem.ignore;
 
+      let childSubMenu: Array<FormattedMenu> | undefined = undefined;
       if (menuItem.subMenu) {
         menuItem.activeDropdown = findActiveMenu(menuItem.subMenu, location);
 
-        // Nested menu
-        const subMenu: Array<FormattedMenu> = [];
+        // Build nested submenu first based on permissions
+        childSubMenu = [];
         nestedMenu(menuItem.subMenu, location, permissions).map(
-          (menu) => typeof menu !== "string" && subMenu.push(menu)
+          (menu) => typeof menu !== "string" && childSubMenu!.push(menu)
         );
-        menuItem.subMenu = subMenu;
       }
-      if(permissions.includes(menuItem.permission)){
+
+      // Parent visibility rule:
+      // show if user has parent permission OR at least one child is permitted
+      const parentPermitted = permissions.includes(menuItem.permission);
+      const hasVisibleChildren = (childSubMenu && childSubMenu.length > 0) || false;
+
+      if (childSubMenu) {
+        menuItem.subMenu = childSubMenu;
+      }
+
+      if (parentPermitted || hasVisibleChildren) {
         formattedMenu.push(menuItem);
       }
     } else {

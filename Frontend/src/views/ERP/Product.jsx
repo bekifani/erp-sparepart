@@ -72,19 +72,6 @@ function index_main() {
     },
    
     {
-      title: t("Product Code"),
-      minWidth: 200,
-      field: "product_code",
-      hozAlign: "center",
-      headerHozAlign: "center",
-      vertAlign: "middle",
-      print: true,
-      download: true,
-      
-    },
-    
-
-    {
       title: t("Supplier"),
       minWidth: 200,
       field: "supplier",
@@ -97,6 +84,38 @@ function index_main() {
     },
     
 
+    {
+      title: t("Supplier Code"),
+      minWidth: 160,
+      field: "supplier_code",
+      hozAlign: "center",
+      headerHozAlign: "center",
+      vertAlign: "middle",
+      print: true,
+      download: true,
+      
+    },
+    // Moved up: Brand and Brand Code directly after Supplier Code
+    {
+      title: t("Brand"),
+      minWidth: 200,
+      field: "brand_name",
+      hozAlign: "center",
+      headerHozAlign: "center",
+      vertAlign: "middle",
+      print: true,
+      download: true,
+    },
+    {
+      title: t("Brand Code"),
+      minWidth: 160,
+      field: "brand_code_name",
+      hozAlign: "center",
+      headerHozAlign: "center",
+      vertAlign: "middle",
+      print: true,
+      download: true,
+    },
     {
       title: t("Qty"),
       minWidth: 200,
@@ -199,6 +218,29 @@ function index_main() {
       download: true,
       
     },
+    // Hidden duplicates at original positions to preserve layout compatibility
+    { title: t("Brand"), minWidth: 200, field: "brand_name", visible: false },
+    { title: t("Brand Code"), minWidth: 160, field: "brand_code_name", visible: false },
+    {
+      title: t("OE Code"),
+      minWidth: 160,
+      field: "oe_code",
+      hozAlign: "center",
+      headerHozAlign: "center",
+      vertAlign: "middle",
+      print: true,
+      download: true,
+    },
+    {
+      title: t("Description"),
+      minWidth: 200,
+      field: "description",
+      hozAlign: "center",
+      headerHozAlign: "center",
+      vertAlign: "middle",
+      print: true,
+      download: true,
+    },
     
 
     {
@@ -263,9 +305,8 @@ function index_main() {
     'additional_note',
     'status',
     // product_information joined fields (aliases from backend select)
-    'product_code',
-    'oe_code',
-    'description',
+    'oe_code', // now on products
+    'description', // now on products
     'product_name',
     'product_name_code',
     'brand_name',
@@ -274,16 +315,20 @@ function index_main() {
     'label_name',
     'unit_name',
     'supplier',
+    'supplier_code',
   ]);
 
   // schema
   const schema = yup
     .object({
-     product_information_id : yup.string().required(t('The Product Information Id field is required')), 
-supplier_id : yup.string().required(t('The Supplier Id field is required')), 
-additional_note : yup.string().required(t('The Additional Note field is required')), 
-status : yup.string().required(t('The Status field is required')), 
-
+     supplier_id : yup.string().required(t('The Supplier Id field is required')), 
+     additional_note : yup.string().required(t('The Additional Note field is required')), 
+     status : yup.string().required(t('The Status field is required')), 
+     brand_id: yup.string().nullable(),
+     brand_code: yup.string().nullable(),
+     oe_code: yup.string().nullable(),
+     description: yup.string().nullable(),
+     supplier_code: yup.string().nullable(),
     })
     .required();
 
@@ -331,26 +376,51 @@ status : yup.string().required(t('The Status field is required')),
   };
 
   const onCreate = async (data) => {
+    // Validate client-side first
+    const valid = await trigger();
+    if (!valid) {
+      setToastMessage(t("Please fix the validation errors."));
+      basicStickyNotification.current?.showToast();
+      return;
+    }
     try {
       const response = await createProduct(data);
-      setToastMessage(t("Product created successfully."));
+      if (response && response.success !== false && !response.error) {
+        setToastMessage(t("Product created successfully."));
+        setRefetch(true);
+        setShowCreateModal(false);
+      } else {
+        const msg = response?.data?.message || response?.error?.data?.message || response?.message || t('Creation failed');
+        throw new Error(msg);
+      }
     } catch (error) {
-      setToastMessage(t("Error creating Product."));
+      const msg = getErrorMessage(error, t("Error creating Product."));
+      setToastMessage(msg);
     }
     basicStickyNotification.current?.showToast();
-    setRefetch(true);
-    setShowCreateModal(false);
   };
 
   const onUpdate = async (data) => {
+    const valid = await trigger();
+    if (!valid) {
+      setToastMessage(t("Please fix the validation errors."));
+      basicStickyNotification.current?.showToast();
+      return;
+    }
     setShowUpdateModal(false)
     try {
       const response = await updateProduct(data);
-      setToastMessage(t('Product updated successfully'));
-      setRefetch(true)
+      if (response && response.success !== false && !response.error) {
+        setToastMessage(t('Product updated successfully'));
+        setRefetch(true)
+      } else {
+        const msg = response?.data?.message || response?.error?.data?.message || response?.message || t('Update failed');
+        throw new Error(msg);
+      }
     } catch (error) {
       setShowUpdateModal(true)
-      setToastMessage(t('Product deletion failed'));
+      const msg = getErrorMessage(error, t('Error updating Product.'))
+      setToastMessage(msg);
     }
     basicStickyNotification.current?.showToast();
   };
@@ -359,15 +429,34 @@ status : yup.string().required(t('The Status field is required')),
     let id = getValues("id");
     setShowDeleteModal(false)
     try {
-        const response = deleteProduct(id);
-        setToastMessage(t("Product deleted successfully."));
-        setRefetch(true);
+        const response = await deleteProduct(id);
+        if (response && response.success !== false && !response.error) {
+          setToastMessage(t("Product deleted successfully."));
+          setRefetch(true);
+        } else {
+          const msg = response?.data?.message || response?.error?.data?.message || response?.message || t('Deletion failed');
+          throw new Error(msg);
+        }
       }
     catch (error) {
-      setToastMessage(t("Error deleting Product."));
+      const msg = getErrorMessage(error, t("Error deleting Product."));
+      setToastMessage(msg);
     }
     basicStickyNotification.current?.showToast();
   };    
+
+  // Extract meaningful error message from server/RTK Query responses
+  const getErrorMessage = (err, fallback = t("An error occurred")) => {
+    try {
+      const data = err?.data || err?.error || err;
+      const firstError = data?.errors && typeof data.errors === 'object'
+        ? Object.values(data.errors).flat().find(Boolean)
+        : null;
+      return data?.message || firstError || err?.message || fallback;
+    } catch (_) {
+      return fallback;
+    }
+  };
 
 return (
     <div>
@@ -433,32 +522,8 @@ return (
                     </div>
                   </div>
                 ) : (
-                  <div className=" w-full grid grid-cols-1 gap-4 gap-y-3">
+                  <div className=" w-full grid grid-cols-1 md:grid-cols-2 gap-4 gap-y-3">
                     
-   <div className="mt-3 input-form">
-      <FormLabel
-        htmlFor="validation-form-1"
-        className="flex flex-col w-full sm:flex-row"
-      >
-        {t("Product Information Id")}
-      </FormLabel>
-      <TomSelectSearch
-        apiUrl={`${app_url}/api/search_ProductInformation`}
-        setValue={setValue}
-        variable="product_information_id"
-        customDataMapping={(item) => ({
-          value: item.id,
-          text: `${item.product_name ?? ''} (${item.product_name_code ?? ''}) - ${item.product_code ?? ''}`.trim(),
-        })}
-      />
-      {errors.product_information_id && (
-        <div className="mt-2 text-danger">
-          {typeof errors.product_information_id.message === "string" &&
-            errors.product_information_id.message}
-        </div>
-      )}
-    </div>
-
    <div className="mt-3 input-form">
       <FormLabel
         htmlFor="validation-form-1"
@@ -470,13 +535,101 @@ return (
         apiUrl={`${app_url}/api/search_supplier`}
         setValue={setValue}
         variable="supplier_id"
-        customDataMapping={(item) => ({ value: item.id, text: item.supplier })}
+        customDataMapping={(item) => ({ value: item.id, text: item.supplier, code: item.code })}
+        onSelectionChange={(item) => {
+          if (item && item.code) setValue('supplier_code', item.code);
+        }}
       />
       {errors.supplier_id && (
         <div className="mt-2 text-danger">
           {typeof errors.supplier_id.message === "string" &&
             errors.supplier_id.message}
         </div>
+      )}
+    </div>
+
+    <div className="mt-3 input-form">
+      <FormLabel htmlFor="supplier_code" className="flex justify-start items-start flex-col w-full sm:flex-row">
+        {t("Supplier Code")}
+      </FormLabel>
+      <FormInput
+        {...register("supplier_code")}
+        id="supplier_code"
+        type="text"
+        name="supplier_code"
+        className={clsx({ "border-danger": errors.supplier_code })}
+        placeholder={t("Auto-filled from supplier selection")}
+      />
+      {errors.supplier_code && (
+        <div className="mt-2 text-danger">{typeof errors.supplier_code.message === "string" && errors.supplier_code.message}</div>
+      )}
+    </div>
+
+<div className="mt-3 input-form">
+      <FormLabel htmlFor="brand_id" className="flex flex-col w-full sm:flex-row">
+        {t("Brand")}
+      </FormLabel>
+      <TomSelectSearch
+        apiUrl={`${app_url}/api/search_brandname`}
+        setValue={setValue}
+        variable="brand_id"
+        customDataMapping={(item) => ({ value: item.id, text: `${item.brand_name}` })}
+      />
+      {errors.brand_id && (
+        <div className="mt-2 text-danger">
+          {typeof errors.brand_id.message === "string" && errors.brand_id.message}
+        </div>
+      )}
+    </div>
+
+<div className="mt-3 input-form">
+      <FormLabel htmlFor="brand_code" className="flex justify-start items-start flex-col w-full sm:flex-row">
+        {t("Brand Code")}
+      </FormLabel>
+      <FormInput
+        {...register("brand_code")}
+        id="brand_code"
+        type="text"
+        name="brand_code"
+        className={clsx({ "border-danger": errors.brand_code })}
+        placeholder={t("Enter brand code")}
+      />
+      {errors.brand_code && (
+        <div className="mt-2 text-danger">{typeof errors.brand_code.message === "string" && errors.brand_code.message}</div>
+      )}
+    </div>
+
+<div className="mt-3 input-form">
+      <FormLabel htmlFor="oe_code" className="flex justify-start items-start flex-col w-full sm:flex-row">
+        {t("OE Code")}
+      </FormLabel>
+      <FormInput
+        {...register("oe_code")}
+        id="oe_code"
+        type="text"
+        name="oe_code"
+        className={clsx({ "border-danger": errors.oe_code })}
+        placeholder={t("Enter OE code")}
+      />
+      {errors.oe_code && (
+        <div className="mt-2 text-danger">{typeof errors.oe_code.message === "string" && errors.oe_code.message}</div>
+      )}
+    </div>
+
+<div className="mt-3 input-form">
+      <FormLabel htmlFor="description" className="flex justify-start items-start flex-col w-full sm:flex-row">
+        {t("Description")}
+      </FormLabel>
+      <FormInput
+        {...register("description")}
+        id="description"
+        type="text"
+        name="description"
+        className={clsx({ "border-danger": errors.description })}
+        placeholder={t("Enter description")}
+      />
+      {errors.description && (
+        <div className="mt-2 text-danger">{typeof errors.description.message === "string" && errors.description.message}</div>
       )}
     </div>
 
@@ -505,7 +658,6 @@ return (
                       )}
                     </div>
 
-
 <div className="mt-3 input-form">
                       <FormLabel
                         htmlFor="validation-form-1"
@@ -530,7 +682,6 @@ return (
                         </div>
                       )}
                     </div>
-
 
 <div className="mt-3 input-form">
                       <FormLabel
@@ -557,7 +708,6 @@ return (
                       )}
                     </div>
 
-
 <div className="mt-3 input-form">
                       <FormLabel
                         htmlFor="validation-form-1"
@@ -582,7 +732,6 @@ return (
                         </div>
                       )}
                     </div>
-
 
 <div className="mt-3 input-form">
                       <FormLabel
@@ -609,7 +758,6 @@ return (
                       )}
                     </div>
 
-
 <div className="mt-3 input-form">
                       <FormLabel
                         htmlFor="validation-form-1"
@@ -634,7 +782,6 @@ return (
                         </div>
                       )}
                     </div>
-
 
 <div className="mt-3 input-form">
                       <FormLabel
@@ -661,7 +808,6 @@ return (
                       )}
                     </div>
 
-
 <div className="mt-3 input-form">
                       <FormLabel
                         htmlFor="validation-form-1"
@@ -687,9 +833,8 @@ return (
                       )}
                     </div>
 
-
                   </div>
-                      )}
+                )}
               </div>
             </Slideover.Description>
             <Slideover.Footer>
@@ -732,32 +877,8 @@ return (
                     </div>
                   </div>
                 ) : (
-                  <div className=" w-full grid grid-cols-1  gap-4 gap-y-3">
+                  <div className=" w-full grid grid-cols-1 md:grid-cols-2 gap-4 gap-y-3">
                     
-   <div className="mt-3 input-form">
-      <FormLabel
-        htmlFor="validation-form-1"
-        className="flex flex-col w-full sm:flex-row"
-      >
-        {t("Product Information Id")}
-      </FormLabel>
-      <TomSelectSearch
-        apiUrl={`${app_url}/api/search_ProductInformation`}
-        setValue={setValue}
-        variable="product_information_id"
-        customDataMapping={(item) => ({
-          value: item.id,
-          text: `${item.product_name ?? ''} (${item.product_name_code ?? ''}) - ${item.product_code ?? ''}`.trim(),
-        })}
-      />
-      {errors.product_information_id && (
-        <div className="mt-2 text-danger">
-          {typeof errors.product_information_id.message === "string" &&
-            errors.product_information_id.message}
-        </div>
-      )}
-    </div>
-
    <div className="mt-3 input-form">
       <FormLabel
         htmlFor="validation-form-1"
@@ -769,13 +890,101 @@ return (
         apiUrl={`${app_url}/api/search_supplier`}
         setValue={setValue}
         variable="supplier_id"
-        customDataMapping={(item) => ({ value: item.id, text: item.supplier })}
+        customDataMapping={(item) => ({ value: item.id, text: item.supplier, code: item.code })}
+        onSelectionChange={(item) => {
+          if (item && item.code) setValue('supplier_code', item.code);
+        }}
       />
       {errors.supplier_id && (
         <div className="mt-2 text-danger">
           {typeof errors.supplier_id.message === "string" &&
             errors.supplier_id.message}
         </div>
+      )}
+    </div>
+
+    <div className="mt-3 input-form">
+      <FormLabel htmlFor="supplier_code" className="flex justify-start items-start flex-col w-full sm:flex-row">
+        {t("Supplier Code")}
+      </FormLabel>
+      <FormInput
+        {...register("supplier_code")}
+        id="supplier_code"
+        type="text"
+        name="supplier_code"
+        className={clsx({ "border-danger": errors.supplier_code })}
+        placeholder={t("Auto-filled from supplier selection")}
+      />
+      {errors.supplier_code && (
+        <div className="mt-2 text-danger">{typeof errors.supplier_code.message === "string" && errors.supplier_code.message}</div>
+      )}
+    </div>
+
+<div className="mt-3 input-form">
+      <FormLabel htmlFor="brand_id" className="flex flex-col w-full sm:flex-row">
+        {t("Brand")}
+      </FormLabel>
+      <TomSelectSearch
+        apiUrl={`${app_url}/api/search_brandname`}
+        setValue={setValue}
+        variable="brand_id"
+        customDataMapping={(item) => ({ value: item.id, text: `${item.brand_name}` })}
+      />
+      {errors.brand_id && (
+        <div className="mt-2 text-danger">
+          {typeof errors.brand_id.message === "string" && errors.brand_id.message}
+        </div>
+      )}
+    </div>
+
+<div className="mt-3 input-form">
+      <FormLabel htmlFor="brand_code" className="flex justify-start items-start flex-col w-full sm:flex-row">
+        {t("Brand Code")}
+      </FormLabel>
+      <FormInput
+        {...register("brand_code")}
+        id="brand_code"
+        type="text"
+        name="brand_code"
+        className={clsx({ "border-danger": errors.brand_code })}
+        placeholder={t("Enter brand code")}
+      />
+      {errors.brand_code && (
+        <div className="mt-2 text-danger">{typeof errors.brand_code.message === "string" && errors.brand_code.message}</div>
+      )}
+    </div>
+
+<div className="mt-3 input-form">
+      <FormLabel htmlFor="oe_code" className="flex justify-start items-start flex-col w-full sm:flex-row">
+        {t("OE Code")}
+      </FormLabel>
+      <FormInput
+        {...register("oe_code")}
+        id="oe_code"
+        type="text"
+        name="oe_code"
+        className={clsx({ "border-danger": errors.oe_code })}
+        placeholder={t("Enter OE code")}
+      />
+      {errors.oe_code && (
+        <div className="mt-2 text-danger">{typeof errors.oe_code.message === "string" && errors.oe_code.message}</div>
+      )}
+    </div>
+
+<div className="mt-3 input-form">
+      <FormLabel htmlFor="description" className="flex justify-start items-start flex-col w-full sm:flex-row">
+        {t("Description")}
+      </FormLabel>
+      <FormInput
+        {...register("description")}
+        id="description"
+        type="text"
+        name="description"
+        className={clsx({ "border-danger": errors.description })}
+        placeholder={t("Enter description")}
+      />
+      {errors.description && (
+        <div className="mt-2 text-danger">{typeof errors.description.message === "string" && errors.description.message}</div>
       )}
     </div>
 
@@ -804,7 +1013,6 @@ return (
                       )}
                     </div>
 
-
 <div className="mt-3 input-form">
                       <FormLabel
                         htmlFor="validation-form-1"
@@ -829,7 +1037,6 @@ return (
                         </div>
                       )}
                     </div>
-
 
 <div className="mt-3 input-form">
                       <FormLabel
@@ -856,7 +1063,6 @@ return (
                       )}
                     </div>
 
-
 <div className="mt-3 input-form">
                       <FormLabel
                         htmlFor="validation-form-1"
@@ -881,7 +1087,6 @@ return (
                         </div>
                       )}
                     </div>
-
 
 <div className="mt-3 input-form">
                       <FormLabel
@@ -908,7 +1113,6 @@ return (
                       )}
                     </div>
 
-
 <div className="mt-3 input-form">
                       <FormLabel
                         htmlFor="validation-form-1"
@@ -933,7 +1137,6 @@ return (
                         </div>
                       )}
                     </div>
-
 
 <div className="mt-3 input-form">
                       <FormLabel
@@ -960,7 +1163,6 @@ return (
                       )}
                     </div>
 
-
 <div className="mt-3 input-form">
                       <FormLabel
                         htmlFor="validation-form-1"
@@ -985,7 +1187,6 @@ return (
                         </div>
                       )}
                     </div>
-
 
                   </div>
                 )}
@@ -1013,6 +1214,7 @@ return (
         getRef={(el) => {
           basicStickyNotification.current = el;
         }}
+        options={{ duration: 3000 }}
         className="flex flex-col sm:flex-row"
       >
         <div className="font-medium">{toastMessage}</div>

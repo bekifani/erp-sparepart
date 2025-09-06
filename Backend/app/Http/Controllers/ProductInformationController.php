@@ -7,57 +7,66 @@ use App\Models\ProductInformation;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Facades\DB;
+
 class ProductInformationController extends BaseController
 {
     protected $searchableColumns = [
-        'product_information.product_code', 
-        'product_information.oe_code', 
-        'product_information.description',
-        'productnames.name_az',
-        'productnames.product_name_code',
+        'products.description',
         'brandnames.brand_name',
-        'brandnames.brand_code',
+        'products.brand_code',
         'boxes.box_name',
         'labels.label_name'
     ];
+
+    // Map frontend alias fields to actual DB columns for filtering/sorting
+    private function mapField(string $field): string
+    {
+        $map = [
+            'brand_name' => 'brandnames.brand_name',
+            'brand_code_name' => 'products.brand_code',
+            'box_name' => 'boxes.box_name',
+            'label_name' => 'labels.label_name',
+            'unit_name' => 'units.name',
+            'description' => 'products.description',
+        ];
+        return $map[$field] ?? $field;
+    }
 
     public function index(Request $request)
     {
         $sortBy = 'product_information.id';
         $sortDir = 'desc';
-        if($request['sort']){
-            $sortBy = $request['sort'][0]['field'];
+        if(!empty($request['sort'])){
+            $candidate = $request['sort'][0]['field'];
+            $sortBy = $this->mapField($candidate);
             $sortDir = $request['sort'][0]['dir'];
         }
         $perPage = $request->query('size', 10); 
         $filters = $request['filter'];
         
-        $query = ProductInformation::with(['productname', 'brandname', 'box', 'label', 'unit'])
-            ->leftJoin('productnames', 'product_information.product_name_id', '=', 'productnames.id')
-            ->leftJoin('brandnames', 'product_information.brand_code', '=', 'brandnames.id')
+        $query = ProductInformation::with(['brandname', 'box', 'label', 'unit'])
+            // switch to products and brandnames via products
+            ->leftJoin('products', 'product_information.product_id', '=', 'products.id')
+            ->leftJoin('brandnames', 'products.brand_id', '=', 'brandnames.id')
             ->leftJoin('boxes', 'product_information.box_id', '=', 'boxes.id')
             ->leftJoin('labels', 'product_information.label_id', '=', 'labels.id')
             ->leftJoin('units', 'product_information.unit_id', '=', 'units.id')
-            ->select(
+            ->select([
                 'product_information.*',
-                'productnames.name_az as product_name',
-                'productnames.product_name_code',
                 'brandnames.brand_name',
-                'brandnames.brand_code as brand_code_name',
+                DB::raw('products.brand_code as brand_code_name'),
                 'boxes.box_name',
                 'labels.label_name',
-                'units.name as unit_name'
-            )
+                DB::raw('units.name as unit_name'),
+                DB::raw('products.description as description'),
+                DB::raw('products.oe_code as oe_code'),
+            ])
             ->orderBy($sortBy, $sortDir);
-            
-        // Debug logging for product_name_id field (commented out to prevent 500 error)
-        // \Log::info('ProductInformation Index Debug - Raw product_name_id from database:', [
-        //     'sample_data' => ProductInformation::select('product_name_id')->take(3)->get()->toArray()
-        // ]);
             
         if($filters){
             foreach ($filters as $filter) {
-                $field = $filter['field'];
+                $field = $this->mapField($filter['field']);
                 $operator = $filter['type'];
                 $searchTerm = $filter['value'];
                 if ($operator == 'like') {
@@ -67,11 +76,6 @@ class ProductInformationController extends BaseController
             }
         }
         $productInformation = $query->paginate($perPage); 
-        
-        // Debug logging for final result (commented out to prevent 500 error)
-        // \Log::info('ProductInformation Index Debug - Final result sample:', [
-        //     'first_item' => $productInformation->items() ? $productInformation->items()[0] : null
-        // ]);
         
         $data = [
             "data" => $productInformation->toArray(), 
@@ -83,22 +87,22 @@ class ProductInformationController extends BaseController
     }
 
     public function all_productInformations(){
-        $data = ProductInformation::with(['productname', 'brandname', 'box', 'label', 'unit'])
-            ->leftJoin('productnames', 'product_information.product_name_id', '=', 'productnames.id')
-            ->leftJoin('brandnames', 'product_information.brand_code', '=', 'brandnames.id')
+        $data = ProductInformation::with(['brandname', 'box', 'label', 'unit'])
+            ->leftJoin('products', 'product_information.product_id', '=', 'products.id')
+            ->leftJoin('brandnames', 'products.brand_id', '=', 'brandnames.id')
             ->leftJoin('boxes', 'product_information.box_id', '=', 'boxes.id')
             ->leftJoin('labels', 'product_information.label_id', '=', 'labels.id')
             ->leftJoin('units', 'product_information.unit_id', '=', 'units.id')
-            ->select(
+            ->select([
                 'product_information.*',
-                'productnames.name_az as product_name',
-                'productnames.product_name_code',
                 'brandnames.brand_name',
-                'brandnames.brand_code as brand_code_name',
+                DB::raw('products.brand_code as brand_code_name'),
                 'boxes.box_name',
                 'labels.label_name',
-                'units.name as unit_name'
-            )
+                DB::raw('units.name as unit_name'),
+                DB::raw('products.description as description'),
+                DB::raw('products.oe_code as oe_code'),
+            ])
             ->get();
         return $this->sendResponse($data, 1);
     }
@@ -111,32 +115,26 @@ class ProductInformationController extends BaseController
             ], 400);
         }
         
-        $results = ProductInformation::with(['productname', 'brandname', 'box', 'label', 'unit'])
-            ->leftJoin('productnames', 'product_information.product_name_id', '=', 'productnames.id')
-            ->leftJoin('brandnames', 'product_information.brand_code', '=', 'brandnames.id')
+        $results = ProductInformation::with(['brandname', 'box', 'label', 'unit'])
+            ->leftJoin('products', 'product_information.product_id', '=', 'products.id')
+            ->leftJoin('brandnames', 'products.brand_id', '=', 'brandnames.id')
             ->leftJoin('boxes', 'product_information.box_id', '=', 'boxes.id')
             ->leftJoin('labels', 'product_information.label_id', '=', 'labels.id')
             ->leftJoin('units', 'product_information.unit_id', '=', 'units.id')
-            ->select(
+            ->select([
                 'product_information.*',
-                'productnames.name_az as product_name',
-                'productnames.product_name_code',
                 'brandnames.brand_name',
-                'brandnames.brand_code as brand_code_name',
+                DB::raw('products.brand_code as brand_code_name'),
                 'boxes.box_name',
                 'labels.label_name',
-                'units.name as unit_name'
-            )
+                DB::raw('units.name as unit_name'),
+                DB::raw('products.description as description'),
+                DB::raw('products.oe_code as oe_code'),
+            ])
             ->where(function ($query) use ($searchTerm) {
-                // Search in product_information table
-                $query->where('product_information.product_code', 'like', "%$searchTerm%")
-                      ->orWhere('product_information.oe_code', 'like', "%$searchTerm%")
-                      ->orWhere('product_information.description', 'like', "%$searchTerm%")
-                      // Search in related tables
-                      ->orWhere('productnames.name_az', 'like', "%$searchTerm%")
-                      ->orWhere('productnames.product_name_code', 'like', "%$searchTerm%")
+                $query->where('products.description', 'like', "%$searchTerm%")
                       ->orWhere('brandnames.brand_name', 'like', "%$searchTerm%")
-                      ->orWhere('brandnames.brand_code', 'like', "%$searchTerm%")
+                      ->orWhere('products.brand_code', 'like', "%$searchTerm%")
                       ->orWhere('boxes.box_name', 'like', "%$searchTerm%")
                       ->orWhere('labels.label_name', 'like', "%$searchTerm%");
             })
@@ -149,11 +147,11 @@ class ProductInformationController extends BaseController
     public function store(Request $request)
     {
         $validationRules = [
-          "product_name_id"=>"required|exists:productnames,id",
-          "product_code"=>"required|string|unique:product_information,product_code|max:255",
-          "brand_code"=>"required|exists:brandnames,id",
-          "oe_code"=>"nullable|string|max:255",
-          "description"=>"nullable|string|max:255",
+          // now product_id is required
+          "product_id"=>"required|exists:products,id",
+          // product_name_id is not required anymore
+          "product_name_id"=>"nullable|exists:productnames,id",
+          // moved fields removed from validation
           "net_weight"=>"nullable|numeric",
           "gross_weight"=>"nullable|numeric",
           "unit_id"=>"required|exists:units,id",
@@ -177,10 +175,12 @@ class ProductInformationController extends BaseController
         }
         $validated=$validation->validated();
 
-
-
-        
         //file uploads
+
+        // TEMP HOTFIX: DB has product_information.product_code as NOT NULL. Auto-generate if missing.
+        if (!array_key_exists('product_code', $validated) || $validated['product_code'] === null) {
+            $validated['product_code'] = 'PI-' . ($validated['product_id'] ?? 'X') . '-' . time();
+        }
 
         $productInformation = ProductInformation::create($validated);
         return $this->sendResponse($productInformation, "productInformation created succesfully");
@@ -197,11 +197,11 @@ class ProductInformationController extends BaseController
     {
         $productInformation = ProductInformation::findOrFail($id);
          $validationRules = [
-          "product_name_id"=>"required|exists:productnames,id",
-          "product_code"=>"required|string|unique:product_information,product_code,".$id."|max:255",
-          "brand_code"=>"required|exists:brandnames,id",
-          "oe_code"=>"nullable|string|max:255",
-          "description"=>"nullable|string|max:255",
+          // now product_id is required
+          "product_id"=>"required|exists:products,id",
+          // product_name_id is not required anymore
+          "product_name_id"=>"nullable|exists:productnames,id",
+          // moved fields removed from validation
           "net_weight"=>"nullable|numeric",
           "gross_weight"=>"nullable|numeric",
           "unit_id"=>"required|exists:units,id",
@@ -225,9 +225,6 @@ class ProductInformationController extends BaseController
         }
         $validated=$validation->validated();
 
-
-
-
         //file uploads update
 
         $productInformation->update($validated);
@@ -239,9 +236,7 @@ class ProductInformationController extends BaseController
         $productInformation = ProductInformation::findOrFail($id);
         $productInformation->delete();
 
-
-
-$this->deleteFile($productInformation->technical_image);$this->deleteFile($productInformation->image);
+        $this->deleteFile($productInformation->technical_image);$this->deleteFile($productInformation->image);
 
         //delete files uploaded
         return $this->sendResponse(1, "productInformation deleted succesfully");

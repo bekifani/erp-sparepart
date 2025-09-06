@@ -1,4 +1,3 @@
-
 import "@/assets/css/vendors/tabulator.css";
 import Lucide from "@/components/Base/Lucide";
 import ReactDOMServer from 'react-dom/server';
@@ -71,33 +70,62 @@ function index_main() {
       print: true,
       download: true,
     },
-   
+ 
     {
-      title: t("Product Id"),
+      title: t("Brand Name"),
       minWidth: 200,
-      field: "product_id",
+      field: "brand_name",
       hozAlign: "center",
       headerHozAlign: "center",
       vertAlign: "middle",
       print: true,
       download: true,
-      
     },
-    
-
+ 
     {
-      title: t("Headname Id"),
-      minWidth: 200,
-      field: "headname_id",
+      title: t("Brand Code"),
+      minWidth: 180,
+      field: "brand_code_name",
       hozAlign: "center",
       headerHozAlign: "center",
       vertAlign: "middle",
       print: true,
       download: true,
-      
     },
-    
-
+ 
+    {
+      title: t("OE Code"),
+      minWidth: 160,
+      field: "oe_code",
+      hozAlign: "center",
+      headerHozAlign: "center",
+      vertAlign: "middle",
+      print: true,
+      download: true,
+    },
+ 
+    {
+      title: t("Description"),
+      minWidth: 220,
+      field: "product_description",
+      hozAlign: "center",
+      headerHozAlign: "center",
+      vertAlign: "middle",
+      print: true,
+      download: true,
+    },
+ 
+    {
+      title: t("Headname"),
+      minWidth: 200,
+      field: "headname",
+      hozAlign: "center",
+      headerHozAlign: "center",
+      vertAlign: "middle",
+      print: true,
+      download: true,
+    },
+ 
     {
       title: t("Value"),
       minWidth: 200,
@@ -107,10 +135,9 @@ function index_main() {
       vertAlign: "middle",
       print: true,
       download: true,
-      
+       
     },
-    
-
+ 
     {
       title: t("Actions"),
       minWidth: 200,
@@ -161,7 +188,7 @@ function index_main() {
       },
     },
 ]);
-  const [searchColumns, setSearchColumns] = useState(['product_id', 'headname_id', 'value', ]);
+  const [searchColumns, setSearchColumns] = useState(['brand_name', 'brand_code_name', 'oe_code', 'product_description', 'headname', 'value']);
 
   // schema
   const schema = yup
@@ -216,27 +243,63 @@ value : yup.string().required(t('The Value field is required')),
     return ReactDOMServer.renderToString(element); // Convert JSX to HTML string
   };
 
+  // Extract meaningful error message from RTK Query/axios-like error objects
+  const getErrorMessage = (err, fallback = t("An error occurred")) => {
+    try {
+      const data = err?.data || err?.error || err;
+      const firstError = data?.errors && typeof data.errors === 'object'
+        ? Object.values(data.errors).flat().find(Boolean)
+        : null;
+      return data?.message || firstError || err?.message || fallback;
+    } catch (_) {
+      return fallback;
+    }
+  };
+
   const onCreate = async (data) => {
+    const valid = await trigger();
+    if (!valid) {
+      setToastMessage(t("Please fix the validation errors."));
+      basicStickyNotification.current?.showToast();
+      return;
+    }
     try {
       const response = await createProductspecification(data);
-      setToastMessage(t("Productspecification created successfully."));
+      if (response && response.success !== false) {
+        setToastMessage(t("Productspecification created successfully."));
+        setRefetch(true);
+        setShowCreateModal(false);
+      } else {
+        const msg = response?.data?.message || response?.error?.data?.message || response?.message || t('Creation failed');
+        throw new Error(msg);
+      }
     } catch (error) {
-      setToastMessage(t("Error creating Productspecification."));
+      const msg = getErrorMessage(error, t("Error creating Productspecification."));
+      setToastMessage(msg);
     }
     basicStickyNotification.current?.showToast();
-    setRefetch(true);
-    setShowCreateModal(false);
   };
 
   const onUpdate = async (data) => {
-    setShowUpdateModal(false)
+    const valid = await trigger();
+    if (!valid) {
+      setToastMessage(t("Please fix the validation errors."));
+      basicStickyNotification.current?.showToast();
+      return;
+    }
     try {
       const response = await updateProductspecification(data);
-      setToastMessage(t('Productspecification updated successfully'));
-      setRefetch(true)
+      if (response && response.success !== false) {
+        setToastMessage(t('Productspecification updated successfully'));
+        setRefetch(true)
+        setShowUpdateModal(false)
+      } else {
+        const msg = response?.data?.message || response?.error?.data?.message || response?.message || t('Update failed');
+        throw new Error(msg);
+      }
     } catch (error) {
-      setShowUpdateModal(true)
-      setToastMessage(t('Productspecification deletion failed'));
+      const msg = getErrorMessage(error, t('Error updating Productspecification.'))
+      setToastMessage(msg);
     }
     basicStickyNotification.current?.showToast();
   };
@@ -245,12 +308,17 @@ value : yup.string().required(t('The Value field is required')),
     let id = getValues("id");
     setShowDeleteModal(false)
     try {
-        const response = deleteProductspecification(id);
+      const response = await deleteProductspecification(id);
+      if (response && response.success !== false) {
         setToastMessage(t("Productspecification deleted successfully."));
         setRefetch(true);
+      } else {
+        const msg = response?.data?.message || response?.error?.data?.message || response?.message || t('Deletion failed');
+        throw new Error(msg);
       }
-    catch (error) {
-      setToastMessage(t("Error deleting Productspecification."));
+    } catch (error) {
+      const msg = getErrorMessage(error, t("Error deleting Productspecification."));
+      setToastMessage(msg);
     }
     basicStickyNotification.current?.showToast();
   };    
@@ -328,7 +396,13 @@ return (
       >
         {t("Product Id")}
       </FormLabel>
-      <TomSelectSearch apiUrl={`${app_url}/api/search_product`} setValue={setValue} variable="product_id"/>
+      <TomSelectSearch 
+        apiUrl={`${app_url}/api/search_product`} 
+        setValue={setValue} 
+        variable="product_id"
+        defaultValue={getValues('product_id')}
+        defaultLabel={`${getValues('brand_name') || ''} | ${getValues('brand_code_name') || ''} | ${getValues('product_description') || ''}`}
+      />
       {errors.product_id && (
         <div className="mt-2 text-danger">
           {typeof errors.product_id.message === "string" &&
@@ -352,6 +426,8 @@ return (
           value: item.id,
           text: item.headname
         })}
+        defaultValue={getValues('headname_id')}
+        defaultLabel={`${getValues('headname') || ''}`}
       />
       {errors.headname_id && (
         <div className="mt-2 text-danger">
@@ -440,7 +516,13 @@ return (
       >
         {t("Product Id")}
       </FormLabel>
-      <TomSelectSearch apiUrl={`${app_url}/api/search_product`} setValue={setValue} variable="product_id"/>
+      <TomSelectSearch 
+        apiUrl={`${app_url}/api/search_product`} 
+        setValue={setValue} 
+        variable="product_id"
+        defaultValue={getValues('product_id')}
+        defaultLabel={`${getValues('brand_name') || ''} | ${getValues('brand_code_name') || ''} | ${getValues('product_description') || ''}`}
+      />
       {errors.product_id && (
         <div className="mt-2 text-danger">
           {typeof errors.product_id.message === "string" &&
@@ -464,6 +546,8 @@ return (
           value: item.id,
           text: item.headname
         })}
+        defaultValue={getValues('headname_id')}
+        defaultLabel={`${getValues('headname') || ''}`}
       />
       {errors.headname_id && (
         <div className="mt-2 text-danger">
@@ -525,6 +609,7 @@ return (
         getRef={(el) => {
           basicStickyNotification.current = el;
         }}
+        options={{ duration: 3000 }}
         className="flex flex-col sm:flex-row"
       >
         <div className="font-medium">{toastMessage}</div>

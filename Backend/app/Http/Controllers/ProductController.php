@@ -7,12 +7,14 @@ use App\Models\Product;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Facades\DB;
 
 class ProductController extends BaseController
 {
     protected $searchableColumns = [
         // product columns
-        'products.product_information_id',
+        'products.id',
         'products.supplier_id',
         'products.qty',
         'products.min_qty',
@@ -22,58 +24,94 @@ class ProductController extends BaseController
         'products.selling_price',
         'products.additional_note',
         'products.status',
-        // product_information and related joined columns
+        // moved fields now on products
+        'products.oe_code',
+        'products.description',
+        // allow searching by products.brand_code as requested
+        'products.brand_code',
+        // related joined columns
         'product_information.product_code',
-        'product_information.oe_code',
-        'product_information.description',
         'productnames.name_az',
         'productnames.product_name_code',
         'brandnames.brand_name',
-        'brandnames.brand_code',
         'boxes.box_name',
         'labels.label_name',
         'units.name',
-        'suppliers.supplier'
+        'suppliers.supplier',
+        // suppliers.code will be conditionally added to selects with alias supplier_code
     ];
+
+    // Map frontend alias fields to real database columns
+    private function mapField(string $field): string
+    {
+        $map = [
+            // aliases used in SELECT as ...
+            'product_name' => 'productnames.name_az',
+            'product_name_code' => 'productnames.product_name_code',
+            'brand_name' => 'brandnames.brand_name',
+            'brand_code_name' => 'products.brand_code',
+            'box_name' => 'boxes.box_name',
+            'label_name' => 'labels.label_name',
+            'unit_name' => 'units.name',
+            'supplier' => 'suppliers.supplier',
+            // front-end uses supplier_code, DB column is suppliers.code
+            'supplier_code' => 'suppliers.code',
+            'oe_code' => 'products.oe_code',
+            'description' => 'products.description',
+            'product_code' => 'product_information.product_code',
+        ];
+        return $map[$field] ?? $field;
+    }
 
     public function index(Request $request)
     {
         $sortBy = 'products.id';
         $sortDir = 'desc';
-        if ($request['sort']) {
-            $sortBy = $request['sort'][0]['field'];
+        if (!empty($request['sort'])) {
+            $candidate = $request['sort'][0]['field'];
+            $sortBy = $this->mapField($candidate);
             $sortDir = $request['sort'][0]['dir'];
         }
         $perPage = $request->query('size', 10);
         $filters = $request['filter'];
 
         $query = Product::with(['ProductInformation'])
-            ->leftJoin('product_information', 'products.product_information_id', '=', 'product_information.id')
+            ->leftJoin('product_information', 'product_information.product_id', '=', 'products.id')
             ->leftJoin('productnames', 'product_information.product_name_id', '=', 'productnames.id')
-            ->leftJoin('brandnames', 'product_information.brand_code', '=', 'brandnames.id')
+            ->leftJoin('brandnames', 'products.brand_id', '=', 'brandnames.id')
             ->leftJoin('boxes', 'product_information.box_id', '=', 'boxes.id')
             ->leftJoin('labels', 'product_information.label_id', '=', 'labels.id')
             ->leftJoin('units', 'product_information.unit_id', '=', 'units.id')
-            ->leftJoin('suppliers', 'products.supplier_id', '=', 'suppliers.id')
-            ->select(
-                'products.*',
-                'product_information.product_code',
-                'product_information.oe_code',
-                'product_information.description',
-                'productnames.name_az as product_name',
-                'productnames.product_name_code',
-                'brandnames.brand_name',
-                'brandnames.brand_code as brand_code_name',
-                'boxes.box_name',
-                'labels.label_name',
-                'units.name as unit_name',
-                'suppliers.supplier as supplier'
-            )
+            ->leftJoin('suppliers', 'products.supplier_id', '=', 'suppliers.id');
+
+        $selects = [
+            'products.*',
+            'product_information.product_code',
+            // moved fields now selected from products
+            'products.oe_code',
+            'products.description',
+            'productnames.name_az as product_name',
+            'productnames.product_name_code',
+            'brandnames.brand_name',
+            'products.brand_code as brand_code_name',
+            'boxes.box_name',
+            'labels.label_name',
+            'units.name as unit_name',
+            'suppliers.supplier as supplier',
+        ];
+        // Conditionally include suppliers.code as supplier_code alias if column exists; otherwise NULL alias
+        if (Schema::hasColumn('suppliers', 'code')) {
+            $selects[] = 'suppliers.code as supplier_code';
+        } else {
+            $selects[] = DB::raw('NULL as supplier_code');
+        }
+
+        $query->select($selects)
             ->orderBy($sortBy, $sortDir);
 
         if ($filters) {
             foreach ($filters as $filter) {
-                $field = $filter['field'];
+                $field = $this->mapField($filter['field']);
                 $operator = $filter['type'];
                 $searchTerm = $filter['value'];
                 if ($operator == 'like') {
@@ -108,43 +146,64 @@ class ProductController extends BaseController
             ], 400);
         }
 
-        $results = Product::with(['ProductInformation'])
-            ->leftJoin('product_information', 'products.product_information_id', '=', 'product_information.id')
+        $query = Product::with(['ProductInformation'])
+            ->leftJoin('product_information', 'product_information.product_id', '=', 'products.id')
             ->leftJoin('productnames', 'product_information.product_name_id', '=', 'productnames.id')
-            ->leftJoin('brandnames', 'product_information.brand_code', '=', 'brandnames.id')
+            ->leftJoin('brandnames', 'products.brand_id', '=', 'brandnames.id')
             ->leftJoin('boxes', 'product_information.box_id', '=', 'boxes.id')
             ->leftJoin('labels', 'product_information.label_id', '=', 'labels.id')
             ->leftJoin('units', 'product_information.unit_id', '=', 'units.id')
-            ->leftJoin('suppliers', 'products.supplier_id', '=', 'suppliers.id')
-            ->select(
-                'products.id as value',
-                'product_information.product_code',
-                'product_information.oe_code',
-                'product_information.description',
-                'productnames.name_az as product_name',
-                'productnames.product_name_code',
-                'brandnames.brand_name',
-                'brandnames.brand_code as brand_code_name',
-                'boxes.box_name',
-                'labels.label_name',
-                'units.name as unit_name',
-                'suppliers.supplier as supplier'
-            )
-            ->where(function ($query) use ($searchTerm) {
-                foreach ($this->searchableColumns as $column) {
-                    $query->orWhere($column, 'like', "%$searchTerm%");
+            ->leftJoin('suppliers', 'products.supplier_id', '=', 'suppliers.id');
+
+        $selects = [
+            DB::raw('products.id as value'),
+            'product_information.product_code',
+            'products.oe_code',
+            'products.description',
+            'products.brand_code as brand_code_name',
+            'productnames.name_az as product_name',
+            'productnames.product_name_code',
+            'brandnames.brand_name',
+            'boxes.box_name',
+            'labels.label_name',
+            'units.name as unit_name',
+            'suppliers.supplier as supplier',
+        ];
+        if (Schema::hasColumn('suppliers', 'code')) {
+            $selects[] = 'suppliers.code as supplier_code';
+        } else {
+            $selects[] = DB::raw('NULL as supplier_code');
+        }
+        $query->select($selects);
+
+        $searchable = $this->searchableColumns;
+        // nothing to remove since we didn't include supplier_code here
+
+        $results = $query->where(function ($q) use ($searchTerm, $searchable) {
+                foreach ($searchable as $column) {
+                    $q->orWhere($column, 'like', "%$searchTerm%");
                 }
             })
             ->get()
             ->map(function ($item) {
-                return [
-                    'value' => $item->value,
-                    'text' => $item->product_name . ' (' . $item->product_code . ')',
-                    'product_code' => $item->product_code,
-                    'product_name' => $item->product_name,
-                    'brand_name' => $item->brand_name,
-                    'description' => $item->description
-                ];
+                $brandCode = $item->brand_code_name;
+                $parts = [];
+                if ($item->brand_name) { $parts[] = $item->brand_name; }
+                if ($brandCode) { $parts[] = '(' . $brandCode . ')'; }
+                if ($item->oe_code) { $parts[] = '- ' . $item->oe_code; }
+                if ($item->description) { $parts[] = '- ' . $item->description; }
+                if ($item->product_code) { $parts[] = '- ' . $item->product_code; }
+                $text = trim(preg_replace('/\s+/', ' ', implode(' ', $parts)));
+                 return [
+                     'value' => $item->value,
+                     'text' => $text ?: (string)$item->value,
+                     'product_code' => $item->product_code,
+                     'product_name' => $item->product_name,
+                     'brand_name' => $item->brand_name,
+                     'brand_code_name' => $item->brand_code_name,
+                     'oe_code' => $item->oe_code,
+                     'description' => $item->description
+                 ];
             });
 
         return response()->json($results);
@@ -153,7 +212,6 @@ class ProductController extends BaseController
     public function store(Request $request)
     {
         $validationRules = [
-            "product_information_id" => "required|exists:product_information,id",
             "supplier_id" => "required|exists:suppliers,id",
             "qty" => "required|numeric",
             "min_qty" => "nullable|numeric",
@@ -163,6 +221,11 @@ class ProductController extends BaseController
             "selling_price" => "nullable|numeric",
             "additional_note" => "nullable|string",
             "status" => "nullable|string|max:255",
+            // new fields on products
+            "brand_id" => "nullable|exists:brandnames,id",
+            "brand_code" => "nullable|string|max:255",
+            "oe_code" => "nullable|string|max:255",
+            "description" => "nullable|string|max:255",
         ];
 
         $validation = Validator::make($request->all(), $validationRules);
@@ -171,8 +234,12 @@ class ProductController extends BaseController
         }
         $validated = $validation->validated();
 
-        $product = Product::create($validated);
-        return $this->sendResponse($product, "product created succesfully");
+        try {
+            $product = Product::create($validated);
+            return $this->sendResponse($product, "product created succesfully");
+        } catch (\Exception $e) {
+            return $this->sendError("Error creating product", ['message' => $e->getMessage()]);
+        }
     }
 
     public function show($id)
@@ -185,7 +252,6 @@ class ProductController extends BaseController
     {
         $product = Product::findOrFail($id);
         $validationRules = [
-            "product_information_id" => "required|exists:product_information,id",
             "supplier_id" => "required|exists:suppliers,id",
             "qty" => "required|numeric",
             "min_qty" => "nullable|numeric",
@@ -195,6 +261,11 @@ class ProductController extends BaseController
             "selling_price" => "nullable|numeric",
             "additional_note" => "nullable|string",
             "status" => "nullable|string|max:255",
+            // new fields on products
+            "brand_id" => "nullable|exists:brandnames,id",
+            "brand_code" => "nullable|string|max:255",
+            "oe_code" => "nullable|string|max:255",
+            "description" => "nullable|string|max:255",
         ];
 
         $validation = Validator::make($request->all(), $validationRules);
@@ -203,16 +274,23 @@ class ProductController extends BaseController
         }
         $validated = $validation->validated();
 
-        $product->update($validated);
-        return $this->sendResponse($product, "product updated successfully");
+        try {
+            $product->update($validated);
+            return $this->sendResponse($product, "product updated successfully");
+        } catch (\Exception $e) {
+            return $this->sendError("Error updating product", ['message' => $e->getMessage()]);
+        }
     }
 
     public function destroy($id)
     {
-        $product = Product::findOrFail($id);
-        $product->delete();
-
-        return $this->sendResponse(1, "product deleted succesfully");
+        try {
+            $product = Product::findOrFail($id);
+            $product->delete();
+            return $this->sendResponse(1, "product deleted succesfully");
+        } catch (\Exception $e) {
+            return $this->sendError("Error deleting product", ['message' => $e->getMessage()]);
+        }
     }
 
     public function deleteFile($filePath)

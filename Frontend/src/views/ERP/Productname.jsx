@@ -1,4 +1,3 @@
-
 import "@/assets/css/vendors/tabulator.css";
 import Lucide from "@/components/Base/Lucide";
 import ReactDOMServer from 'react-dom/server';
@@ -80,7 +79,7 @@ function index_main() {
       headerHozAlign: "center",
       vertAlign: "middle",
       print: true,
-      download: true,
+      download: true, visible: false,
       
     },
     
@@ -251,19 +250,18 @@ function index_main() {
       },
     },
 ]);
-  const [searchColumns, setSearchColumns] = useState(['product_name', 'hs_code', 'name_az', 'description_en', 'name_ru', 'name_cn', 'category_id', 'product_name_code', 'additional_note', 'product_qty', ]);
-
+  const [searchColumns, setSearchColumns] = useState(['hs_code', 'name_az', 'description_en', 'name_ru', 'name_cn', 'category_id', 'product_name_code', 'additional_note', 'product_qty']);
   // schema
   const schema = yup
     .object({
-     product_name : yup.string().required(t('The Product Name field is required')), 
-hs_code : yup.string().required(t('The Hs Code field is required')), 
+     // product_name removed from schema
+ hs_code : yup.string().required(t('The Hs Code field is required')), 
 name_az : yup.string().required(t('The Name Az field is required')), 
 description_en : yup.string().required(t('The Description En field is required')), 
 name_ru : yup.string().required(t('The Name Ru field is required')), 
 name_cn : yup.string().required(t('The Name Cn field is required')), 
 category_id : yup.string().required(t('The Category field is required')), 
-product_name_code : yup.string().required(t('The Product Name Code field is required')), 
+product_name_code : yup.string().nullable(), 
 additional_note : yup.string().required(t('The Additional Note field is required')), 
 
     })
@@ -312,17 +310,33 @@ additional_note : yup.string().required(t('The Additional Note field is required
     return ReactDOMServer.renderToString(element); // Convert JSX to HTML string
   };
 
+  const getErrorMessage = (err, fallback = t("An error occurred")) => {
+    try {
+      const data = err?.data || err?.error || err;
+      const firstError = data?.errors && typeof data.errors === 'object'
+        ? Object.values(data.errors).flat().find(Boolean)
+        : null;
+      return data?.message || firstError || err?.message || fallback;
+    } catch (_) {
+      return fallback;
+    }
+  };
+
   const onCreate = async (data) => {
-    // Filter out unwanted fields and only send necessary data
+    const valid = await trigger();
+    if (!valid) {
+      setToastMessage(t("Please fix the validation errors."));
+      basicStickyNotification.current?.showToast();
+      return;
+    }
     const cleanData = {
-      product_name: data.product_name,
       hs_code: data.hs_code,
       name_az: data.name_az,
       description_en: data.description_en,
       name_ru: data.name_ru,
       name_cn: data.name_cn,
       category_id: data.category_id,
-      product_name_code: data.product_name_code,
+      ...(data.product_name_code ? { product_name_code: data.product_name_code } : {}),
       additional_note: data.additional_note,
       product_qty: data.product_qty,
     };
@@ -332,34 +346,37 @@ additional_note : yup.string().required(t('The Additional Note field is required
     
     try {
       const response = await createProductname(cleanData);
-      console.log('Backend response:', response);
-      if (response.error) {
-        console.error('Backend error:', response.error);
-        setToastMessage(t("Error creating Productname: ") + (response.error.data?.message || "Unknown error"));
-      } else {
+      if (response && response.success !== false && !response.error) {
         setToastMessage(t("Productname created successfully."));
         setRefetch(true);
         setShowCreateModal(false);
+      } else {
+        const msg = response?.data?.message || response?.error?.data?.message || response?.message || t('Creation failed');
+        throw new Error(msg);
       }
     } catch (error) {
-      console.error('Frontend error:', error);
-      setToastMessage(t("Error creating Productname."));
+      const msg = getErrorMessage(error, t("Error creating Productname."));
+      setToastMessage(msg);
     }
     basicStickyNotification.current?.showToast();
   };
 
   const onUpdate = async (data) => {
-    // Filter out unwanted fields and only send necessary data
+    const valid = await trigger();
+    if (!valid) {
+      setToastMessage(t("Please fix the validation errors."));
+      basicStickyNotification.current?.showToast();
+      return;
+    }
     const cleanData = {
       id: data.id,
-      product_name: data.product_name,
       hs_code: data.hs_code,
       name_az: data.name_az,
       description_en: data.description_en,
       name_ru: data.name_ru,
       name_cn: data.name_cn,
       category_id: data.category_id,
-      product_name_code: data.product_name_code,
+      ...(data.product_name_code ? { product_name_code: data.product_name_code } : {}),
       additional_note: data.additional_note,
       product_qty: data.product_qty,
     };
@@ -370,19 +387,17 @@ additional_note : yup.string().required(t('The Additional Note field is required
     setShowUpdateModal(false)
     try {
       const response = await updateProductname(cleanData);
-      console.log('Backend update response:', response);
-      if (response.error) {
-        console.error('Backend update error:', response.error);
-        setToastMessage(t("Error updating Productname: ") + (response.error.data?.message || "Unknown error"));
-        setShowUpdateModal(true)
-      } else {
+      if (response && response.success !== false && !response.error) {
         setToastMessage(t('Productname updated successfully'));
         setRefetch(true)
+      } else {
+        const msg = response?.data?.message || response?.error?.data?.message || response?.message || t('Update failed');
+        throw new Error(msg);
       }
     } catch (error) {
-      console.error('Frontend update error:', error);
+      const msg = getErrorMessage(error, t('Error updating Productname.'))
+      setToastMessage(msg);
       setShowUpdateModal(true)
-      setToastMessage(t('Productname update failed'));
     }
     basicStickyNotification.current?.showToast();
   };
@@ -391,17 +406,22 @@ additional_note : yup.string().required(t('The Additional Note field is required
     let id = getValues("id");
     setShowDeleteModal(false)
     try {
-        const response = deleteProductname(id);
+      const response = await deleteProductname(id);
+      if (response && response.success !== false && !response.error) {
         setToastMessage(t("Productname deleted successfully."));
         setRefetch(true);
+      } else {
+        const msg = response?.data?.message || response?.error?.data?.message || response?.message || t('Deletion failed');
+        throw new Error(msg);
       }
-    catch (error) {
-      setToastMessage(t("Error deleting Productname."));
+    } catch (error) {
+      const msg = getErrorMessage(error, t("Error deleting Productname."));
+      setToastMessage(msg);
     }
     basicStickyNotification.current?.showToast();
   };    
 
-return (
+  return (
     <div>
       <Slideover
         open={showDeleteModal}
@@ -467,7 +487,7 @@ return (
                 ) : (
                   <div className=" w-full grid grid-cols-1 gap-4 gap-y-3">
                     
-<div className="mt-3 input-form">
+<div className="mt-3 input-form" style={{display:'none'}}>
                       <FormLabel
                         htmlFor="validation-form-1"
                         className="flex justify-start items-start flex-col w-full sm:flex-row"
@@ -667,7 +687,7 @@ return (
                         className={clsx({
                           "border-danger": errors.product_name_code,
                         })}
-                        placeholder={t("Enter product_name_code")}
+                        placeholder={t("Enter product_name_code (leave blank to auto-generate)")}
                       />
                       {errors.product_name_code && (
                         <div className="mt-2 text-danger">
@@ -776,7 +796,7 @@ return (
                 ) : (
                   <div className=" w-full grid grid-cols-1  gap-4 gap-y-3">
                     
-<div className="mt-3 input-form">
+<div className="mt-3 input-form" style={{display:'none'}}>
                       <FormLabel
                         htmlFor="validation-form-1"
                         className="flex justify-start items-start flex-col w-full sm:flex-row"
@@ -976,7 +996,7 @@ return (
                         className={clsx({
                           "border-danger": errors.product_name_code,
                         })}
-                        placeholder={t("Enter product_name_code")}
+                        placeholder={t("Enter product_name_code (leave blank to auto-generate)")}
                       />
                       {errors.product_name_code && (
                         <div className="mt-2 text-danger">
@@ -1065,6 +1085,7 @@ return (
         getRef={(el) => {
           basicStickyNotification.current = el;
         }}
+        options={{ duration: 3000 }}
         className="flex flex-col sm:flex-row"
       >
         <div className="font-medium">{toastMessage}</div>
