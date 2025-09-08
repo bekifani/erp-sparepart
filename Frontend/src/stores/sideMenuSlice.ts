@@ -99,9 +99,9 @@ const initialState: SideMenuState = {
 
         {
       icon: "Info",
-      pathname: "/menu/productInformation",
+      pathname: "/menu/productinformation",
       title: "Product Information",
-      permission: "productInformation-list"
+      permission: "productinformation-list"
     },
     
         
