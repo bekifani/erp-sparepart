@@ -13,7 +13,7 @@ use Illuminate\Notifications\Notifiable;
 class Compan extends Model
 {
     use HasFactory, LogsActivity, Notifiable;
-    public $fillable = ['logo', 'name', 'name_cn', 'company_address', 'company_address_cn', 'bank_details', 'bank_details_cn', 'contact_person', 'phone_number', 'email', 'website', 'tax_id', 'registration_number', 'status'];
+    public $fillable = ['logo', 'company_name', 'website', 'address', 'email', 'phone_number', 'our_ref', 'origin', 'payment_terms', 'shipping_terms', 'tax_number', 'mobile_number', 'bank_details', 'additional_note'];
     protected static $logAttributes = ['*'];
     public $guarded = [];
 
@@ -22,7 +22,7 @@ class Compan extends Model
         //$user = Auth::user()->name;
         //return "{$user} has {$eventName} user {$this->name}";
 
-        return "user has {$eventName} user {$this->name}";
+        return "user has {$eventName} user {$this->company_name}";
     }
     public function getActivitylogOptions(): LogOptions
     {
