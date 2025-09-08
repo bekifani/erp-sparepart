@@ -75,12 +75,12 @@ class ProductInformationController extends BaseController
                 $query->where($field, $operator, $searchTerm);
             }
         }
-        $productInformation = $query->paginate($perPage); 
+        $productinformation = $query->paginate($perPage); 
         
         $data = [
-            "data" => $productInformation->toArray(), 
-            'current_page' => $productInformation->currentPage(),
-            'total_pages' => $productInformation->lastPage(),
+            "data" => $productinformation->toArray(), 
+            'current_page' => $productinformation->currentPage(),
+            'total_pages' => $productinformation->lastPage(),
             'per_page' => $perPage
         ];
         return response()->json($data);
@@ -140,7 +140,7 @@ class ProductInformationController extends BaseController
             })
             ->paginate(20);
             
-        return $this->sendResponse($results , 'search results for productInformation');
+        return $this->sendResponse($results , 'search results for productinformation');
     }
 
 
@@ -182,20 +182,20 @@ class ProductInformationController extends BaseController
             $validated['product_code'] = 'PI-' . ($validated['product_id'] ?? 'X') . '-' . time();
         }
 
-        $productInformation = ProductInformation::create($validated);
-        return $this->sendResponse($productInformation, "productInformation created succesfully");
+        $productinformation = ProductInformation::create($validated);
+        return $this->sendResponse($productinformation, "productinformation created succesfully");
     }
 
     public function show($id)
     {
-        $productInformation = ProductInformation::findOrFail($id);
-        return $this->sendResponse($productInformation, "");
+        $productinformation = ProductInformation::findOrFail($id);
+        return $this->sendResponse($productinformation, "");
     }
 
 
     public function update(Request $request, $id)
     {
-        $productInformation = ProductInformation::findOrFail($id);
+        $productinformation = ProductInformation::findOrFail($id);
          $validationRules = [
           // now product_id is required
           "product_id"=>"required|exists:products,id",
@@ -227,19 +227,19 @@ class ProductInformationController extends BaseController
 
         //file uploads update
 
-        $productInformation->update($validated);
-        return $this->sendResponse($productInformation, "productInformation updated successfully");
+        $productinformation->update($validated);
+        return $this->sendResponse($productinformation, "productinformation updated successfully");
     }
 
     public function destroy($id)
     {
-        $productInformation = ProductInformation::findOrFail($id);
-        $productInformation->delete();
+        $productinformation = ProductInformation::findOrFail($id);
+        $productinformation->delete();
 
-        $this->deleteFile($productInformation->technical_image);$this->deleteFile($productInformation->image);
+        $this->deleteFile($productinformation->technical_image);$this->deleteFile($productinformation->image);
 
         //delete files uploaded
-        return $this->sendResponse(1, "productInformation deleted succesfully");
+        return $this->sendResponse(1, "productinformation deleted succesfully");
     }
 
     public function deleteFile($filePath) {
