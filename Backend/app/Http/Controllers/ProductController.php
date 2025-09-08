@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Http\Controllers\BaseController;
 use App\Models\Product;
+use App\Models\Brandname;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
@@ -27,13 +28,10 @@ class ProductController extends BaseController
         // moved fields now on products
         'products.oe_code',
         'products.description',
-        // allow searching by products.brand_code as requested
-        'products.brand_code',
         // related joined columns
         'product_information.product_code',
         'productnames.name_az',
         'productnames.product_name_code',
-        'brandnames.brand_name',
         'boxes.box_name',
         'labels.label_name',
         'units.name',
@@ -226,6 +224,8 @@ class ProductController extends BaseController
             "brand_code" => "nullable|string|max:255",
             "oe_code" => "nullable|string|max:255",
             "description" => "nullable|string|max:255",
+            // virtual field from frontend to support find-or-create brand
+            "brand_name" => "nullable|string|max:255",
         ];
 
         $validation = Validator::make($request->all(), $validationRules);
@@ -233,6 +233,22 @@ class ProductController extends BaseController
             return $this->sendError("Invalid Values", ['errors' => $validation->errors()]);
         }
         $validated = $validation->validated();
+
+        // If brand_name is provided, find-or-create the brand and set brand_id
+        if (!empty($validated['brand_name'])) {
+            // Build creation attributes conditionally (brandnames.brand_code may not exist)
+            $creationAttributes = [];
+            if (Schema::hasColumn('brandnames', 'brand_code') && array_key_exists('brand_code', $validated)) {
+                $creationAttributes['brand_code'] = $validated['brand_code'];
+            }
+            $brand = Brandname::firstOrCreate(
+                ['brand_name' => $validated['brand_name']],
+                $creationAttributes
+            );
+            $validated['brand_id'] = $brand->id;
+            // do not persist brand_name on products
+            unset($validated['brand_name']);
+        }
 
         try {
             $product = Product::create($validated);
@@ -266,6 +282,8 @@ class ProductController extends BaseController
             "brand_code" => "nullable|string|max:255",
             "oe_code" => "nullable|string|max:255",
             "description" => "nullable|string|max:255",
+            // virtual field from frontend to support find-or-create brand
+            "brand_name" => "nullable|string|max:255",
         ];
 
         $validation = Validator::make($request->all(), $validationRules);
@@ -273,6 +291,20 @@ class ProductController extends BaseController
             return $this->sendError("Invalid Values", ['errors' => $validation->errors()]);
         }
         $validated = $validation->validated();
+
+        // If brand_name is provided, find-or-create the brand and set brand_id
+        if (!empty($validated['brand_name'])) {
+            $creationAttributes = [];
+            if (Schema::hasColumn('brandnames', 'brand_code') && array_key_exists('brand_code', $validated)) {
+                $creationAttributes['brand_code'] = $validated['brand_code'];
+            }
+            $brand = Brandname::firstOrCreate(
+                ['brand_name' => $validated['brand_name']],
+                $creationAttributes
+            );
+            $validated['brand_id'] = $brand->id;
+            unset($validated['brand_name']);
+        }
 
         try {
             $product->update($validated);
