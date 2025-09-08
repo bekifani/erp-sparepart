@@ -166,7 +166,7 @@ function index_main() {
           });
           setShowDeleteModal(true);
         });
-        let permission = "productInformation";
+        let permission = "productinformation";
         element.append(v);
         element.append(p);
         if (hasPermission(permission + '-edit')) element.append(a);
@@ -1137,7 +1137,7 @@ function index_main() {
         <div className="font-medium">{toastMessage}</div>
       </Notification>
 
-      <Can permission="productInformation-list">
+      <Can permission="productinformation-list">
         <TableComponent
           setShowCreateModal={setShowCreateModal}
           endpoint={app_url + "/api/ProductInformation"}
@@ -1145,7 +1145,7 @@ function index_main() {
           searchColumns={searchColumns}
           refetch={refetch}
           setRefetch={setRefetch}
-          permission={"productInformation-create"}
+          permission={"productinformation-create"}
         />
       </Can>
     </div>
