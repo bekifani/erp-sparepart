@@ -11,11 +11,6 @@ import * as yup from "yup";
 import { useForm } from "react-hook-form";
 import { FormCheck, FormTextarea , FormInput, FormLabel } from "@/components/Base/Form";
 import { stringToHTML } from "@/utils/helper";
-import {
-  useCreateBrandnameMutation,
-  useDeleteBrandnameMutation,
-  useEditBrandnameMutation,
-} from "@/stores/apiSlice";
 import clsx from "clsx";
 import { Dialog } from "@/components/Base/Headless";
 import Can from "@/helpers/PermissionChecker/index.js";
@@ -32,27 +27,12 @@ function index_main() {
   const app_url = useSelector((state) => state.auth.app_url)
   const upload_url = useSelector((state)=> state.auth.upload_url)
   const media_url = useSelector((state)=>state.auth.media_url)
-  const [showCreateModal, setShowCreateModal] = useState(false);
-  const [showUpdateModal, setShowUpdateModal] = useState(false);
-  const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [editorData, setEditorData] = useState("")
   const [confirmationMessage, setConfirmationMessage] =
     useState(t("Are you Sure Do You want to Delete Brandname"));
 
-  
- const [
-    createBrandname,
-    { isLoading: loading, isSuccess: success, error: successError },
-  ] = useCreateBrandnameMutation();
-  const [
-    updateBrandname,
-    { isLoading: updating, isSuccess: updated, error: updateError },
-  ] = useEditBrandnameMutation();
-  const [
-    deleteBrandname,
-    { isLoading: deleting, isSuccess: deleted, error: deleteError },
-  ] = useDeleteBrandnameMutation()
-
+  const loading = false;
+  const updating = false;
 
   const [toastMessage, setToastMessage] = useState("");
   const basicStickyNotification = useRef();
@@ -147,158 +127,8 @@ function index_main() {
       download: true,
       
     },
-    
-
-    {
-      title: t("Actions"),
-      minWidth: 200,
-      field: "actions",
-      responsive: 1,
-      hozAlign: "center",
-      headerHozAlign: "center",
-      vertAlign: "middle",
-      print: false,
-      download: false,
-      headerSort: false,
-      formatter(cell) {
-        const element = stringToHTML(
-          `<div class="flex items-center lg:justify-center"></div>`
-        );
-        const a =
-          stringToHTML(`<div class="flex items-center lg:justify-center">
-              <a class="delete-btn flex items-center mr-3" href="javascript:;">
-                <i data-lucide="check-square" class="w-3.5 h-3.5 stroke-[1.7] mr-1.5"></i> Edit
-              </a>`);
-        const b = stringToHTML(`
-              <a class="edit-btn flex items-center text-danger" href="javascript:;">
-                <i data-lucide="trash-2" class="w-3.5 h-3.5 stroke-[1.7] mr-1.5"></i> Delete
-              </a>
-            </div>`);
-        a.addEventListener("click", function () {
-          const data = cell.getData();
-          Object.keys(data).forEach((key) => {
-            setValue(key, data[key]);
-          });
-          setShowUpdateModal(true);
-        });
-        b.addEventListener("click", function () {
-          const data = cell.getData();
-          Object.keys(data).forEach((key) => {
-            setValue(key, data[key]);
-          });
-          setShowDeleteModal(true);
-        });
-        let permission = "brandname";
-        if(hasPermission(permission+'-edit')){
-          element.append(a)
-        }
-        if(hasPermission(permission+'-delete')){
-          element.append(b)
-        }
-        return element;
-      },
-    },
-]);
+  ]);
   const [searchColumns, setSearchColumns] = useState(['brand_name', 'number_of_products']);
-
-  // schema
-  const schema = yup
-    .object({
-      brand_name: yup.string().required(t('The Brand Name field is required')),
-    })
-    .required();
-
-  const {
-    register,
-    trigger,
-    getValues,
-    setValue,
-    handleSubmit,
-    formState: { errors },
-  } = useForm({
-    mode: "onChange",
-    resolver: yupResolver(schema),
-  });
-
-  // Extract meaningful error message from server/RTK Query responses
-  const getErrorMessage = (err, fallback = t("An error occurred")) => {
-    try {
-      const data = err?.data || err?.error || err;
-      const firstError = data?.errors && typeof data.errors === 'object'
-        ? Object.values(data.errors).flat().find(Boolean)
-        : null;
-      return data?.message || firstError || err?.message || fallback;
-    } catch (_) {
-      return fallback;
-    }
-  };
-
-  const onCreate = async (data) => {
-    const valid = await trigger();
-    if (!valid) {
-      setToastMessage(t("Please fix the validation errors."));
-      basicStickyNotification.current?.showToast();
-      return;
-    }
-    try {
-      const response = await createBrandname(data);
-      if (response && response.success !== false) {
-        setToastMessage(t("Brandname created successfully."));
-        setRefetch(true);
-        setShowCreateModal(false);
-      } else {
-        const msg = response?.data?.message || response?.error?.data?.message || response?.message || t('Creation failed');
-        throw new Error(msg);
-      }
-    } catch (error) {
-      const msg = getErrorMessage(error, t("Error creating Brandname."));
-      setToastMessage(msg);
-    }
-    basicStickyNotification.current?.showToast();
-  };
-
-  const onUpdate = async (data) => {
-    const valid = await trigger();
-    if (!valid) {
-      setToastMessage(t("Please fix the validation errors."));
-      basicStickyNotification.current?.showToast();
-      return;
-    }
-    try {
-      const response = await updateBrandname(data);
-      if (response && response.success !== false) {
-        setToastMessage(t('Brandname updated successfully'));
-        setRefetch(true)
-        setShowUpdateModal(false)
-      } else {
-        const msg = response?.data?.message || response?.error?.data?.message || response?.message || t('Update failed');
-        throw new Error(msg);
-      }
-    } catch (error) {
-      const msg = getErrorMessage(error, t('Error updating Brandname.'))
-      setToastMessage(msg);
-    }
-    basicStickyNotification.current?.showToast();
-  };
-
-  const onDelete = async () => {
-    let id = getValues("id");
-    setShowDeleteModal(false)
-    try {
-      const response = await deleteBrandname(id);
-      if (response && response.success !== false) {
-        setToastMessage(t("Brandname deleted successfully."));
-        setRefetch(true);
-      } else {
-        const msg = response?.data?.message || response?.error?.data?.message || response?.message || t('Deletion failed');
-        throw new Error(msg);
-      }
-    } catch (error) {
-      const msg = getErrorMessage(error, t("Error deleting Brandname."));
-      setToastMessage(msg);
-    }
-    basicStickyNotification.current?.showToast();
-  };    
 
   const [refetch, setRefetch] = useState(false);
   const getMiniDisplay = (url) => {
@@ -330,188 +160,6 @@ function index_main() {
 
   return (
     <div>
-      <Slideover
-        open={showDeleteModal}
-        onClose={() => {
-          setShowDeleteModal(false);
-        }}
-        size="xl"
-      >
-        <Slideover.Panel>
-          <div className="p-5 text-center overflow-y-auto max-h-[110vh]">
-            <Lucide
-              icon="XCircle"
-              className="w-16 h-16 mx-auto mt-3 text-danger"
-            />
-            <div className="mt-5 text-3xl">{t("Are you sure?")}</div>
-            <div className="mt-2 text-slate-500">{confirmationMessage}</div>
-          </div>
-          <div className="px-5 pb-8 text-center">
-            <Button
-              type="button"
-              variant="outline-secondary"
-              onClick={() => {
-                setShowDeleteModal(false);
-              }}
-              className="w-24 mr-1"
-            >
-              {t("Cancel")}
-            </Button>
-            <Button
-              type="button"
-              variant="danger"
-              className="w-24"
-              onClick={() => onDelete()}
-            >
-              {t("Delete")}
-            </Button>
-          </div>
-        </Slideover.Panel>
-      </Slideover>
-
-
-      <Slideover
-       
-        open={showCreateModal}
-        onClose={() => {
-          setShowCreateModal(false);
-        }}
-        size="xl"
-      >
-        <Slideover.Panel className="text-center overflow-y-auto max-h-[110vh]">
-          <form onSubmit={handleSubmit(onCreate)}>
-            <Slideover.Title>
-              <h2 className="mr-auto text-base font-medium">{t("Add New Brandname")}</h2>
-            </Slideover.Title>
-            <Slideover.Description className="relative">
-              <div className="relative">
-                {loading || updating || deleting ? (
-                  <div className="w-full h-full z-[99999px] absolute backdrop-blur-md bg-gray-600">
-                    <div className="w-full h-full flex justify-center items-center">
-                      <LoadingIcon icon="tail-spin" className="w-8 h-8" />
-                    </div>
-                  </div>
-                ) : (
-                  <div className=" w-full grid grid-cols-1 gap-4 gap-y-3">
-                    
-<div className="mt-3 input-form">
-                      <FormLabel
-                        htmlFor="validation-form-1"
-                        className="flex justify-start items-start flex-col w-full sm:flex-row"
-                      >
-                        {t("Brand Name")}
-                      </FormLabel>
-                      <FormInput
-                        {...register("brand_name")}
-                        id="validation-form-1"
-                        type="text"
-                        name="brand_name"
-                        className={clsx({
-                          "border-danger": errors.brand_name,
-                        })}
-                        placeholder={t("Enter brand_name")}
-                      />
-                      {errors.brand_name && (
-                        <div className="mt-2 text-danger">
-                          {typeof errors.brand_name.message === "string" &&
-                            errors.brand_name.message}
-                        </div>
-                      )}
-                    </div>
-
-                  </div>
-                      )}
-              </div>
-            </Slideover.Description>
-            <Slideover.Footer>
-              <Button
-                type="button"
-                variant="outline-secondary"
-                onClick={() => {
-                  setShowCreateModal(false);
-                }}
-                className="w-20 mx-2"
-              >
-                {t("Cancel")}
-              </Button>
-              <Button variant="primary" type="submit" className="w-20">
-                {t("Save")}
-              </Button>
-            </Slideover.Footer>
-          </form>
-        </Slideover.Panel>
-      </Slideover>
-      <Slideover
-       
-        open={showUpdateModal}
-        onClose={() => {
-          setShowUpdateModal(false);
-        }}
-        size="xl"
-      >
-        <Slideover.Panel className="text-center overflow-y-auto max-h-[110vh]">
-          <form onSubmit={handleSubmit(onUpdate)}>
-            <Slideover.Title>
-              <h2 className="mr-auto text-base font-medium">{t("Edit Brandname")}</h2>
-            </Slideover.Title>
-            <Slideover.Description className="relative">
-              <div className="relative">
-                {loading || updating || deleting ? (
-                  <div className="w-full h-full z-[99999px] absolute backdrop-blur-md bg-gray-600">
-                    <div className="w-full h-full flex justify-center items-center">
-                      <LoadingIcon icon="tail-spin" className="w-8 h-8" />
-                    </div>
-                  </div>
-                ) : (
-                  <div className=" w-full grid grid-cols-1  gap-4 gap-y-3">
-                    
-<div className="mt-3 input-form">
-                      <FormLabel
-                        htmlFor="validation-form-1"
-                        className="flex justify-start items-start flex-col w-full sm:flex-row"
-                      >
-                        {t("Brand Name")}
-                      </FormLabel>
-                      <FormInput
-                        {...register("brand_name")}
-                        id="validation-form-1"
-                        type="text"
-                        name="brand_name"
-                        className={clsx({
-                          "border-danger": errors.brand_name,
-                        })}
-                        placeholder={t("Enter brand_name")}
-                      />
-                      {errors.brand_name && (
-                        <div className="mt-2 text-danger">
-                          {typeof errors.brand_name.message === "string" &&
-                            errors.brand_name.message}
-                        </div>
-                      )}
-                    </div>
-
-                  </div>
-                )}
-              </div>
-            </Slideover.Description>
-            <Slideover.Footer>
-              <Button
-                type="button"
-                variant="outline-secondary"
-                onClick={() => {
-                  setShowUpdateModal(false);
-                }}
-                className="w-20 mx-2"
-              >
-                {t("Cancel")}
-              </Button>
-              <Button variant="primary" type="submit" className="w-20">
-                {t("Update")}
-              </Button>
-            </Slideover.Footer>
-          </form>
-        </Slideover.Panel>
-      </Slideover>
       <Notification
         getRef={(el) => {
           basicStickyNotification.current = el;
@@ -523,13 +171,15 @@ function index_main() {
       </Notification>
       <Can permission="brandname-list">
         <TableComponent
-          setShowCreateModal={setShowCreateModal}
+          setShowCreateModal={()=>{}}
+          show_create={false}
           endpoint={app_url + "/api/brandname"}
           data={data}
           searchColumns={searchColumns}
           refetch={refetch}
           setRefetch={setRefetch}
           permission={"Brandname"}
+          page_name={"Brandname"}
         />
       </Can>
     </div>

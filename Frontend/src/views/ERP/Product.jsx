@@ -309,8 +309,6 @@ function index_main() {
     'description', // now on products
     'product_name',
     'product_name_code',
-    'brand_name',
-    'brand_code_name',
     'box_name',
     'label_name',
     'unit_name',
@@ -324,7 +322,37 @@ function index_main() {
      supplier_id : yup.string().required(t('The Supplier Id field is required')), 
      additional_note : yup.string().required(t('The Additional Note field is required')), 
      status : yup.string().required(t('The Status field is required')), 
-     brand_id: yup.string().nullable(),
+     qty: yup
+       .number()
+       .typeError(t('Qty must be a number'))
+       .required(t('Qty is required'))
+       .min(0, t('Qty cannot be negative')),
+     min_qty: yup
+       .number()
+       .typeError(t('Min Qty must be a number'))
+       .nullable()
+       .min(0, t('Min Qty cannot be negative')), 
+     purchase_price: yup
+       .number()
+       .typeError(t('Purchase Price must be a number'))
+       .nullable()
+       .min(0, t('Purchase Price cannot be negative')),
+     extra_cost: yup
+       .number()
+       .typeError(t('Extra Cost must be a number'))
+       .nullable()
+       .min(0, t('Extra Cost cannot be negative')),
+     cost_basis: yup
+       .number()
+       .typeError(t('Cost Basis must be a number'))
+       .nullable()
+       .min(0, t('Cost Basis cannot be negative')),
+     selling_price: yup
+       .number()
+       .typeError(t('Selling Price must be a number'))
+       .nullable()
+       .min(0, t('Selling Price cannot be negative')),
+     brand_name: yup.string().nullable(),
      brand_code: yup.string().nullable(),
      oe_code: yup.string().nullable(),
      description: yup.string().nullable(),
@@ -384,13 +412,23 @@ function index_main() {
       return;
     }
     try {
-      const response = await createProduct(data);
-      if (response && response.success !== false && !response.error) {
+      const payload = {
+        ...data,
+        // ensure numeric fields are numbers (react-hook-form returns strings)
+        qty: data.qty !== undefined && data.qty !== null && data.qty !== '' ? Number(data.qty) : undefined,
+        min_qty: data.min_qty !== undefined && data.min_qty !== null && data.min_qty !== '' ? Number(data.min_qty) : undefined,
+        purchase_price: data.purchase_price !== undefined && data.purchase_price !== null && data.purchase_price !== '' ? Number(data.purchase_price) : undefined,
+        extra_cost: data.extra_cost !== undefined && data.extra_cost !== null && data.extra_cost !== '' ? Number(data.extra_cost) : undefined,
+        cost_basis: data.cost_basis !== undefined && data.cost_basis !== null && data.cost_basis !== '' ? Number(data.cost_basis) : undefined,
+        selling_price: data.selling_price !== undefined && data.selling_price !== null && data.selling_price !== '' ? Number(data.selling_price) : undefined,
+      };
+      const result = await createProduct(payload).unwrap();
+      if (result?.success) {
         setToastMessage(t("Product created successfully."));
         setRefetch(true);
         setShowCreateModal(false);
       } else {
-        const msg = response?.data?.message || response?.error?.data?.message || response?.message || t('Creation failed');
+        const msg = result?.message || t('Creation failed');
         throw new Error(msg);
       }
     } catch (error) {
@@ -409,12 +447,21 @@ function index_main() {
     }
     setShowUpdateModal(false)
     try {
-      const response = await updateProduct(data);
-      if (response && response.success !== false && !response.error) {
+      const payload = {
+        ...data,
+        qty: data.qty !== undefined && data.qty !== null && data.qty !== '' ? Number(data.qty) : undefined,
+        min_qty: data.min_qty !== undefined && data.min_qty !== null && data.min_qty !== '' ? Number(data.min_qty) : undefined,
+        purchase_price: data.purchase_price !== undefined && data.purchase_price !== null && data.purchase_price !== '' ? Number(data.purchase_price) : undefined,
+        extra_cost: data.extra_cost !== undefined && data.extra_cost !== null && data.extra_cost !== '' ? Number(data.extra_cost) : undefined,
+        cost_basis: data.cost_basis !== undefined && data.cost_basis !== null && data.cost_basis !== '' ? Number(data.cost_basis) : undefined,
+        selling_price: data.selling_price !== undefined && data.selling_price !== null && data.selling_price !== '' ? Number(data.selling_price) : undefined,
+      };
+      const result = await updateProduct(payload).unwrap();
+      if (result?.success) {
         setToastMessage(t('Product updated successfully'));
         setRefetch(true)
       } else {
-        const msg = response?.data?.message || response?.error?.data?.message || response?.message || t('Update failed');
+        const msg = result?.message || t('Update failed');
         throw new Error(msg);
       }
     } catch (error) {
@@ -566,18 +613,20 @@ return (
     </div>
 
 <div className="mt-3 input-form">
-      <FormLabel htmlFor="brand_id" className="flex flex-col w-full sm:flex-row">
+      <FormLabel htmlFor="brand_name" className="flex flex-col w-full sm:flex-row">
         {t("Brand")}
       </FormLabel>
-      <TomSelectSearch
-        apiUrl={`${app_url}/api/search_brandname`}
-        setValue={setValue}
-        variable="brand_id"
-        customDataMapping={(item) => ({ value: item.id, text: `${item.brand_name}` })}
+      <FormInput
+        {...register("brand_name")}
+        id="brand_name"
+        type="text"
+        name="brand_name"
+        className={clsx({ "border-danger": errors.brand_name })}
+        placeholder={t("Enter brand name (optional)")}
       />
-      {errors.brand_id && (
+      {errors.brand_name && (
         <div className="mt-2 text-danger">
-          {typeof errors.brand_id.message === "string" && errors.brand_id.message}
+          {typeof errors.brand_name.message === "string" && errors.brand_name.message}
         </div>
       )}
     </div>
@@ -921,18 +970,20 @@ return (
     </div>
 
 <div className="mt-3 input-form">
-      <FormLabel htmlFor="brand_id" className="flex flex-col w-full sm:flex-row">
+      <FormLabel htmlFor="brand_name" className="flex flex-col w-full sm:flex-row">
         {t("Brand")}
       </FormLabel>
-      <TomSelectSearch
-        apiUrl={`${app_url}/api/search_brandname`}
-        setValue={setValue}
-        variable="brand_id"
-        customDataMapping={(item) => ({ value: item.id, text: `${item.brand_name}` })}
+      <FormInput
+        {...register("brand_name")}
+        id="brand_name"
+        type="text"
+        name="brand_name"
+        className={clsx({ "border-danger": errors.brand_name })}
+        placeholder={t("Enter brand name (optional)")}
       />
-      {errors.brand_id && (
+      {errors.brand_name && (
         <div className="mt-2 text-danger">
-          {typeof errors.brand_id.message === "string" && errors.brand_id.message}
+          {typeof errors.brand_name.message === "string" && errors.brand_name.message}
         </div>
       )}
     </div>

@@ -32,14 +32,16 @@ class BrandnameController extends BaseController
         }
         $perPage = $request->query('size', 10); 
         $filters = $request['filter'];
+        // Use inner join and ensure only brands with at least one product are returned
         $query = Brandname::query()
-            ->leftJoin('products', 'products.brand_id', '=', 'brandnames.id')
+            ->join('products', 'products.brand_id', '=', 'brandnames.id')
             ->select([
                 'brandnames.id',
                 'brandnames.brand_name',
                 DB::raw('COUNT(products.id) as number_of_products'),
             ])
-            ->groupBy('brandnames.id', 'brandnames.brand_name');
+            ->groupBy('brandnames.id', 'brandnames.brand_name')
+            ->havingRaw('COUNT(products.id) > 0');
         // Apply sorting (handle aggregate alias separately)
         if (isset($request['sort'][0]['field']) && $request['sort'][0]['field'] === 'number_of_products') {
             $query->orderByRaw('number_of_products ' . $sortDir);
@@ -110,24 +112,13 @@ class BrandnameController extends BaseController
 
     public function store(Request $request)
     {
-        Log::info('Incoming request to BrandnameController@store', [
+        Log::info('Blocked request to BrandnameController@store (read-only page)', [
             'method' => $request->method(),
             'params' => $request->all()
         ]);
-
-        $validationRules = [
-            "brand_name" => "required|string|max:255",
-            "number_of_products" => "nullable|numeric",
-        ];
-
-        $validation = Validator::make($request->all(), $validationRules);
-        if ($validation->fails()) {
-            return $this->sendError("Invalid Values", ['errors' => $validation->errors()]);
-        }
-        $validated = $validation->validated();
-
-        $brandname = Brandname::create($validated);
-        return $this->sendResponse($brandname, "brandname created successfully");
+        return response()->json([
+            'message' => 'Brands are managed via the Products page. New brands are created when assigned to a product.'
+        ], 405);
     }
 
     public function show($id)
@@ -142,38 +133,24 @@ class BrandnameController extends BaseController
 
     public function update(Request $request, $id)
     {
-        Log::info('Incoming request to BrandnameController@update', [
+        Log::info('Blocked request to BrandnameController@update (read-only page)', [
             'method' => $request->method(),
             'id' => $id,
             'params' => $request->all()
         ]);
-
-        $brandname = Brandname::findOrFail($id);
-        $validationRules = [
-            "brand_name" => "required|string|max:255",
-            "number_of_products" => "nullable|numeric",
-        ];
-
-        $validation = Validator::make($request->all(), $validationRules);
-        if ($validation->fails()) {
-            return $this->sendError("Invalid Values", ['errors' => $validation->errors()]);
-        }
-        $validated = $validation->validated();
-
-        $brandname->update($validated);
-        return $this->sendResponse($brandname, "brandname updated successfully");
+        return response()->json([
+            'message' => 'Brand names cannot be edited here. Update brand assignments via the Products page.'
+        ], 405);
     }
 
     public function destroy($id)
     {
-        Log::info('Incoming request to BrandnameController@destroy', [
+        Log::info('Blocked request to BrandnameController@destroy (read-only page)', [
             'id' => $id
         ]);
-
-        $brandname = Brandname::findOrFail($id);
-        $brandname->delete();
-
-        return $this->sendResponse(1, "brandname deleted successfully");
+        return response()->json([
+            'message' => 'Brands cannot be deleted directly. They disappear when no products reference them.'
+        ], 405);
     }
 
     public function deleteFile($filePath)
