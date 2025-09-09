@@ -77,40 +77,129 @@ const initialState: SideMenuState = {
       permission: "view-hr-menu",
       subMenu: [
         {
-      icon: "UserCheck",
-      pathname: "/menu/customer",
-      title: "Customers",
-      permission: "customer-list"
+          icon: "UserCheck",
+          pathname: "/menu/customer",
+          title: "Customer",
+          permission: "customer-list"
         },
-
         {
-      icon: "Truck",
-      pathname: "/menu/supplier",
-      title: "Suppliers",
-      permission: "supplier-list"
-      },
-
-         {
-      icon: "ListOrdered",
-      pathname: "/menu/product",
-      title: "Products",
-      permission: "product-list"
-    },
-
+          icon: "ShoppingBasket",
+          title: "Baskets",
+          permission: "view-hr-menu",
+          subMenu: [
+            {
+              icon: "ShoppingBasket",
+              pathname: "/menu/basket",
+              title: "Basket",
+              permission: "basket-list"
+            },
+            {
+              icon: "FileText",
+              pathname: "/menu/basketfile",
+              title: "Basket File",
+              permission: "basketfile-list"
+            },
+            {
+              icon: "Package2",
+              pathname: "/menu/basketitem",
+              title: "Basket Item",
+              permission: "basketitem-list"
+            }
+          ]
+        },
         {
-      icon: "Info",
-      pathname: "/menu/productinformation",
-      title: "Product Information",
-      permission: "productinformation-list"
-    },
-    
-        
+          icon: "ClipboardList",
+          title: "Orders",
+          permission: "view-hr-menu",
+          subMenu: [
+            {
+              icon: "ClipboardList",
+              pathname: "/menu/order",
+              title: "Order",
+              permission: "order-list"
+            },
+            {
+              icon: "FileText",
+              pathname: "/menu/orderdetail",
+              title: "Order Details",
+              permission: "orderdetail-list"
+            }
+          ]
+        },
+        {
+          icon: "Truck",
+          title: "Orders from Suppliers",
+          permission: "view-hr-menu",
+          subMenu: [
+            {
+              icon: "Truck",
+              pathname: "/menu/supplierorder",
+              title: "Supplier Order",
+              permission: "supplierorder-list"
+            },
+            {
+              icon: "FileText",
+              pathname: "/menu/supplierorderdetail",
+              title: "Supplier Order Details",
+              permission: "supplierorderdetail-list"
+            }
+          ]
+        },
+        {
+          icon: "Package",
+          title: "Packaging",
+          permission: "view-hr-menu",
+          subMenu: [
+            {
+              icon: "Package",
+              pathname: "/menu/packagin",
+              title: "Packaging",
+              permission: "packagin-list"
+            },
+            {
+              icon: "Clipboard",
+              pathname: "/menu/packinglist",
+              title: "Packing List",
+              permission: "packinglist-list"
+            },
+            {
+              icon: "Box",
+              pathname: "/menu/packinglistbox",
+              title: "Packing List Box",
+              permission: "packinglistbox-list"
+            },
+            {
+              icon: "Package2",
+              pathname: "/menu/packinglistboxitem",
+              title: "Packing List Box Item",
+              permission: "packinglistboxitem-list"
+            }
+          ]
+        },
+        {
+          icon: "Truck",
+          pathname: "/menu/supplier",
+          title: "Suppliers",
+          permission: "supplier-list"
+        },
+        {
+          icon: "ListOrdered",
+          pathname: "/menu/product",
+          title: "Products",
+          permission: "product-list"
+        },
+        {
+          icon: "Info",
+          pathname: "/menu/productinformation",
+          title: "Information",
+          permission: "productinformation-list"
+        }
       ],
     },
 
        {
       icon: "Briefcase",
-      title: "Product Portifolio",
+      title: "Product Portfolio",
       permission: "view-hr-menu",
       subMenu: [
     {
@@ -268,92 +357,6 @@ const initialState: SideMenuState = {
 
 
 
-    {
-      icon: "BookMarked",
-      pathname: "/basket",
-      title: "Basket",
-      permission: "basket-list"
-    },
-    
-
-    {
-      icon: "BookMarked",
-      pathname: "/basketfile",
-      title: "Basketfile",
-      permission: "basketfile-list"
-    },
-    
-
-    {
-      icon: "BookMarked",
-      pathname: "/basketitem",
-      title: "Basketitem",
-      permission: "basketitem-list"
-    },
-    
-
-    {
-      icon: "BookMarked",
-      pathname: "/order",
-      title: "Order",
-      permission: "order-list"
-    },
-    
-
-    {
-      icon: "BookMarked",
-      pathname: "/orderdetail",
-      title: "Orderdetail",
-      permission: "orderdetail-list"
-    },
-    
-
-    {
-      icon: "BookMarked",
-      pathname: "/supplierorder",
-      title: "Supplierorder",
-      permission: "supplierorder-list"
-    },
-    
-
-    {
-      icon: "BookMarked",
-      pathname: "/supplierorderdetail",
-      title: "Supplierorderdetail",
-      permission: "supplierorderdetail-list"
-    },
-    
-
-    {
-      icon: "BookMarked",
-      pathname: "/packagin",
-      title: "Packagin",
-      permission: "packagin-list"
-    },
-    
-
-    {
-      icon: "BookMarked",
-      pathname: "/packinglist",
-      title: "Packinglist",
-      permission: "packinglist-list"
-    },
-    
-
-    {
-      icon: "BookMarked",
-      pathname: "/packinglistbox",
-      title: "Packinglistbox",
-      permission: "packinglistbox-list"
-    },
-    
-
-    {
-      icon: "BookMarked",
-      pathname: "/packinglistboxitem",
-      title: "Packinglistboxitem",
-      permission: "packinglistboxitem-list"
-    },
     
 
     {
