@@ -18,7 +18,6 @@ import {
   useEditOrderMutation,
 } from "@/stores/apiSlice";
 import clsx from "clsx";
-import { Dialog } from "@/components/Base/Headless";
 import Can from "@/helpers/PermissionChecker/index.js";
 import { useTranslation } from "react-i18next";
 import LoadingIcon from "@/components/Base/LoadingIcon/index.tsx";
@@ -482,13 +481,14 @@ customer_note : yup.string().required(t('The Customer Note field is required')),
 
 return (
     <div>
-      <Dialog
+      <Slideover
+        size="xl"
         open={showDeleteModal}
         onClose={() => {
           setShowDeleteModal(false);
         }}
       >
-        <Dialog.Panel>
+        <Slideover.Panel>
           <div className="p-5 text-center">
             <Lucide
               icon="XCircle"
@@ -517,23 +517,23 @@ return (
               {t("Delete")}
             </Button>
           </div>
-        </Dialog.Panel>
-      </Dialog>
+        </Slideover.Panel>
+      </Slideover>
 
 
-      <Dialog
-       
+      <Slideover
+        size="xl"
         open={showCreateModal}
         onClose={() => {
           setShowCreateModal(false);
         }}
       >
-        <Dialog.Panel className="text-center">
+        <Slideover.Panel className="text-center">
           <form onSubmit={handleSubmit(onCreate)}>
-            <Dialog.Title>
+            <Slideover.Title>
               <h2 className="mr-auto text-base font-medium">{t("Add New Order")}</h2>
-            </Dialog.Title>
-            <Dialog.Description className="relative">
+            </Slideover.Title>
+            <Slideover.Description className="relative overflow-y-auto max-h-[calc(100vh-200px)]">
               <div className="relative">
                 {loading || updating || deleting ? (
                   <div className="w-full h-full z-[99999px] absolute backdrop-blur-md bg-gray-600">
@@ -542,7 +542,7 @@ return (
                     </div>
                   </div>
                 ) : (
-                  <div className=" w-full grid grid-cols-1 gap-4 gap-y-3">
+                  <div className=" w-full grid grid-cols-2 gap-4 gap-y-3">
                     
    <div className="mt-3 input-form">
       <FormLabel
@@ -1037,8 +1037,8 @@ return (
                   </div>
                       )}
               </div>
-            </Dialog.Description>
-            <Dialog.Footer>
+            </Slideover.Description>
+            <Slideover.Footer>
               <Button
                 type="button"
                 variant="outline-secondary"
@@ -1052,23 +1052,23 @@ return (
               <Button variant="primary" type="submit" className="w-20">
                 {t("Save")}
               </Button>
-            </Dialog.Footer>
+            </Slideover.Footer>
           </form>
-        </Dialog.Panel>
-      </Dialog>
-      <Dialog
-       
+        </Slideover.Panel>
+      </Slideover>
+      <Slideover
+        size="xl"
         open={showUpdateModal}
         onClose={() => {
           setShowUpdateModal(false);
         }}
       >
-        <Dialog.Panel className="text-center">
+        <Slideover.Panel className="text-center">
           <form onSubmit={handleSubmit(onUpdate)}>
-            <Dialog.Title>
+            <Slideover.Title>
               <h2 className="mr-auto text-base font-medium">{t("Edit Order")}</h2>
-            </Dialog.Title>
-            <Dialog.Description className="relative">
+            </Slideover.Title>
+            <Slideover.Description className="relative overflow-y-auto max-h-[calc(100vh-200px)]">
               <div className="relative">
                 {loading || updating || deleting ? (
                   <div className="w-full h-full z-[99999px] absolute backdrop-blur-md bg-gray-600">
@@ -1572,8 +1572,8 @@ return (
                   </div>
                 )}
               </div>
-            </Dialog.Description>
-            <Dialog.Footer>
+            </Slideover.Description>
+            <Slideover.Footer>
               <Button
                 type="button"
                 variant="outline-secondary"
@@ -1587,10 +1587,10 @@ return (
               <Button variant="primary" type="submit" className="w-20">
                 {t("Update")}
               </Button>
-            </Dialog.Footer>
+            </Slideover.Footer>
           </form>
-        </Dialog.Panel>
-      </Dialog>
+        </Slideover.Panel>
+      </Slideover>
       <Notification
         getRef={(el) => {
           basicStickyNotification.current = el;
