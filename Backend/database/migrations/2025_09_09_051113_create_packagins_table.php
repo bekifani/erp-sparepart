@@ -21,7 +21,7 @@ return new class extends Migration
                 $table->integer('number_of_boxes')->nullable();
                 $table->date('order_date');
                 $table->foreignId('status_id')->nullable();
-                $table->foreign('status_id')->references('id')->on('productstatuss')->onDelete('restrict')->onUpdate('cascade');
+                $table->foreign('status_id')->references('id')->on('productstatuses')->onDelete('restrict')->onUpdate('cascade');
                 $table->text('internal_note')->nullable();
                 $table->text('customer_note')->nullable();
                 

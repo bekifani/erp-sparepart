@@ -23,7 +23,7 @@ return new class extends Migration
                 $table->decimal('discount',10,2)->nullable();
                 $table->decimal('extra_expenses',10,2)->nullable();
                 $table->foreignId('status_id')->nullable();
-                $table->foreign('status_id')->references('id')->on('productstatuss')->onDelete('restrict')->onUpdate('cascade');
+                $table->foreign('status_id')->references('id')->on('productstatuses')->onDelete('restrict')->onUpdate('cascade');
                 $table->text('internal_note')->nullable();
                 $table->text('customer_note')->nullable();
                 

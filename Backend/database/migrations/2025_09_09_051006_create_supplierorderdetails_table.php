@@ -25,7 +25,7 @@ return new class extends Migration
                 $table->decimal('extra_cost',10,2)->nullable();
                 $table->decimal('amount',10,2)->nullable();
                 $table->foreignId('status_id')->nullable();
-                $table->foreign('status_id')->references('id')->on('productstatuss')->onDelete('restrict')->onUpdate('cascade');
+                $table->foreign('status_id')->references('id')->on('productstatuses')->onDelete('restrict')->onUpdate('cascade');
                 $table->string('additional_note')->nullable();
                 $table->string('image_url')->nullable();
                 

@@ -13,7 +13,7 @@ return new class extends Migration
                 $table->string('name');
                 $table->string('name_ch');
                 $table->string('name_az');
-                $table->enum('status',enum)->nullable();
+                $table->enum('status',['active','inactive'])->nullable();
                 
             $table->timestamps();
         });

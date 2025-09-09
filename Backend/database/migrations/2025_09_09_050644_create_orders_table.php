@@ -27,7 +27,7 @@ return new class extends Migration
                 $table->date('expected_date')->nullable();
                 $table->date('shipping_date')->nullable();
                 $table->foreignId('status_id')->nullable();
-                $table->foreign('status_id')->references('id')->on('productstatuss')->onDelete('restrict')->onUpdate('cascade');
+                $table->foreign('status_id')->references('id')->on('productstatuses')->onDelete('restrict')->onUpdate('cascade');
                 $table->string('invoice_language')->nullable();
                 $table->foreignId('company_id')->nullable();
                 $table->foreign('company_id')->references('id')->on('compans')->onDelete('restrict')->onUpdate('cascade');

@@ -19,7 +19,7 @@ return new class extends Migration
                 $table->decimal('line_total',10,2)->nullable();
                 $table->date('arrival_time');
                 $table->foreignId('status_id')->nullable();
-                $table->foreign('status_id')->references('id')->on('productstatuss')->onDelete('restrict')->onUpdate('cascade');
+                $table->foreign('status_id')->references('id')->on('productstatuses')->onDelete('restrict')->onUpdate('cascade');
                 $table->text('additional_note')->nullable();
                 
             $table->timestamps();

@@ -14,7 +14,7 @@ return new class extends Migration
                 $table->foreign('customer_id')->references('id')->on('customers')->onDelete('restrict')->onUpdate('cascade');
                 $table->foreignId('product_id')->nullable();
                 $table->foreign('product_id')->references('id')->on('products')->onDelete('restrict')->onUpdate('cascade');
-                $table->enum('visibility',enum(['allow','deny']))->nullable();
+                $table->enum('visibility',['allow','deny'])->nullable();
                 
             $table->timestamps();
         });
