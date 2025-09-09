@@ -215,44 +215,344 @@ visibility : yup.string().required(t('The Visibility field is required')),
     return ReactDOMServer.renderToString(element); // Convert JSX to HTML string
   };
 
-  const onCreate = async (data) => {
+    const onCreate = async (data) => {
+    console.log('🟡 onCreate called with data:', data);
+    console.log('🟡 Form errors:', errors);
+    console.log('🟡 Current form values:', getValues());
+    console.log('🟡 Form is valid:', Object.keys(errors).length === 0);
+    
+    // Check if form has validation errors
+    if (Object.keys(errors).length > 0) {
+      console.error('🔴 Form has validation errors:', errors);
+      setToastMessage(t("Please fix the form errors before submitting"));
+      basicStickyNotification.current?.showToast();
+      return;
+    }
+    
     try {
       const response = await createCustomerbrandvisibilit(data);
-      setToastMessage(t("Customerbrandvisibilit created successfully."));
+      console.log('🟡 API response:', response);
+      
+      if (response && (response.success === true || response.data?.success === true)) {
+        setToastMessage(t("Customerbrandvisibilit created successfully."));
+        setRefetch(true);
+        setShowCreateModal(false);
+        basicStickyNotification.current?.showToast();
+        // Auto-hide toast after 7 seconds
+        setTimeout(() => {
+          basicStickyNotification.current?.hideToast();
+        }, 7000);
+      } else {
+        console.error('🔴 API returned error:', response);
+        let errorMessage = t("Error creating Customerbrandvisibilit");
+        
+        // Check multiple possible error structures
+        const errorSources = [
+          response?.error?.data?.data?.errors,  // RTK Query error structure
+          response?.data?.data?.errors,         // Direct API response
+          response?.error?.data?.errors,        // Alternative error structure
+          response?.data?.errors                // Simple error structure
+        ];
+        
+        let validationErrors = null;
+        for (const errorSource of errorSources) {
+          if (errorSource && typeof errorSource === 'object') {
+            validationErrors = errorSource;
+            break;
+          }
+        }
+        
+        if (validationErrors) {
+          const errorFields = Object.keys(validationErrors);
+          if (errorFields.length > 0) {
+            // Get the first validation error message
+            const firstFieldErrors = validationErrors[errorFields[0]];
+            if (Array.isArray(firstFieldErrors) && firstFieldErrors.length > 0) {
+              errorMessage = firstFieldErrors[0];
+            } else if (typeof firstFieldErrors === 'string') {
+              errorMessage = firstFieldErrors;
+            }
+          }
+        } else {
+          // Handle parsing errors (when server returns HTML instead of JSON)
+          if (response?.error?.status === "PARSING_ERROR") {
+            errorMessage = t("Server error occurred. Please try again later or contact support.");
+          } else {
+            // Fallback to general error messages
+            const generalErrorSources = [
+              response?.error?.data?.message,
+              response?.data?.message,
+              response?.message,
+              response?.error?.error
+            ];
+            
+            for (const errorSource of generalErrorSources) {
+              if (errorSource && typeof errorSource === 'string') {
+                errorMessage = errorSource;
+                break;
+              }
+            }
+          }
+        }
+        
+        setToastMessage(errorMessage);
+        basicStickyNotification.current?.showToast();
+        // Auto-hide toast after 7 seconds
+        setTimeout(() => {
+          basicStickyNotification.current?.hideToast();
+        }, 7000);
+      }
     } catch (error) {
-      setToastMessage(t("Error creating Customerbrandvisibilit."));
+      console.error('🔴 Exception in onCreate:', error);
+      let errorMessage = t("Error creating Customerbrandvisibilit");
+      
+      // Check multiple possible error structures in catch block
+      const errorSources = [
+        error?.error?.data?.data?.errors,
+        error?.error?.data?.errors,
+        error?.response?.data?.data?.errors,
+        error?.response?.data?.errors,
+        error?.data?.data?.errors,
+        error?.data?.errors
+      ];
+      
+      let validationErrors = null;
+      for (const errorSource of errorSources) {
+        if (errorSource && typeof errorSource === 'object') {
+          validationErrors = errorSource;
+          break;
+        }
+      }
+      
+      if (validationErrors) {
+        const errorFields = Object.keys(validationErrors);
+        if (errorFields.length > 0) {
+          const firstFieldErrors = validationErrors[errorFields[0]];
+          if (Array.isArray(firstFieldErrors) && firstFieldErrors.length > 0) {
+            errorMessage = firstFieldErrors[0];
+          } else if (typeof firstFieldErrors === 'string') {
+            errorMessage = firstFieldErrors;
+          }
+        }
+      } else {
+        // Handle parsing errors in catch block
+        if (error?.error?.status === "PARSING_ERROR") {
+          errorMessage = t("Server error occurred. Please try again later or contact support.");
+        } else {
+          // Fallback to general error messages
+          const generalErrorSources = [
+            error?.error?.data?.message,
+            error?.response?.data?.message,
+            error?.data?.message,
+            error?.message
+          ];
+          
+          for (const errorSource of generalErrorSources) {
+            if (errorSource && typeof errorSource === 'string') {
+              errorMessage = errorSource;
+              break;
+            }
+          }
+        }
+      }
+      
+      setToastMessage(errorMessage);
+      basicStickyNotification.current?.showToast();
+      // Auto-hide toast after 7 seconds
+      setTimeout(() => {
+        basicStickyNotification.current?.hideToast();
+      }, 7000);
     }
-    basicStickyNotification.current?.showToast();
-    setRefetch(true);
-    setShowCreateModal(false);
-  };
+  };;
 
-  const onUpdate = async (data) => {
-    setShowUpdateModal(false)
+    const onUpdate = async (data) => {
     try {
+      console.log('🟡 Updating customerbrandvisibilit with data:', data);
       const response = await updateCustomerbrandvisibilit(data);
-      setToastMessage(t('Customerbrandvisibilit updated successfully'));
-      setRefetch(true)
+      console.log('🟡 Update customerbrandvisibilit response:', response);
+        
+      if (response && (response.success === true || response.data?.success === true)) {
+        setToastMessage(t('Customerbrandvisibilit updated successfully'));
+        setRefetch(true);
+        setShowUpdateModal(false);
+      } else {
+        // Handle validation errors with comprehensive error extraction
+        let errorMessage = t("Error updating Customerbrandvisibilit");
+        
+        // Check multiple possible error structures
+        const errorSources = [
+          response?.error?.data?.data?.errors,  // RTK Query error structure
+          response?.data?.data?.errors,         // Direct API response
+          response?.error?.data?.errors,        // Alternative error structure
+          response?.data?.errors                // Simple error structure
+        ];
+        
+        let validationErrors = null;
+        for (const errorSource of errorSources) {
+          if (errorSource && typeof errorSource === 'object') {
+            validationErrors = errorSource;
+            break;
+          }
+        }
+        
+        if (validationErrors) {
+          const errorFields = Object.keys(validationErrors);
+          if (errorFields.length > 0) {
+            // Get the first validation error message
+            const firstFieldErrors = validationErrors[errorFields[0]];
+            if (Array.isArray(firstFieldErrors) && firstFieldErrors.length > 0) {
+              errorMessage = firstFieldErrors[0];
+            } else if (typeof firstFieldErrors === 'string') {
+              errorMessage = firstFieldErrors;
+            }
+          }
+        } else {
+          // Handle parsing errors (when server returns HTML instead of JSON)
+          if (response?.error?.status === "PARSING_ERROR") {
+            errorMessage = t("Server error occurred. Please try again later or contact support.");
+          } else {
+            // Fallback to general error messages
+            const generalErrorSources = [
+              response?.error?.data?.message,
+              response?.data?.message,
+              response?.message,
+              response?.error?.error
+            ];
+            
+            for (const errorSource of generalErrorSources) {
+              if (errorSource && typeof errorSource === 'string') {
+                errorMessage = errorSource;
+                break;
+              }
+            }
+          }
+        }
+        
+        setToastMessage(errorMessage);
+        console.error('🔴 Update failed with response:', response);
+        setShowUpdateModal(true);
+      }
     } catch (error) {
-      setShowUpdateModal(true)
-      setToastMessage(t('Customerbrandvisibilit deletion failed'));
+      console.error('🔴 Update customerbrandvisibilit error:', error);
+      let errorMessage = t("Error updating Customerbrandvisibilit");
+      
+      // Check multiple possible error structures in catch block
+      const errorSources = [
+        error?.error?.data?.data?.errors,
+        error?.error?.data?.errors,
+        error?.response?.data?.data?.errors,
+        error?.response?.data?.errors,
+        error?.data?.data?.errors,
+        error?.data?.errors
+      ];
+      
+      let validationErrors = null;
+      for (const errorSource of errorSources) {
+        if (errorSource && typeof errorSource === 'object') {
+          validationErrors = errorSource;
+          break;
+        }
+      }
+      
+      if (validationErrors) {
+        const errorFields = Object.keys(validationErrors);
+        if (errorFields.length > 0) {
+          const firstFieldErrors = validationErrors[errorFields[0]];
+          if (Array.isArray(firstFieldErrors) && firstFieldErrors.length > 0) {
+            errorMessage = firstFieldErrors[0];
+          } else if (typeof firstFieldErrors === 'string') {
+            errorMessage = firstFieldErrors;
+          }
+        }
+      } else {
+        // Handle parsing errors in catch block
+        if (error?.error?.status === "PARSING_ERROR") {
+          errorMessage = t("Server error occurred. Please try again later or contact support.");
+        } else {
+          // Fallback to general error messages
+          const generalErrorSources = [
+            error?.error?.data?.message,
+            error?.response?.data?.message,
+            error?.data?.message,
+            error?.message
+          ];
+          
+          for (const errorSource of generalErrorSources) {
+            if (errorSource && typeof errorSource === 'string') {
+              errorMessage = errorSource;
+              break;
+            }
+          }
+        }
+      }
+      
+      setToastMessage(errorMessage);
+      setShowUpdateModal(true);
     }
+      
     basicStickyNotification.current?.showToast();
-  };
+    // Auto-hide toast after 7 seconds
+    setTimeout(() => {
+      basicStickyNotification.current?.hideToast();
+    }, 7000);
+  };;
 
-  const onDelete = async () => {
+    const onDelete = async () => {
     let id = getValues("id");
-    setShowDeleteModal(false)
+    setShowDeleteModal(false);
+    
     try {
-        const response = deleteCustomerbrandvisibilit(id);
+      console.log('🔴 Deleting customerbrandvisibilit with id:', id);
+      const response = await deleteCustomerbrandvisibilit(id);
+      console.log('🔴 Delete customerbrandvisibilit response:', response);
+      
+      if (response && (response.success === true || response.data?.success === true)) {
         setToastMessage(t("Customerbrandvisibilit deleted successfully."));
         setRefetch(true);
+      } else {
+        // Handle validation errors specifically
+        if (response?.error?.data?.data?.errors) {
+          const validationErrors = response.error.data.data.errors;
+          const errorFields = Object.keys(validationErrors);
+          if (errorFields.length > 0) {
+            const firstError = validationErrors[errorFields[0]][0];
+            setToastMessage(firstError);
+          }
+        } else {
+          const errorMsg = response?.error?.data?.message || response?.message || response?.error || 'Unknown error occurred';
+          setToastMessage(`${t("Error deleting Customerbrandvisibilit")}: ${errorMsg}`);
+        }
+        console.error('🔴 Delete failed with response:', response);
       }
-    catch (error) {
-      setToastMessage(t("Error deleting Customerbrandvisibilit."));
+    } catch (error) {
+      console.error('🔴 Delete customerbrandvisibilit error:', error);
+      let errorMessage = t("Error deleting Customerbrandvisibilit");
+      
+      if (error?.error?.data?.data?.errors) {
+        // Handle validation errors from error.error.data.data.errors structure
+        const validationErrors = error.error.data.data.errors;
+        const errorFields = Object.keys(validationErrors);
+        if (errorFields.length > 0) {
+          const firstError = validationErrors[errorFields[0]][0];
+          errorMessage = firstError;
+        }
+      } else if (error?.error?.data?.message) {
+        errorMessage = error.error.data.message;
+      } else if (error.response?.data?.message) {
+        errorMessage = error.response.data.message;
+      } else if (error.message) {
+        errorMessage = `${t("Error")}: ${error.message}`;
+      }
+      
+      setToastMessage(errorMessage);
     }
+    
     basicStickyNotification.current?.showToast();
-  };    
+    // Auto-hide toast after 7 seconds
+    setTimeout(() => {
+      basicStickyNotification.current?.hideToast();
+    }, 7000);
+  };;    
 
 return (
     <div>
