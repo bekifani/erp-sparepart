@@ -465,66 +465,66 @@ const initialState: SideMenuState = {
 
 
     
-    {
-      icon: "Settings",
-      pathname: "/menu/productrule",
-      title: "Product Rule",
-      permission: "productrule-list"
-    },
+    // {
+    //   icon: "Settings",
+    //   pathname: "/menu/productrule",
+    //   title: "Product Rule",
+    //   permission: "productrule-list"
+    // },
     
 
     
 
     
 
-    {
-      icon: "Eye",
-      pathname: "/menu/customerbrandvisibilit",
-      title: "Customer Brand Visibility",
-      permission: "customerbrandvisibilit-list"
-    },
+    // {
+    //   icon: "Eye",
+    //   pathname: "/menu/customerbrandvisibilit",
+    //   title: "Customer Brand Visibility",
+    //   permission: "customerbrandvisibilit-list"
+    // },
     
 
-    {
-      icon: "EyeOff",
-      pathname: "/menu/customerproductvisibilit",
-      title: "Customer Product Visibility",
-      permission: "customerproductvisibilit-list"
-    },
+    // {
+    //   icon: "EyeOff",
+    //   pathname: "/menu/customerproductvisibilit",
+    //   title: "Customer Product Visibility",
+    //   permission: "customerproductvisibilit-list"
+    // },
     
 
-    {
-      icon: "PiggyBank",
-      pathname: "/menu/supplierpricingrule",
-      title: "Supplier Pricing Rule",
-      permission: "supplierpricingrule-list"
-    },
+    // {
+    //   icon: "PiggyBank",
+    //   pathname: "/menu/supplierpricingrule",
+    //   title: "Supplier Pricing Rule",
+    //   permission: "supplierpricingrule-list"
+    // },
     
 
-    {
-      icon: "Calculator",
-      pathname: "/menu/supplierpricingrulecustomer",
-      title: "Supplier Pricing Rule Customer",
-      permission: "supplierpricingrulecustomer-list"
-    },
+    // {
+    //   icon: "Calculator",
+    //   pathname: "/menu/supplierpricingrulecustomer",
+    //   title: "Supplier Pricing Rule Customer",
+    //   permission: "supplierpricingrulecustomer-list"
+    // },
     
 
-    {
-      icon: "Package2",
-      pathname: "/menu/supplierproduct",
-      title: "Supplier Product",
-      permission: "supplierproduct-list"
-    },
+    // {
+    //   icon: "Package2",
+    //   pathname: "/menu/supplierproduct",
+    //   title: "Supplier Product",
+    //   permission: "supplierproduct-list"
+    // },
     
 
     
 
-    {
-      icon: "History",
-      pathname: "/menu/producthistor",
-      title: "Product History",
-      permission: "producthistor-list"
-    },
+    // {
+    //   icon: "History",
+    //   pathname: "/menu/producthistor",
+    //   title: "Product History",
+    //   permission: "producthistor-list"
+    // },
     
     
     //addhere 
