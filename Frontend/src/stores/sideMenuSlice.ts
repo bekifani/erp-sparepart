@@ -39,7 +39,7 @@ const initialState: SideMenuState = {
       subMenu: [
         
         {
-          icon: "BookMarked",
+          icon: "Shield",
           pathname: "/menu/role",
           title: "Role",
           permission:"role-list",
@@ -53,14 +53,14 @@ const initialState: SideMenuState = {
         },
     
         {
-          icon: "Pocket",
+          icon: "User",
           pathname: "/menu/user",
           title: "User",
           permission:"user-list",
         },
 
         {
-          icon: "Pocket",
+          icon: "Activity",
           pathname: "/menu/activities",
           title: "Activities",
           permission:"activity-list",
@@ -200,7 +200,7 @@ const initialState: SideMenuState = {
               permission: "customerinvoiceitem-list"
             },
             {
-              icon: "BookMarked",
+              icon: "Paperclip",
               pathname: "/menu/attachment",
               title: "Attachment",
               permission: "attachment-list"
@@ -315,19 +315,19 @@ const initialState: SideMenuState = {
     },
     
        {
-      icon: "ShoppingCart",
+      icon: "FileText",
       title: "Specifications",
       permission: "view-hr-menu",
       subMenu: [
           {
-      icon: "FileText",
+      icon: "Heading",
       pathname: "/menu/specificationheadname",
       title: "Specification Headname",
       permission: "specificationheadname-list"
     },
     
         {
-      icon: "ClipboardList",
+      icon: "Clipboard",
       pathname: "/menu/productspecification",
       title: "Product Specification",
       permission: "productspecification-list"
@@ -356,12 +356,12 @@ const initialState: SideMenuState = {
     // "Report",
 
     {
-      icon: "FileText",
+      icon: "BarChart3",
       title: "Report",
       permission: "view-hr-menu",
       subMenu: [
         {
-          icon: "Calculator",
+          icon: "Wallet",
           title: "Cashier",
           permission: "view-hr-menu",
           subMenu: [
@@ -396,7 +396,7 @@ const initialState: SideMenuState = {
               permission: "companyaccount-list"
             },
             {
-              icon: "Package",
+              icon: "Warehouse",
               pathname: "/menu/warehouseaccount",
               title: "Warehouse Account",
               permission: "warehouseaccount-list"
@@ -404,13 +404,13 @@ const initialState: SideMenuState = {
           ]
         },
         {
-          icon: "Package",
+          icon: "Warehouse",
           pathname: "/menu/warehouse",
           title: "Warehouse",
           permission: "warehouse-list"
         },
         {
-          icon: "BarChart3",
+          icon: "TrendingUp",
           pathname: "/menu/productstatus",
           title: "Product Statuses",
           permission: "productstatus-list"
@@ -419,13 +419,13 @@ const initialState: SideMenuState = {
     },
 // "Reference Book",
     {
-      icon: "Users",
+      icon: "BookOpen",
       title: "Reference Book",
       permission: "view-hr-menu",
       subMenu: [
         
     {
-      icon: "DollarSign",
+      icon: "TrendingUp",
       pathname: "/menu/exchangerate",
       title: "Exchange Rates",
       permission: "exchangerate-list"
@@ -466,9 +466,9 @@ const initialState: SideMenuState = {
 
     
     {
-      icon: "BookMarked",
+      icon: "Settings",
       pathname: "/menu/productrule",
-      title: "Productrule",
+      title: "Product Rule",
       permission: "productrule-list"
     },
     
@@ -478,41 +478,41 @@ const initialState: SideMenuState = {
     
 
     {
-      icon: "BookMarked",
+      icon: "Eye",
       pathname: "/menu/customerbrandvisibilit",
-      title: "Customerbrandvisibilit",
+      title: "Customer Brand Visibility",
       permission: "customerbrandvisibilit-list"
     },
     
 
     {
-      icon: "BookMarked",
+      icon: "EyeOff",
       pathname: "/menu/customerproductvisibilit",
-      title: "Customerproductvisibilit",
+      title: "Customer Product Visibility",
       permission: "customerproductvisibilit-list"
     },
     
 
     {
-      icon: "BookMarked",
+      icon: "PiggyBank",
       pathname: "/menu/supplierpricingrule",
-      title: "Supplierpricingrule",
+      title: "Supplier Pricing Rule",
       permission: "supplierpricingrule-list"
     },
     
 
     {
-      icon: "BookMarked",
+      icon: "Calculator",
       pathname: "/menu/supplierpricingrulecustomer",
-      title: "Supplierpricingrulecustomer",
+      title: "Supplier Pricing Rule Customer",
       permission: "supplierpricingrulecustomer-list"
     },
     
 
     {
-      icon: "BookMarked",
+      icon: "Package2",
       pathname: "/menu/supplierproduct",
-      title: "Supplierproduct",
+      title: "Supplier Product",
       permission: "supplierproduct-list"
     },
     
@@ -520,9 +520,9 @@ const initialState: SideMenuState = {
     
 
     {
-      icon: "BookMarked",
+      icon: "History",
       pathname: "/menu/producthistor",
-      title: "Producthistor",
+      title: "Product History",
       permission: "producthistor-list"
     },
     
