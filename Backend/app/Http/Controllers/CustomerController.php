@@ -72,7 +72,7 @@ class CustomerController extends BaseController
         }
         $results = Customer::where(function ($query) use ($searchTerm) {
             foreach ($this->searchableColumns as $column) {
-                $query->orWhere($column, 'like', "%$$searchTerm%");
+                $query->orWhere($column, 'like', "%$searchTerm%");
             }   
         })->paginate(20);
         return $this->sendResponse($results , 'search resutls for customer');

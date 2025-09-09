@@ -7,30 +7,93 @@ use App\Models\Productrule;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
+
 class ProductruleController extends BaseController
 {
-    protected $searchableColumns = ['customer_id', 'product_id', 'fixed_price', 'adjustment_percent', 'qty', 'note'];
+    protected $searchableColumns = ['customer_id', 'supplier_id', 'product_id', 'price', 'quantity', 'amount', 'note'];
 
     public function index(Request $request)
     {
-        $sortBy = 'id';
+        $sortBy = 'productrules.id';
         $sortDir = 'desc';
         if($request['sort']){
-            $sortBy = $request['sort'][0]['field'];
+            $field = $request['sort'][0]['field'];
+            $map = [
+                'id' => 'productrules.id',
+                'customer_id' => 'productrules.customer_id',
+                'supplier_id' => 'productrules.supplier_id',
+                'product_id' => 'productrules.product_id',
+                'price' => 'productrules.price',
+                'quantity' => 'productrules.quantity',
+                'amount' => 'productrules.amount',
+                'note' => 'productrules.note',
+                'customer_name' => 'customers.name_surname',
+                'supplier_name' => 'suppliers.supplier',
+                'supplier_code' => 'suppliers.code',
+                'brand_name' => 'brandnames.brand_name',
+                'brand_code_name' => 'products.brand_code',
+                'oe_code' => 'products.oe_code',
+                'description' => 'products.description',
+                'created_at' => 'productrules.created_at',
+            ];
+            $sortBy = $map[$field] ?? 'productrules.id';
             $sortDir = $request['sort'][0]['dir'];
         }
         $perPage = $request->query('size', 10); 
         $filters = $request['filter'];
-        $query = Productrule::orderBy($sortBy, $sortDir);
+        $query = Productrule::leftJoin('customers', 'customers.id', '=', 'productrules.customer_id')
+            ->leftJoin('suppliers', 'suppliers.id', '=', 'productrules.supplier_id')
+            ->leftJoin('products', 'products.id', '=', 'productrules.product_id')
+            ->leftJoin('brandnames', 'products.brand_id', '=', 'brandnames.id')
+            ->select([
+                'productrules.*',
+                'customers.name_surname as customer_name',
+                'suppliers.supplier as supplier_name',
+                'suppliers.code as supplier_code',
+                'brandnames.brand_name as brand_name',
+                'products.brand_code as brand_code_name',
+                'products.oe_code',
+                'products.description',
+            ])
+            ->orderBy($sortBy, $sortDir);
         if($filters){
             foreach ($filters as $filter) {
                 $field = $filter['field'];
+                $fieldMap = [
+                    'id' => 'productrules.id',
+                    'customer_id' => 'productrules.customer_id',
+                    'supplier_id' => 'productrules.supplier_id',
+                    'product_id' => 'productrules.product_id',
+                    'price' => 'productrules.price',
+                    'quantity' => 'productrules.quantity',
+                    'amount' => 'productrules.amount',
+                    'note' => 'productrules.note',
+                    'customer_name' => 'customers.name_surname',
+                    'supplier_name' => 'suppliers.supplier',
+                    'supplier_code' => 'suppliers.code',
+                    'brand_name' => 'brandnames.brand_name',
+                    'brand_code_name' => 'products.brand_code',
+                    'oe_code' => 'products.oe_code',
+                    'description' => 'products.description',
+                    'created_at' => 'productrules.created_at',
+                ];
+                $dbField = $fieldMap[$field] ?? $field;
                 $operator = $filter['type'];
                 $searchTerm = $filter['value'];
+                // Special handling for null checks via filter API
+                if ($searchTerm === 'null') {
+                    if (in_array($operator, ['!=', '<>'])) {
+                        $query->whereNotNull($dbField);
+                        continue;
+                    } elseif ($operator === '=') {
+                        $query->whereNull($dbField);
+                        continue;
+                    }
+                }
                 if ($operator == 'like') {
                     $searchTerm = '%' . $searchTerm . '%';
                 }
-                $query->where($field, $operator, $searchTerm);
+                $query->where($dbField, $operator, $searchTerm);
             }
         }
         $productrule = $query->paginate($perPage); 
@@ -66,31 +129,49 @@ class ProductruleController extends BaseController
 
     public function store(Request $request)
     {
-        $validationRules = [
-          
-          "customer_id"=>"required|exists:customers,id",
-          "product_id"=>"required|exists:products,id",
-          "fixed_price"=>"nullable|numeric",
-          "adjustment_percent"=>"nullable|numeric",
-          "qty"=>"required|integer",
-          "note"=>"nullable|string|max:255",
-          
+        // Log the incoming request for debugging
+        \Log::info('Product Rule Creation Request:', [
+            'all' => $request->all(),
+            'json' => $request->getContent(),
+            'headers' => $request->headers->all(),
+        ]);
 
+        $validationRules = [
+            'customer_id' => 'nullable|exists:customers,id|required_without:supplier_id',
+            'supplier_id' => 'nullable|exists:suppliers,id|required_without:customer_id',
+            'product_id'  => 'required|exists:products,id',
+            'price'       => 'required|numeric|min:0',
+            'quantity'    => 'required|integer|min:1',
+            'amount'      => 'nullable|numeric',
+            'note'        => 'nullable|string|max:255',
         ];
 
-        $validation = Validator::make($request->all() , $validationRules);
-        if($validation->fails()){
+        $validation = Validator::make($request->all(), $validationRules);
+        
+        if ($validation->fails()) {
+            \Log::error('Validation failed:', $validation->errors()->toArray());
             return $this->sendError("Invalid Values", ['errors' => $validation->errors()]);
         }
-        $validated=$validation->validated();
-
-
-
         
-        //file uploads
+        $validated = $validation->validated();
+        \Log::info('Validated data:', $validated);
 
-        $productrule = Productrule::create($validated);
-        return $this->sendResponse($productrule, "productrule created succesfully");
+        // If amount is not provided, compute it as quantity * price
+        if (!isset($validated['amount'])) {
+            $validated['amount'] = $validated['quantity'] * $validated['price'];
+        }
+
+        try {
+            $productrule = Productrule::create($validated);
+            \Log::info('Product rule created successfully:', $productrule->toArray());
+            return $this->sendResponse($productrule, "Product rule created successfully");
+        } catch (\Exception $e) {
+            \Log::error('Error creating product rule:', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            return $this->sendError("Error creating product rule: " . $e->getMessage());
+        }
     }
 
     public function show($id)
@@ -103,17 +184,14 @@ class ProductruleController extends BaseController
     public function update(Request $request, $id)
     {
         $productrule = Productrule::findOrFail($id);
-         $validationRules = [
-            //for update
-
-          
-          "customer_id"=>"required|exists:customers,id",
-          "product_id"=>"required|exists:products,id",
-          "fixed_price"=>"nullable|numeric",
-          "adjustment_percent"=>"nullable|numeric",
-          "qty"=>"required|integer",
-          "note"=>"nullable|string|max:255",
-          
+        $validationRules = [
+          'customer_id' => 'nullable|exists:customers,id|required_without:supplier_id',
+          'supplier_id' => 'nullable|exists:suppliers,id|required_without:customer_id',
+          'product_id'  => 'required|exists:products,id',
+          'price'       => 'nullable|numeric',
+          'quantity'    => 'required|integer|min:1',
+          'amount'      => 'nullable|numeric',
+          'note'        => 'nullable|string|max:255',
         ];
 
         $validation = Validator::make($request->all() , $validationRules);
@@ -122,10 +200,11 @@ class ProductruleController extends BaseController
         }
         $validated=$validation->validated();
 
-
-
-
-        //file uploads update
+        if (!isset($validated['amount'])) {
+            $qty = (int)($validated['quantity'] ?? 0);
+            $price = (float)($validated['price'] ?? 0);
+            $validated['amount'] = $qty * $price;
+        }
 
         $productrule->update($validated);
         return $this->sendResponse($productrule, "productrule updated successfully");
@@ -135,10 +214,6 @@ class ProductruleController extends BaseController
     {
         $productrule = Productrule::findOrFail($id);
         $productrule->delete();
-
-
-
-
 
         //delete files uploaded
         return $this->sendResponse(1, "productrule deleted succesfully");

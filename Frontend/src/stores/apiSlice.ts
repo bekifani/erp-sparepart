@@ -527,6 +527,8 @@ export const {
     useLazyGetProductruleDetailQuery,
     useDeleteProductruleMutation,
     useGetProductrulesQuery,
+    useGetProductrulesByProductQuery,
+    // New hook to get rules filtered by product_id
 
 
     useCreatePackagingproblemMutation,

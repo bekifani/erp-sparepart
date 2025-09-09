@@ -13,7 +13,7 @@ use Illuminate\Notifications\Notifiable;
 class Productrule extends Model
 {
     use HasFactory, LogsActivity, Notifiable;
-    public $fillable = ['customer_id', 'product_id', 'fixed_price', 'adjustment_percent', 'qty', 'note'];
+    public $fillable = ['customer_id', 'product_id',  'supplier_id', 'price', 'amount', 'quantity', 'note'];
     protected static $logAttributes = ['*'];
     public $guarded = [];
 
