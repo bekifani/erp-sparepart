@@ -1,6 +1,7 @@
 import "@/assets/css/vendors/tabulator.css";
 import Lucide from "@/components/Base/Lucide";
 import ReactDOMServer from 'react-dom/server';
+import { createPortal } from 'react-dom';
 import { Slideover } from "@/components/Base/Headless";
 import Button from "@/components/Base/Button";
 import React, { useRef, useState } from "react";
@@ -15,6 +16,8 @@ import {
   useCreateProductMutation,
   useDeleteProductMutation,
   useEditProductMutation,
+  useCreateProductruleMutation,
+  useGetProductrulesByProductQuery,
 } from "@/stores/apiSlice";
 import clsx from "clsx";
 import { Dialog } from "@/components/Base/Headless";
@@ -25,7 +28,7 @@ import FileUpload from "@/helpers/ui/FileUpload.jsx";
 import TomSelectSearch from "@/helpers/ui/Tomselect.jsx";
 import { useSelector } from "react-redux";
 import { ClassicEditor } from "@/components/Base/Ckeditor";
-
+import { X } from 'lucide-react';
 
 function index_main() {
   const { t, i18n } = useTranslation();
@@ -35,6 +38,7 @@ function index_main() {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showUpdateModal, setShowUpdateModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [showRuleModal, setShowRuleModal] = useState(false);
   const [editorData, setEditorData] = useState("")
   const [confirmationMessage, setConfirmationMessage] =
     useState(t("Are you Sure Do You want to Delete Product"));
@@ -52,8 +56,7 @@ function index_main() {
     deleteProduct,
     { isLoading: deleting, isSuccess: deleted, error: deleteError },
   ] = useDeleteProductMutation()
-
-
+  const [createProductrule, { isLoading: creatingRule }] = useCreateProductruleMutation();
   const [toastMessage, setToastMessage] = useState("");
   const basicStickyNotification = useRef();
   const user = useSelector((state)=> state.auth.user)
@@ -505,7 +508,168 @@ function index_main() {
     }
   };
 
-return (
+  // Product Rule state
+  const [activeRuleTab, setActiveRuleTab] = useState('customer'); // 'customer' | 'supplier'
+  
+  // Customer Rule state
+  const [ruleCustomer, setRuleCustomer] = useState(null);
+  const [customerRuleQuantity, setCustomerRuleQuantity] = useState(1);
+  const [customerRulePrice, setCustomerRulePrice] = useState(0);
+  const [customerRuleNote, setCustomerRuleNote] = useState("");
+  
+  // Supplier Rule state
+  const [ruleSupplier, setRuleSupplier] = useState(null);
+  const [supplierRuleCode, setSupplierRuleCode] = useState('');
+  const [supplierRuleQuantity, setSupplierRuleQuantity] = useState(1);
+  const [supplierRulePrice, setSupplierRulePrice] = useState(0);
+  const [supplierRuleNote, setSupplierRuleNote] = useState("");
+  
+  const currentProductId = getValues("id");
+  const { data: rulesData, refetch: refetchRules } = useGetProductrulesByProductQuery(currentProductId, { skip: !showRuleModal || !currentProductId });
+  const [rulesTableRefetch, setRulesTableRefetch] = useState(false);
+  
+  // Customer Rules Table
+  const ruleTableColumnsCustomer = [
+    { title: t("ID"), minWidth: 60, field: "id", hozAlign: "center", headerHozAlign: "center", vertAlign: "middle", print: true, download: true },
+    { title: t("Customer"), minWidth: 180, field: "customer_name", hozAlign: "center", headerHozAlign: "center", vertAlign: "middle", print: true, download: true },
+    { title: t("Brand"), minWidth: 160, field: "brand_name", hozAlign: "center", headerHozAlign: "center", vertAlign: "middle", print: true, download: true },
+    { title: t("Brand Code"), minWidth: 140, field: "brand_code_name", hozAlign: "center", headerHozAlign: "center", vertAlign: "middle", print: true, download: true },
+    { title: t("OE Code"), minWidth: 140, field: "oe_code", hozAlign: "center", headerHozAlign: "center", vertAlign: "middle", print: true, download: true },
+    { title: t("Description"), minWidth: 200, field: "description", hozAlign: "center", headerHozAlign: "center", vertAlign: "middle", print: true, download: true },
+    { title: t("Quantity"), minWidth: 100, field: "quantity", hozAlign: "center", headerHozAlign: "center", vertAlign: "middle", print: true, download: true },
+    { title: t("Price"), minWidth: 120, field: "price", hozAlign: "center", headerHozAlign: "center", vertAlign: "middle", print: true, download: true },
+    { title: t("Amount"), minWidth: 130, field: "amount", hozAlign: "center", headerHozAlign: "center", vertAlign: "middle", print: true, download: true, 
+      formatter(cell) { 
+        const d = cell.getRow().getData(); 
+        const q = Number(d.quantity)||0; 
+        const p = Number(d.price)||0; 
+        const a = d.amount != null ? Number(d.amount) : (q*p); 
+        return (a).toFixed(2);
+      } 
+    },
+    { title: t("Note"), minWidth: 180, field: "note", hozAlign: "center", headerHozAlign: "center", vertAlign: "middle", print: true, download: true },
+  ];
+  
+  // Supplier Rules Table
+  const ruleTableColumnsSupplier = [
+    { title: t("Date"), minWidth: 140, field: "created_at", hozAlign: "center", headerHozAlign: "center", vertAlign: "middle", print: true, download: true },
+    { title: t("Supplier"), minWidth: 180, field: "supplier_name", hozAlign: "center", headerHozAlign: "center", vertAlign: "middle", print: true, download: true },
+    { title: t("Supplier Code"), minWidth: 150, field: "supplier_code", hozAlign: "center", headerHozAlign: "center", vertAlign: "middle", print: true, download: true },
+    { title: t("Brand"), minWidth: 160, field: "brand_name", hozAlign: "center", headerHozAlign: "center", vertAlign: "middle", print: true, download: true },
+    { title: t("Brand Code"), minWidth: 140, field: "brand_code_name", hozAlign: "center", headerHozAlign: "center", vertAlign: "middle", print: true, download: true },
+    { title: t("OE Code"), minWidth: 140, field: "oe_code", hozAlign: "center", headerHozAlign: "center", vertAlign: "middle", print: true, download: true },
+    { title: t("Description"), minWidth: 200, field: "description", hozAlign: "center", headerHozAlign: "center", vertAlign: "middle", print: true, download: true },
+    { title: t("Qty"), minWidth: 100, field: "quantity", hozAlign: "center", headerHozAlign: "center", vertAlign: "middle", print: true, download: true },
+    { title: t("Price"), minWidth: 120, field: "price", hozAlign: "center", headerHozAlign: "center", vertAlign: "middle", print: true, download: true },
+  ];
+  
+  // Search columns for filtering
+  const ruleSearchColumnsCustomer = ["id", "customer_name", "brand_name", "brand_code_name", "oe_code", "description", "quantity", "price", "note"];
+  const ruleSearchColumnsSupplier = ["created_at", "supplier_name", "supplier_code", "brand_name", "brand_code_name", "oe_code", "description", "quantity", "price"];
+  
+  // Handle form submission
+  const handleAddRule = async (type) => {
+    if (!currentProductId) {
+      setToastMessage(t("No product selected."));
+      basicStickyNotification.current?.showToast();
+      return;
+    }
+    
+    try {
+      console.log('Creating rule with type:', type);
+      
+      // Get values from form
+      const quantity = type === 'customer' 
+        ? parseInt(customerRuleQuantity) 
+        : parseInt(supplierRuleQuantity);
+      
+      const price = type === 'customer'
+        ? parseFloat(customerRulePrice)
+        : parseFloat(supplierRulePrice);
+      
+      // Validate required fields
+      if (isNaN(quantity) || quantity < 1) {
+        setToastMessage(t("Please enter a valid quantity (minimum 1)."));
+        basicStickyNotification.current?.showToast();
+        return;
+      }
+      
+      if (isNaN(price) || price < 0) {
+        setToastMessage(t("Please enter a valid price (minimum 0)."));
+        basicStickyNotification.current?.showToast();
+        return;
+      }
+      
+      // Prepare the base payload with required fields
+      const payload = {
+        product_id: parseInt(currentProductId),
+        quantity: quantity,
+        price: price,
+        note: type === 'customer' ? customerRuleNote || null : supplierRuleNote || null
+      };
+      
+      // Add customer or supplier specific fields
+      if (type === 'customer') {
+        if (!ruleCustomer) {
+          setToastMessage(t("Please select a customer."));
+          basicStickyNotification.current?.showToast();
+          return;
+        }
+        payload.customer_id = parseInt(ruleCustomer.value);
+      } else {
+        if (!ruleSupplier) {
+          setToastMessage(t("Please select a supplier."));
+          basicStickyNotification.current?.showToast();
+          return;
+        }
+        payload.supplier_id = parseInt(ruleSupplier.value);
+      }
+      
+      console.log('Final payload:', JSON.stringify(payload, null, 2));
+      
+      // Send the request
+      const res = await createProductrule(payload).unwrap();
+      console.log('API Response:', res);
+      
+      // Handle success
+      setToastMessage(t("Product rule added successfully."));
+      
+      // Reset form
+      if (type === 'customer') {
+        setRuleCustomer(null);
+        setCustomerRuleQuantity(1);
+        setCustomerRulePrice(0);
+        setCustomerRuleNote("");
+      } else {
+        setRuleSupplier(null);
+        setSupplierRuleCode('');
+        setSupplierRuleQuantity(1);
+        setSupplierRulePrice(0);
+        setSupplierRuleNote("");
+      }
+      
+      // Refresh the rules table
+      await refetchRules();
+      setRulesTableRefetch(prev => !prev);
+      
+    } catch (err) {
+      console.error('Error in handleAddRule:', {
+        error: err,
+        message: err.message,
+        response: err.data,
+        status: err.status
+      });
+      
+      const errorMessage = err.data?.message || 
+                         err.message || 
+                         t("An error occurred while adding the product rule. Please try again.");
+      
+      setToastMessage(errorMessage);
+      basicStickyNotification.current?.showToast();
+    }
+  };
+  
+  return (
     <div>
       <Slideover
         open={showDeleteModal}
@@ -916,6 +1080,11 @@ return (
           <form onSubmit={handleSubmit(onUpdate)}>
             <Slideover.Title>
               <h2 className="mr-auto text-base font-medium">{t("Edit Product")}</h2>
+              <div className="mt-2 text-left">
+                <Button type="button" variant="outline-primary" onClick={() => setShowRuleModal((v) => !v)}>
+                  {showRuleModal ? t("Hide Product Rule") : t("Open Product Rule")}
+                </Button>
+              </div>
             </Slideover.Title>
             <Slideover.Description className="relative">
               <div className="relative">
@@ -1261,6 +1430,223 @@ return (
           </form>
         </Slideover.Panel>
       </Slideover>
+      {showRuleModal && createPortal(
+        <div className="fixed top-0 left-0 h-screen w-full xl:w-[45%] bg-white dark:bg-darkmode-600 shadow-lg overflow-y-auto p-5 z-[200000]">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-base font-medium">{t("Product Rules")}</h2>
+            <button
+              onClick={() => setShowRuleModal(false)}
+              className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          </div>
+          
+          {/* Tabs */}
+          <div className="mb-4 flex gap-2">
+            <Button 
+              type="button" 
+              variant={activeRuleTab === 'customer' ? 'primary' : 'outline-secondary'} 
+              onClick={() => setActiveRuleTab('customer')}
+            >
+              {t('Customer Rules')}
+            </Button>
+            <Button 
+              type="button" 
+              variant={activeRuleTab === 'supplier' ? 'primary' : 'outline-secondary'} 
+              onClick={() => setActiveRuleTab('supplier')}
+            >
+              {t('Supplier Rules')}
+            </Button>
+          </div>
+
+          {/* Customer Rules Tab */}
+          {activeRuleTab === 'customer' && (
+            <>
+              {/* Customer Rules Table */}
+              <div className="mb-6">
+                <TableComponent
+                  show_create={false}
+                  setShowCreateModal={() => {}}
+                  endpoint={`${app_url}/api/productrule?filter[0][field]=product_id&filter[0][type]==&filter[0][value]=${currentProductId ?? ''}&filter[1][field]=supplier_id&filter[1][type]==&filter[1][value]=null`}
+                  data={ruleTableColumnsCustomer}
+                  searchColumns={ruleSearchColumnsCustomer}
+                  refetch={rulesTableRefetch}
+                  setRefetch={setRulesTableRefetch}
+                  permission={"productrule"}
+                  page_name={"Customer Rules"}
+                />
+              </div>
+
+              {/* Customer Rule Form */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                <h3 className="text-lg font-semibold col-span-full">{t('Add Customer Rule')}</h3>
+                <div className="input-form">
+                  <FormLabel className="flex flex-col w-full sm:flex-row">{t("Customer")}</FormLabel>
+                  <TomSelectSearch
+                    apiUrl={`${app_url}/api/search_customer`}
+                    setValue={setValue}
+                    variable="customer_id"
+                    customDataMapping={(item) => ({ 
+                      value: item.id, 
+                      text: item.name_surname || item.shipping_mark || item.email || String(item.id) 
+                    })}
+                    onSelectionChange={(item) => {
+                      setRuleCustomer(item ? { value: item.value, text: item.text } : null);
+                    }}
+                    value={ruleCustomer?.value}
+                  />
+                </div>
+                <div className="input-form">
+                  <FormLabel className="flex flex-col w-full sm:flex-row">{t("Quantity")}</FormLabel>
+                  <FormInput 
+                    type="number" 
+                    value={customerRuleQuantity} 
+                    onChange={(e) => setCustomerRuleQuantity(e.target.value)} 
+                    min="1"
+                  />
+                </div>
+                <div className="input-form">
+                  <FormLabel className="flex flex-col w-full sm:flex-row">{t("Price")}</FormLabel>
+                  <FormInput 
+                    type="number" 
+                    value={customerRulePrice} 
+                    onChange={(e) => setCustomerRulePrice(e.target.value)} 
+                    step="0.01"
+                    min="0"
+                  />
+                </div>
+                <div className="input-form md:col-span-2">
+                  <FormLabel className="flex flex-col w-full sm:flex-row">{t("Amount")}</FormLabel>
+                  <FormInput 
+                    type="text" 
+                    value={(customerRuleQuantity * customerRulePrice).toFixed(2)} 
+                    readOnly 
+                    disabled
+                  />
+                </div>
+                <div className="input-form md:col-span-2">
+                  <FormLabel className="flex flex-col w-full sm:flex-row">{t("Note")}</FormLabel>
+                  <FormInput 
+                    type="text" 
+                    value={customerRuleNote} 
+                    onChange={(e) => setCustomerRuleNote(e.target.value)}
+                    placeholder={t('Optional note')}
+                  />
+                </div>
+                <div className="col-span-full flex justify-end">
+                  <Button 
+                    type="button" 
+                    variant="primary" 
+                    onClick={() => handleAddRule('customer')}
+                  >
+                    {t('Add Customer Rule')}
+                  </Button>
+                </div>
+              </div>
+            </>
+          )}
+
+          {/* Supplier Rules Tab */}
+          {activeRuleTab === 'supplier' && (
+            <>
+              {/* Supplier Rules Table */}
+              <div className="mb-6">
+                <TableComponent
+                  show_create={false}
+                  setShowCreateModal={() => {}}
+                  endpoint={`${app_url}/api/productrule?filter[0][field]=product_id&filter[0][type]==&filter[0][value]=${currentProductId ?? ''}&filter[1][field]=supplier_id&filter[1][type]=!=&filter[1][value]=null`}
+                  data={ruleTableColumnsSupplier}
+                  searchColumns={ruleSearchColumnsSupplier}
+                  refetch={rulesTableRefetch}
+                  setRefetch={setRulesTableRefetch}
+                  permission={"productrule"}
+                  page_name={"Supplier Rules"}
+                />
+              </div>
+
+              {/* Supplier Rule Form */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <h3 className="text-lg font-semibold col-span-full">{t('Add Supplier Rule')}</h3>
+                <div className="input-form">
+                  <FormLabel className="flex flex-col w-full sm:flex-row">{t("Supplier")}</FormLabel>
+                  <TomSelectSearch
+                    apiUrl={`${app_url}/api/search_supplier`}
+                    setValue={setValue}
+                    variable="supplier_id"
+                    customDataMapping={(item) => ({ 
+                      value: item.id, 
+                      text: item.supplier || item.name_surname || String(item.id),
+                      code: item.code 
+                    })}
+                    onSelectionChange={(item) => {
+                      setRuleSupplier(item ? { value: item.value, text: item.text } : null);
+                      setSupplierRuleCode(item?.code || '');
+                    }}
+                    value={ruleSupplier?.value}
+                  />
+                </div>
+                <div className="input-form">
+                  <FormLabel className="flex flex-col w-full sm:flex-row">{t("Supplier Code")}</FormLabel>
+                  <FormInput 
+                    type="text" 
+                    value={supplierRuleCode} 
+                    onChange={(e) => setSupplierRuleCode(e.target.value)} 
+                    placeholder={t('Enter supplier code')}
+                  />
+                </div>
+                <div className="input-form">
+                  <FormLabel className="flex flex-col w-full sm:flex-row">{t("Quantity")}</FormLabel>
+                  <FormInput 
+                    type="number" 
+                    value={supplierRuleQuantity} 
+                    onChange={(e) => setSupplierRuleQuantity(e.target.value)}
+                    min="1"
+                  />
+                </div>
+                <div className="input-form">
+                  <FormLabel className="flex flex-col w-full sm:flex-row">{t("Price")}</FormLabel>
+                  <FormInput 
+                    type="number" 
+                    value={supplierRulePrice} 
+                    onChange={(e) => setSupplierRulePrice(e.target.value)}
+                    step="0.01"
+                    min="0"
+                  />
+                </div>
+                <div className="input-form md:col-span-2">
+                  <FormLabel className="flex flex-col w-full sm:flex-row">{t("Amount")}</FormLabel>
+                  <FormInput 
+                    type="text" 
+                    value={(supplierRuleQuantity * supplierRulePrice).toFixed(2)} 
+                    readOnly 
+                    disabled
+                  />
+                </div>
+                <div className="input-form md:col-span-2">
+                  <FormLabel className="flex flex-col w-full sm:flex-row">{t("Note")}</FormLabel>
+                  <FormInput 
+                    type="text" 
+                    value={supplierRuleNote} 
+                    onChange={(e) => setSupplierRuleNote(e.target.value)}
+                    placeholder={t('Optional note')}
+                  />
+                </div>
+                <div className="col-span-full flex justify-end">
+                  <Button 
+                    type="button" 
+                    variant="primary" 
+                    onClick={() => handleAddRule('supplier')}
+                  >
+                    {t('Add Supplier Rule')}
+                  </Button>
+                </div>
+              </div>
+            </>
+          )}
+        </div>,
+        document.body
+      )}
       <Notification
         getRef={(el) => {
           basicStickyNotification.current = el;
@@ -1283,5 +1669,6 @@ return (
       </Can>
     </div>
   );
-}
+};
+
 export default index_main;

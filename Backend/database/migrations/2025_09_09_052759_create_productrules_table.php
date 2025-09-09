@@ -12,14 +12,21 @@ return new class extends Migration
             $table->id();
                 $table->foreignId('customer_id')->nullable();
                 $table->foreign('customer_id')->references('id')->on('customers')->onDelete('restrict')->onUpdate('cascade');
+                $table->foreignId('supplier_id')->nullable();
+                $table->foreign('supplier_id')->references('id')->on('suppliers')->onDelete('restrict')->onUpdate('cascade');
                 $table->foreignId('product_id')->nullable();
                 $table->foreign('product_id')->references('id')->on('products')->onDelete('restrict')->onUpdate('cascade');
-                $table->decimal('fixed_price',12,2)->nullable();
-                $table->decimal('adjustment_percent',6,3)->nullable();
-                $table->integer('qty');
+                $table->decimal('price',12,2)->nullable();
+                $table->integer('quantity');
+                $table->decimal('amount',14,2)->nullable();
                 $table->string('note')->nullable();
                 
             $table->timestamps();
         });
+    }
+
+    public function down(): void
+    {
+        Schema::dropIfExists('productrules');
     }
 };
