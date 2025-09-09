@@ -169,147 +169,147 @@ function Router() {
     element: <Compan />,
   }, 
   {
-    path: "/basket",
+    path: "basket",
     element: <Basket />,
   }, 
   {
-    path: "/basketfile",
+    path: "basketfile",
     element: <Basketfile />,
   }, 
   {
-    path: "/basketitem",
+    path: "basketitem",
     element: <Basketitem />,
   }, 
   {
-    path: "/order",
+    path: "order",
     element: <Order />,
   }, 
   {
-    path: "/orderdetail",
+    path: "orderdetail",
     element: <Orderdetail />,
   }, 
   {
-    path: "/supplierorder",
+    path: "supplierorder",
     element: <Supplierorder />,
   }, 
   {
-    path: "/supplierorderdetail",
+    path: "supplierorderdetail",
     element: <Supplierorderdetail />,
   }, 
   {
-    path: "/packagin",
+    path: "packagin",
     element: <Packagin />,
   }, 
   {
-    path: "/packinglist",
+    path: "packinglist",
     element: <Packinglist />,
   }, 
   {
-    path: "/packinglistbox",
+    path: "packinglistbox",
     element: <Packinglistbox />,
   }, 
   {
-    path: "/packinglistboxitem",
+    path: "packinglistboxitem",
     element: <Packinglistboxitem />,
   }, 
   {
-    path: "/attachment",
+    path: "attachment",
     element: <Attachment />,
   }, 
   {
-    path: "/problem",
+    path: "problem",
     element: <Problem />,
   }, 
   {
-    path: "/problemitem",
+    path: "problemitem",
     element: <Problemitem />,
   }, 
   {
-    path: "/productstatus",
+    path: "productstatus",
     element: <Productstatus />,
   }, 
   {
-    path: "/customerinvoice",
+    path: "customerinvoice",
     element: <Customerinvoice />,
   }, 
   {
-    path: "/warehouse",
+    path: "warehouse",
     element: <Warehouse />,
   }, 
   {
-    path: "/customerinvoiceitem",
+    path: "customerinvoiceitem",
     element: <Customerinvoiceitem />,
   }, 
   {
-    path: "/supplierinvoice",
+    path: "supplierinvoice",
     element: <Supplierinvoice />,
   }, 
   {
-    path: "/supplierinvoiceitem",
+    path: "supplierinvoiceitem",
     element: <Supplierinvoiceitem />,
   }, 
   {
-    path: "/accounttype",
+    path: "accounttype",
     element: <Accounttype />,
   }, 
   {
-    path: "/paymentnote",
+    path: "paymentnote",
     element: <Paymentnote />,
   }, 
   {
-    path: "/productrule",
+    path: "productrule",
     element: <Productrule />,
   }, 
   {
-    path: "/packagingproblem",
+    path: "packagingproblem",
     element: <Packagingproblem />,
   }, 
   {
-    path: "/searchresult",
+    path: "searchresult",
     element: <Searchresult />,
   }, 
   {
-    path: "/fileoperation",
+    path: "fileoperation",
     element: <Fileoperation />,
   }, 
   {
-    path: "/customerbrandvisibilit",
+    path: "customerbrandvisibilit",
     element: <Customerbrandvisibilit />,
   }, 
   {
-    path: "/customerproductvisibilit",
+    path: "customerproductvisibilit",
     element: <Customerproductvisibilit />,
   }, 
   {
-    path: "/supplierpricingrule",
+    path: "supplierpricingrule",
     element: <Supplierpricingrule />,
   }, 
   {
-    path: "/supplierpricingrulecustomer",
+    path: "supplierpricingrulecustomer",
     element: <Supplierpricingrulecustomer />,
   }, 
   {
-    path: "/supplierproduct",
+    path: "supplierproduct",
     element: <Supplierproduct />,
   }, 
   {
-    path: "/customeraccount",
+    path: "customeraccount",
     element: <Customeraccount />,
   }, 
   {
-    path: "/companyaccount",
+    path: "companyaccount",
     element: <Companyaccount />,
   }, 
   {
-    path: "/warehouseaccount",
+    path: "warehouseaccount",
     element: <Warehouseaccount />,
   }, 
   {
-    path: "/supplieraccount",
+    path: "supplieraccount",
     element: <Supplieraccount />,
   }, 
   {
-    path: "/producthistor",
+    path: "producthistor",
     element: <Producthistor />,
   }, 
        // add routes here
