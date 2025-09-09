@@ -69,7 +69,7 @@ const initialState: SideMenuState = {
         
       ],
     },
-
+// "Order Management",
 
     {
       icon: "ShoppingCart",
@@ -173,7 +173,69 @@ const initialState: SideMenuState = {
               pathname: "/menu/packinglistboxitem",
               title: "Packing List Box Item",
               permission: "packinglistboxitem-list"
+            },
+            {
+              icon: "AlertTriangle",
+              pathname: "/menu/packagingproblem",
+              title: "Packaging Problem",
+              permission: "packagingproblem-list"
             }
+          ]
+        },
+        {
+          icon: "Receipt",
+          title: "Customer Invoices",
+          permission: "view-hr-menu",
+          subMenu: [
+            {
+              icon: "Receipt",
+              pathname: "/menu/customerinvoice",
+              title: "Customer Invoice",
+              permission: "customerinvoice-list"
+            },
+            {
+              icon: "FileText",
+              pathname: "/menu/customerinvoiceitem",
+              title: "Customer Invoice Item",
+              permission: "customerinvoiceitem-list"
+            },
+            {
+              icon: "BookMarked",
+              pathname: "/menu/attachment",
+              title: "Attachment",
+              permission: "attachment-list"
+            },
+          ]
+        },
+        {
+          icon: "FileText",
+          title: "Supplier Invoices",
+          permission: "view-hr-menu",
+          subMenu: [
+            {
+              icon: "FileText",
+              pathname: "/menu/supplierinvoice",
+              title: "Supplier Invoice",
+              permission: "supplierinvoice-list"
+            },
+            {
+              icon: "List",
+              pathname: "/menu/supplierinvoiceitem",
+              title: "Supplier Invoice Item",
+              permission: "supplierinvoiceitem-list"
+            },
+            {
+              icon: "AlertTriangle",
+              pathname: "/menu/problem",
+              title: "Problem",
+              permission: "problem-list"
+            },
+            {
+              icon: "List",
+              pathname: "/menu/problemitem",
+              title: "Problem Item",
+              permission: "problemitem-list"
+            },
           ]
         },
         {
@@ -196,7 +258,7 @@ const initialState: SideMenuState = {
         }
       ],
     },
-
+// "Product Portifiolio",
        {
       icon: "Briefcase",
       title: "Product Portfolio",
@@ -291,10 +353,71 @@ const initialState: SideMenuState = {
      
       ],
     },
+    // "Report",
 
-    
-
-    
+    {
+      icon: "FileText",
+      title: "Report",
+      permission: "view-hr-menu",
+      subMenu: [
+        {
+          icon: "Calculator",
+          title: "Cashier",
+          permission: "view-hr-menu",
+          subMenu: [
+            {
+              icon: "CreditCard",
+              pathname: "/menu/accounttype",
+              title: "Account Type",
+              permission: "accounttype-list"
+            },
+            {
+              icon: "FileText",
+              pathname: "/menu/paymentnote",
+              title: "Payment Note",
+              permission: "paymentnote-list"
+            },
+            {
+              icon: "User",
+              pathname: "/menu/customeraccount",
+              title: "Customer Account",
+              permission: "customeraccount-list"
+            },
+            {
+              icon: "Truck",
+              pathname: "/menu/supplieraccount",
+              title: "Supplier Account",
+              permission: "supplieraccount-list"
+            },
+            {
+              icon: "Building",
+              pathname: "/menu/companyaccount",
+              title: "Company Account",
+              permission: "companyaccount-list"
+            },
+            {
+              icon: "Package",
+              pathname: "/menu/warehouseaccount",
+              title: "Warehouse Account",
+              permission: "warehouseaccount-list"
+            }
+          ]
+        },
+        {
+          icon: "Package",
+          pathname: "/menu/warehouse",
+          title: "Warehouse",
+          permission: "warehouse-list"
+        },
+        {
+          icon: "BarChart3",
+          pathname: "/menu/productstatus",
+          title: "Product Statuses",
+          permission: "productstatus-list"
+        }
+      ]
+    },
+// "Reference Book",
     {
       icon: "Users",
       title: "Reference Book",
@@ -323,165 +446,40 @@ const initialState: SideMenuState = {
       permission: "compan-list"
     },
     
+    {
+      icon: "FolderOpen",
+      pathname: "/menu/fileoperation",
+      title: "File Operations",
+      permission: "fileoperation-list"
+    },
+    
+    {
+      icon: "Search",
+      pathname: "/menu/searchresult",
+      title: "Search Results",
+      permission: "searchresult-list"
+    },
         
       ],
     },
 
-    
-
-
-
-
-
-
-
-
 
     
-
-    
-
-
-  
-
-
-    
-
-
-
-
-
-    
-
-
-
-
-
-    
-
     {
       icon: "BookMarked",
-      pathname: "/attachment",
-      title: "Attachment",
-      permission: "attachment-list"
-    },
-    
-
-    {
-      icon: "BookMarked",
-      pathname: "/problem",
-      title: "Problem",
-      permission: "problem-list"
-    },
-    
-
-    {
-      icon: "BookMarked",
-      pathname: "/problemitem",
-      title: "Problemitem",
-      permission: "problemitem-list"
-    },
-    
-
-    {
-      icon: "BookMarked",
-      pathname: "/productstatus",
-      title: "Productstatus",
-      permission: "productstatus-list"
-    },
-    
-
-    {
-      icon: "BookMarked",
-      pathname: "/customerinvoice",
-      title: "Customerinvoice",
-      permission: "customerinvoice-list"
-    },
-    
-
-    {
-      icon: "BookMarked",
-      pathname: "/warehouse",
-      title: "Warehouse",
-      permission: "warehouse-list"
-    },
-    
-
-    {
-      icon: "BookMarked",
-      pathname: "/customerinvoiceitem",
-      title: "Customerinvoiceitem",
-      permission: "customerinvoiceitem-list"
-    },
-    
-
-    {
-      icon: "BookMarked",
-      pathname: "/supplierinvoice",
-      title: "Supplierinvoice",
-      permission: "supplierinvoice-list"
-    },
-    
-
-    {
-      icon: "BookMarked",
-      pathname: "/supplierinvoiceitem",
-      title: "Supplierinvoiceitem",
-      permission: "supplierinvoiceitem-list"
-    },
-    
-
-    {
-      icon: "BookMarked",
-      pathname: "/accounttype",
-      title: "Accounttype",
-      permission: "accounttype-list"
-    },
-    
-
-    {
-      icon: "BookMarked",
-      pathname: "/paymentnote",
-      title: "Paymentnote",
-      permission: "paymentnote-list"
-    },
-    
-
-    {
-      icon: "BookMarked",
-      pathname: "/productrule",
+      pathname: "/menu/productrule",
       title: "Productrule",
       permission: "productrule-list"
     },
     
 
-    {
-      icon: "BookMarked",
-      pathname: "/packagingproblem",
-      title: "Packagingproblem",
-      permission: "packagingproblem-list"
-    },
+    
+
     
 
     {
       icon: "BookMarked",
-      pathname: "/searchresult",
-      title: "Searchresult",
-      permission: "searchresult-list"
-    },
-    
-
-    {
-      icon: "BookMarked",
-      pathname: "/fileoperation",
-      title: "Fileoperation",
-      permission: "fileoperation-list"
-    },
-    
-
-    {
-      icon: "BookMarked",
-      pathname: "/customerbrandvisibilit",
+      pathname: "/menu/customerbrandvisibilit",
       title: "Customerbrandvisibilit",
       permission: "customerbrandvisibilit-list"
     },
@@ -489,7 +487,7 @@ const initialState: SideMenuState = {
 
     {
       icon: "BookMarked",
-      pathname: "/customerproductvisibilit",
+      pathname: "/menu/customerproductvisibilit",
       title: "Customerproductvisibilit",
       permission: "customerproductvisibilit-list"
     },
@@ -497,7 +495,7 @@ const initialState: SideMenuState = {
 
     {
       icon: "BookMarked",
-      pathname: "/supplierpricingrule",
+      pathname: "/menu/supplierpricingrule",
       title: "Supplierpricingrule",
       permission: "supplierpricingrule-list"
     },
@@ -505,7 +503,7 @@ const initialState: SideMenuState = {
 
     {
       icon: "BookMarked",
-      pathname: "/supplierpricingrulecustomer",
+      pathname: "/menu/supplierpricingrulecustomer",
       title: "Supplierpricingrulecustomer",
       permission: "supplierpricingrulecustomer-list"
     },
@@ -513,50 +511,21 @@ const initialState: SideMenuState = {
 
     {
       icon: "BookMarked",
-      pathname: "/supplierproduct",
+      pathname: "/menu/supplierproduct",
       title: "Supplierproduct",
       permission: "supplierproduct-list"
     },
     
 
-    {
-      icon: "BookMarked",
-      pathname: "/customeraccount",
-      title: "Customeraccount",
-      permission: "customeraccount-list"
-    },
     
 
     {
       icon: "BookMarked",
-      pathname: "/companyaccount",
-      title: "Companyaccount",
-      permission: "companyaccount-list"
-    },
-    
-
-    {
-      icon: "BookMarked",
-      pathname: "/warehouseaccount",
-      title: "Warehouseaccount",
-      permission: "warehouseaccount-list"
-    },
-    
-
-    {
-      icon: "BookMarked",
-      pathname: "/supplieraccount",
-      title: "Supplieraccount",
-      permission: "supplieraccount-list"
-    },
-    
-
-    {
-      icon: "BookMarked",
-      pathname: "/producthistor",
+      pathname: "/menu/producthistor",
       title: "Producthistor",
       permission: "producthistor-list"
     },
+    
     
     //addhere 
   ],
