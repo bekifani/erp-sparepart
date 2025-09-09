@@ -18,21 +18,21 @@ class ProductInformationSeeder extends Seeder
         // Ensure at least one Unit exists (e.g., Piece)
         $unit = Unit::firstOrCreate(
             ['name' => 'Piece'],
-            ['base_unit' => null, 'base_value' => 1]
+            ['base_unit' => 'piece', 'base_value' => 1]
         );
 
         // Ensure Brandnames exist and capture their IDs
         $brandA = Brandname::firstOrCreate(
-            ['brand_code' => 'BR-001'],
-            ['brand_name' => 'Brand A', 'name_az' => 'Brand A', 'name_ru' => 'Бренд A', 'name_cn' => '品牌A', 'number_of_products' => 0]
+            ['brand_name' => 'Brand A'],
+            ['number_of_products' => 0]
         );
         $brandB = Brandname::firstOrCreate(
-            ['brand_code' => 'BR-002'],
-            ['brand_name' => 'Brand B', 'name_az' => 'Brand B', 'name_ru' => 'Бренд B', 'name_cn' => '品牌B', 'number_of_products' => 0]
+            ['brand_name' => 'Brand B'],
+            ['number_of_products' => 0]
         );
         $brandC = Brandname::firstOrCreate(
-            ['brand_code' => 'BR-003'],
-            ['brand_name' => 'Brand C', 'name_az' => 'Brand C', 'name_ru' => 'Бренд C', 'name_cn' => '品牌C', 'number_of_products' => 0]
+            ['brand_name' => 'Brand C'],
+            ['number_of_products' => 0]
         );
 
         // Ensure Productnames exist and capture their IDs
@@ -44,7 +44,7 @@ class ProductInformationSeeder extends Seeder
                 'description_en' => 'Brake pads',
                 'name_ru' => 'Тормозные колодки',
                 'name_cn' => '刹车片',
-                'categories' => 'Brakes, Safety',
+                'category_id' => 1,
                 'additional_note' => null,
                 'product_qty' => 0,
             ]
@@ -57,7 +57,7 @@ class ProductInformationSeeder extends Seeder
                 'description_en' => 'Air filter',
                 'name_ru' => 'Воздушный фильтр',
                 'name_cn' => '空气滤清器',
-                'categories' => 'Filters, Intake',
+                'category_id' => 1,
                 'additional_note' => null,
                 'product_qty' => 0,
             ]
@@ -70,7 +70,7 @@ class ProductInformationSeeder extends Seeder
                 'description_en' => 'Oil filter',
                 'name_ru' => 'Масляный фильтр',
                 'name_cn' => '机油滤清器',
-                'categories' => 'Filters, Engine',
+                'category_id' => 1,
                 'additional_note' => 'Popular engine oil filter',
                 'product_qty' => 0,
             ]
@@ -83,7 +83,7 @@ class ProductInformationSeeder extends Seeder
                 'description_en' => 'Cabin filter',
                 'name_ru' => 'Салонный фильтр',
                 'name_cn' => '空调滤清器',
-                'categories' => 'Filters, HVAC',
+                'category_id' => 1,
                 'additional_note' => null,
                 'product_qty' => 0,
             ]
@@ -93,9 +93,6 @@ class ProductInformationSeeder extends Seeder
             [
                 'product_name_id' => $pnBrakePads->id,
                 'product_code'    => 'PRD-1001',
-                'brand_code'      => $brandA->id,
-                'oe_code'         => 'OE-001',
-                'description'     => 'Front brake pad set',
                 'net_weight'      => 1.2,
                 'gross_weight'    => 1.4,
                 'unit_id'         => $unit->id,
@@ -117,9 +114,6 @@ class ProductInformationSeeder extends Seeder
             [
                 'product_name_id' => $pnAirFilter->id,
                 'product_code'    => 'PRD-1002',
-                'brand_code'      => $brandB->id,
-                'oe_code'         => 'OE-002',
-                'description'     => 'Air filter element',
                 'net_weight'      => 0.3,
                 'gross_weight'    => 0.35,
                 'unit_id'         => $unit->id,
@@ -141,9 +135,6 @@ class ProductInformationSeeder extends Seeder
             [
                 'product_name_id' => $pnOilFilter->id,
                 'product_code'    => 'PRD-1003',
-                'brand_code'      => $brandA->id,
-                'oe_code'         => 'OE-003',
-                'description'     => 'Oil filter spin-on',
                 'net_weight'      => 0.5,
                 'gross_weight'    => 0.55,
                 'unit_id'         => $unit->id,
@@ -165,9 +156,6 @@ class ProductInformationSeeder extends Seeder
             [
                 'product_name_id' => $pnCabinFilter->id,
                 'product_code'    => 'PRD-1004',
-                'brand_code'      => $brandC->id,
-                'oe_code'         => 'OE-004',
-                'description'     => 'Cabin filter activated carbon',
                 'net_weight'      => 0.4,
                 'gross_weight'    => 0.45,
                 'unit_id'         => $unit->id,

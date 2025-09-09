@@ -14,7 +14,6 @@ class ProductnameSeeder extends Seeder
 
         $items = [
             [
-                'product_name' => 'Oil Filter',
                 'hs_code' => '8409.91',
                 'name_az' => 'Yağ filtri',
                 'description_en' => 'Oil filter',
@@ -26,7 +25,6 @@ class ProductnameSeeder extends Seeder
                 'product_qty' => 0,
             ],
             [
-                'product_name' => 'Brake Pads',
                 'hs_code' => '8708.93',
                 'name_az' => 'Tormoz balatası',
                 'description_en' => 'Brake pads',
@@ -38,7 +36,6 @@ class ProductnameSeeder extends Seeder
                 'product_qty' => 0,
             ],
             [
-                'product_name' => 'Alternator',
                 'hs_code' => '8511.50',
                 'name_az' => 'Alternator',
                 'description_en' => 'Alternator',
