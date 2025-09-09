@@ -267,6 +267,294 @@ const initialState: SideMenuState = {
 
 
 
+
+    {
+      icon: "BookMarked",
+      pathname: "/basket",
+      title: "Basket",
+      permission: "basket-list"
+    },
+    
+
+    {
+      icon: "BookMarked",
+      pathname: "/basketfile",
+      title: "Basketfile",
+      permission: "basketfile-list"
+    },
+    
+
+    {
+      icon: "BookMarked",
+      pathname: "/basketitem",
+      title: "Basketitem",
+      permission: "basketitem-list"
+    },
+    
+
+    {
+      icon: "BookMarked",
+      pathname: "/order",
+      title: "Order",
+      permission: "order-list"
+    },
+    
+
+    {
+      icon: "BookMarked",
+      pathname: "/orderdetail",
+      title: "Orderdetail",
+      permission: "orderdetail-list"
+    },
+    
+
+    {
+      icon: "BookMarked",
+      pathname: "/supplierorder",
+      title: "Supplierorder",
+      permission: "supplierorder-list"
+    },
+    
+
+    {
+      icon: "BookMarked",
+      pathname: "/supplierorderdetail",
+      title: "Supplierorderdetail",
+      permission: "supplierorderdetail-list"
+    },
+    
+
+    {
+      icon: "BookMarked",
+      pathname: "/packagin",
+      title: "Packagin",
+      permission: "packagin-list"
+    },
+    
+
+    {
+      icon: "BookMarked",
+      pathname: "/packinglist",
+      title: "Packinglist",
+      permission: "packinglist-list"
+    },
+    
+
+    {
+      icon: "BookMarked",
+      pathname: "/packinglistbox",
+      title: "Packinglistbox",
+      permission: "packinglistbox-list"
+    },
+    
+
+    {
+      icon: "BookMarked",
+      pathname: "/packinglistboxitem",
+      title: "Packinglistboxitem",
+      permission: "packinglistboxitem-list"
+    },
+    
+
+    {
+      icon: "BookMarked",
+      pathname: "/attachment",
+      title: "Attachment",
+      permission: "attachment-list"
+    },
+    
+
+    {
+      icon: "BookMarked",
+      pathname: "/problem",
+      title: "Problem",
+      permission: "problem-list"
+    },
+    
+
+    {
+      icon: "BookMarked",
+      pathname: "/problemitem",
+      title: "Problemitem",
+      permission: "problemitem-list"
+    },
+    
+
+    {
+      icon: "BookMarked",
+      pathname: "/productstatus",
+      title: "Productstatus",
+      permission: "productstatus-list"
+    },
+    
+
+    {
+      icon: "BookMarked",
+      pathname: "/customerinvoice",
+      title: "Customerinvoice",
+      permission: "customerinvoice-list"
+    },
+    
+
+    {
+      icon: "BookMarked",
+      pathname: "/warehouse",
+      title: "Warehouse",
+      permission: "warehouse-list"
+    },
+    
+
+    {
+      icon: "BookMarked",
+      pathname: "/customerinvoiceitem",
+      title: "Customerinvoiceitem",
+      permission: "customerinvoiceitem-list"
+    },
+    
+
+    {
+      icon: "BookMarked",
+      pathname: "/supplierinvoice",
+      title: "Supplierinvoice",
+      permission: "supplierinvoice-list"
+    },
+    
+
+    {
+      icon: "BookMarked",
+      pathname: "/supplierinvoiceitem",
+      title: "Supplierinvoiceitem",
+      permission: "supplierinvoiceitem-list"
+    },
+    
+
+    {
+      icon: "BookMarked",
+      pathname: "/accounttype",
+      title: "Accounttype",
+      permission: "accounttype-list"
+    },
+    
+
+    {
+      icon: "BookMarked",
+      pathname: "/paymentnote",
+      title: "Paymentnote",
+      permission: "paymentnote-list"
+    },
+    
+
+    {
+      icon: "BookMarked",
+      pathname: "/productrule",
+      title: "Productrule",
+      permission: "productrule-list"
+    },
+    
+
+    {
+      icon: "BookMarked",
+      pathname: "/packagingproblem",
+      title: "Packagingproblem",
+      permission: "packagingproblem-list"
+    },
+    
+
+    {
+      icon: "BookMarked",
+      pathname: "/searchresult",
+      title: "Searchresult",
+      permission: "searchresult-list"
+    },
+    
+
+    {
+      icon: "BookMarked",
+      pathname: "/fileoperation",
+      title: "Fileoperation",
+      permission: "fileoperation-list"
+    },
+    
+
+    {
+      icon: "BookMarked",
+      pathname: "/customerbrandvisibilit",
+      title: "Customerbrandvisibilit",
+      permission: "customerbrandvisibilit-list"
+    },
+    
+
+    {
+      icon: "BookMarked",
+      pathname: "/customerproductvisibilit",
+      title: "Customerproductvisibilit",
+      permission: "customerproductvisibilit-list"
+    },
+    
+
+    {
+      icon: "BookMarked",
+      pathname: "/supplierpricingrule",
+      title: "Supplierpricingrule",
+      permission: "supplierpricingrule-list"
+    },
+    
+
+    {
+      icon: "BookMarked",
+      pathname: "/supplierpricingrulecustomer",
+      title: "Supplierpricingrulecustomer",
+      permission: "supplierpricingrulecustomer-list"
+    },
+    
+
+    {
+      icon: "BookMarked",
+      pathname: "/supplierproduct",
+      title: "Supplierproduct",
+      permission: "supplierproduct-list"
+    },
+    
+
+    {
+      icon: "BookMarked",
+      pathname: "/customeraccount",
+      title: "Customeraccount",
+      permission: "customeraccount-list"
+    },
+    
+
+    {
+      icon: "BookMarked",
+      pathname: "/companyaccount",
+      title: "Companyaccount",
+      permission: "companyaccount-list"
+    },
+    
+
+    {
+      icon: "BookMarked",
+      pathname: "/warehouseaccount",
+      title: "Warehouseaccount",
+      permission: "warehouseaccount-list"
+    },
+    
+
+    {
+      icon: "BookMarked",
+      pathname: "/supplieraccount",
+      title: "Supplieraccount",
+      permission: "supplieraccount-list"
+    },
+    
+
+    {
+      icon: "BookMarked",
+      pathname: "/producthistor",
+      title: "Producthistor",
+      permission: "producthistor-list"
+    },
+    
     //addhere 
   ],
 };

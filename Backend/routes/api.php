@@ -210,6 +210,330 @@ Route::put('/compan/{id}', [App\Http\Controllers\CompanController::class, 'updat
 Route::delete('/compan/{id}', [App\Http\Controllers\CompanController::class, 'destroy'])->middleware('permission:compan-delete');
 Route::get('/all_compans', [App\Http\Controllers\CompanController::class,'all_compans']);
 
+
+Route::get('/basket', [App\Http\Controllers\BasketController::class, 'index'])->middleware('permission:basket-list|basket-create|basket-edit|basket-delete');
+Route::get('/basket/{id}', [App\Http\Controllers\BasketController::class, 'show'])->middleware('permission:basket-list|basket-create|basket-edit|basket-delete');
+Route::get('/search_basket/{search_term}', [App\Http\Controllers\BasketController::class, 'search'])->middleware('permission:basket-list|basket-create|basket-edit|basket-delete');
+Route::post('/basket', [App\Http\Controllers\BasketController::class, 'store'])->middleware('permission:basket-create');
+Route::put('/basket/{id}', [App\Http\Controllers\BasketController::class, 'update'])->middleware('permission:basket-edit');
+Route::delete('/basket/{id}', [App\Http\Controllers\BasketController::class, 'destroy'])->middleware('permission:basket-delete');
+Route::get('/all_baskets', [App\Http\Controllers\BasketController::class,'all_baskets']);
+
+
+Route::get('/basketfile', [App\Http\Controllers\BasketfileController::class, 'index'])->middleware('permission:basketfile-list|basketfile-create|basketfile-edit|basketfile-delete');
+Route::get('/basketfile/{id}', [App\Http\Controllers\BasketfileController::class, 'show'])->middleware('permission:basketfile-list|basketfile-create|basketfile-edit|basketfile-delete');
+Route::get('/search_basketfile/{search_term}', [App\Http\Controllers\BasketfileController::class, 'search'])->middleware('permission:basketfile-list|basketfile-create|basketfile-edit|basketfile-delete');
+Route::post('/basketfile', [App\Http\Controllers\BasketfileController::class, 'store'])->middleware('permission:basketfile-create');
+Route::put('/basketfile/{id}', [App\Http\Controllers\BasketfileController::class, 'update'])->middleware('permission:basketfile-edit');
+Route::delete('/basketfile/{id}', [App\Http\Controllers\BasketfileController::class, 'destroy'])->middleware('permission:basketfile-delete');
+Route::get('/all_basketfiles', [App\Http\Controllers\BasketfileController::class,'all_basketfiles']);
+
+
+Route::get('/basketitem', [App\Http\Controllers\BasketitemController::class, 'index'])->middleware('permission:basketitem-list|basketitem-create|basketitem-edit|basketitem-delete');
+Route::get('/basketitem/{id}', [App\Http\Controllers\BasketitemController::class, 'show'])->middleware('permission:basketitem-list|basketitem-create|basketitem-edit|basketitem-delete');
+Route::get('/search_basketitem/{search_term}', [App\Http\Controllers\BasketitemController::class, 'search'])->middleware('permission:basketitem-list|basketitem-create|basketitem-edit|basketitem-delete');
+Route::post('/basketitem', [App\Http\Controllers\BasketitemController::class, 'store'])->middleware('permission:basketitem-create');
+Route::put('/basketitem/{id}', [App\Http\Controllers\BasketitemController::class, 'update'])->middleware('permission:basketitem-edit');
+Route::delete('/basketitem/{id}', [App\Http\Controllers\BasketitemController::class, 'destroy'])->middleware('permission:basketitem-delete');
+Route::get('/all_basketitems', [App\Http\Controllers\BasketitemController::class,'all_basketitems']);
+
+
+Route::get('/order', [App\Http\Controllers\OrderController::class, 'index'])->middleware('permission:order-list|order-create|order-edit|order-delete');
+Route::get('/order/{id}', [App\Http\Controllers\OrderController::class, 'show'])->middleware('permission:order-list|order-create|order-edit|order-delete');
+Route::get('/search_order/{search_term}', [App\Http\Controllers\OrderController::class, 'search'])->middleware('permission:order-list|order-create|order-edit|order-delete');
+Route::post('/order', [App\Http\Controllers\OrderController::class, 'store'])->middleware('permission:order-create');
+Route::put('/order/{id}', [App\Http\Controllers\OrderController::class, 'update'])->middleware('permission:order-edit');
+Route::delete('/order/{id}', [App\Http\Controllers\OrderController::class, 'destroy'])->middleware('permission:order-delete');
+Route::get('/all_orders', [App\Http\Controllers\OrderController::class,'all_orders']);
+
+
+Route::get('/orderdetail', [App\Http\Controllers\OrderdetailController::class, 'index'])->middleware('permission:orderdetail-list|orderdetail-create|orderdetail-edit|orderdetail-delete');
+Route::get('/orderdetail/{id}', [App\Http\Controllers\OrderdetailController::class, 'show'])->middleware('permission:orderdetail-list|orderdetail-create|orderdetail-edit|orderdetail-delete');
+Route::get('/search_orderdetail/{search_term}', [App\Http\Controllers\OrderdetailController::class, 'search'])->middleware('permission:orderdetail-list|orderdetail-create|orderdetail-edit|orderdetail-delete');
+Route::post('/orderdetail', [App\Http\Controllers\OrderdetailController::class, 'store'])->middleware('permission:orderdetail-create');
+Route::put('/orderdetail/{id}', [App\Http\Controllers\OrderdetailController::class, 'update'])->middleware('permission:orderdetail-edit');
+Route::delete('/orderdetail/{id}', [App\Http\Controllers\OrderdetailController::class, 'destroy'])->middleware('permission:orderdetail-delete');
+Route::get('/all_orderdetails', [App\Http\Controllers\OrderdetailController::class,'all_orderdetails']);
+
+
+Route::get('/supplierorder', [App\Http\Controllers\SupplierorderController::class, 'index'])->middleware('permission:supplierorder-list|supplierorder-create|supplierorder-edit|supplierorder-delete');
+Route::get('/supplierorder/{id}', [App\Http\Controllers\SupplierorderController::class, 'show'])->middleware('permission:supplierorder-list|supplierorder-create|supplierorder-edit|supplierorder-delete');
+Route::get('/search_supplierorder/{search_term}', [App\Http\Controllers\SupplierorderController::class, 'search'])->middleware('permission:supplierorder-list|supplierorder-create|supplierorder-edit|supplierorder-delete');
+Route::post('/supplierorder', [App\Http\Controllers\SupplierorderController::class, 'store'])->middleware('permission:supplierorder-create');
+Route::put('/supplierorder/{id}', [App\Http\Controllers\SupplierorderController::class, 'update'])->middleware('permission:supplierorder-edit');
+Route::delete('/supplierorder/{id}', [App\Http\Controllers\SupplierorderController::class, 'destroy'])->middleware('permission:supplierorder-delete');
+Route::get('/all_supplierorders', [App\Http\Controllers\SupplierorderController::class,'all_supplierorders']);
+
+
+Route::get('/supplierorderdetail', [App\Http\Controllers\SupplierorderdetailController::class, 'index'])->middleware('permission:supplierorderdetail-list|supplierorderdetail-create|supplierorderdetail-edit|supplierorderdetail-delete');
+Route::get('/supplierorderdetail/{id}', [App\Http\Controllers\SupplierorderdetailController::class, 'show'])->middleware('permission:supplierorderdetail-list|supplierorderdetail-create|supplierorderdetail-edit|supplierorderdetail-delete');
+Route::get('/search_supplierorderdetail/{search_term}', [App\Http\Controllers\SupplierorderdetailController::class, 'search'])->middleware('permission:supplierorderdetail-list|supplierorderdetail-create|supplierorderdetail-edit|supplierorderdetail-delete');
+Route::post('/supplierorderdetail', [App\Http\Controllers\SupplierorderdetailController::class, 'store'])->middleware('permission:supplierorderdetail-create');
+Route::put('/supplierorderdetail/{id}', [App\Http\Controllers\SupplierorderdetailController::class, 'update'])->middleware('permission:supplierorderdetail-edit');
+Route::delete('/supplierorderdetail/{id}', [App\Http\Controllers\SupplierorderdetailController::class, 'destroy'])->middleware('permission:supplierorderdetail-delete');
+Route::get('/all_supplierorderdetails', [App\Http\Controllers\SupplierorderdetailController::class,'all_supplierorderdetails']);
+
+
+Route::get('/packagin', [App\Http\Controllers\PackaginController::class, 'index'])->middleware('permission:packagin-list|packagin-create|packagin-edit|packagin-delete');
+Route::get('/packagin/{id}', [App\Http\Controllers\PackaginController::class, 'show'])->middleware('permission:packagin-list|packagin-create|packagin-edit|packagin-delete');
+Route::get('/search_packagin/{search_term}', [App\Http\Controllers\PackaginController::class, 'search'])->middleware('permission:packagin-list|packagin-create|packagin-edit|packagin-delete');
+Route::post('/packagin', [App\Http\Controllers\PackaginController::class, 'store'])->middleware('permission:packagin-create');
+Route::put('/packagin/{id}', [App\Http\Controllers\PackaginController::class, 'update'])->middleware('permission:packagin-edit');
+Route::delete('/packagin/{id}', [App\Http\Controllers\PackaginController::class, 'destroy'])->middleware('permission:packagin-delete');
+Route::get('/all_packagins', [App\Http\Controllers\PackaginController::class,'all_packagins']);
+
+
+Route::get('/packinglist', [App\Http\Controllers\PackinglistController::class, 'index'])->middleware('permission:packinglist-list|packinglist-create|packinglist-edit|packinglist-delete');
+Route::get('/packinglist/{id}', [App\Http\Controllers\PackinglistController::class, 'show'])->middleware('permission:packinglist-list|packinglist-create|packinglist-edit|packinglist-delete');
+Route::get('/search_packinglist/{search_term}', [App\Http\Controllers\PackinglistController::class, 'search'])->middleware('permission:packinglist-list|packinglist-create|packinglist-edit|packinglist-delete');
+Route::post('/packinglist', [App\Http\Controllers\PackinglistController::class, 'store'])->middleware('permission:packinglist-create');
+Route::put('/packinglist/{id}', [App\Http\Controllers\PackinglistController::class, 'update'])->middleware('permission:packinglist-edit');
+Route::delete('/packinglist/{id}', [App\Http\Controllers\PackinglistController::class, 'destroy'])->middleware('permission:packinglist-delete');
+Route::get('/all_packinglists', [App\Http\Controllers\PackinglistController::class,'all_packinglists']);
+
+
+Route::get('/packinglistbox', [App\Http\Controllers\PackinglistboxController::class, 'index'])->middleware('permission:packinglistbox-list|packinglistbox-create|packinglistbox-edit|packinglistbox-delete');
+Route::get('/packinglistbox/{id}', [App\Http\Controllers\PackinglistboxController::class, 'show'])->middleware('permission:packinglistbox-list|packinglistbox-create|packinglistbox-edit|packinglistbox-delete');
+Route::get('/search_packinglistbox/{search_term}', [App\Http\Controllers\PackinglistboxController::class, 'search'])->middleware('permission:packinglistbox-list|packinglistbox-create|packinglistbox-edit|packinglistbox-delete');
+Route::post('/packinglistbox', [App\Http\Controllers\PackinglistboxController::class, 'store'])->middleware('permission:packinglistbox-create');
+Route::put('/packinglistbox/{id}', [App\Http\Controllers\PackinglistboxController::class, 'update'])->middleware('permission:packinglistbox-edit');
+Route::delete('/packinglistbox/{id}', [App\Http\Controllers\PackinglistboxController::class, 'destroy'])->middleware('permission:packinglistbox-delete');
+Route::get('/all_packinglistboxs', [App\Http\Controllers\PackinglistboxController::class,'all_packinglistboxs']);
+
+
+Route::get('/packinglistboxitem', [App\Http\Controllers\PackinglistboxitemController::class, 'index'])->middleware('permission:packinglistboxitem-list|packinglistboxitem-create|packinglistboxitem-edit|packinglistboxitem-delete');
+Route::get('/packinglistboxitem/{id}', [App\Http\Controllers\PackinglistboxitemController::class, 'show'])->middleware('permission:packinglistboxitem-list|packinglistboxitem-create|packinglistboxitem-edit|packinglistboxitem-delete');
+Route::get('/search_packinglistboxitem/{search_term}', [App\Http\Controllers\PackinglistboxitemController::class, 'search'])->middleware('permission:packinglistboxitem-list|packinglistboxitem-create|packinglistboxitem-edit|packinglistboxitem-delete');
+Route::post('/packinglistboxitem', [App\Http\Controllers\PackinglistboxitemController::class, 'store'])->middleware('permission:packinglistboxitem-create');
+Route::put('/packinglistboxitem/{id}', [App\Http\Controllers\PackinglistboxitemController::class, 'update'])->middleware('permission:packinglistboxitem-edit');
+Route::delete('/packinglistboxitem/{id}', [App\Http\Controllers\PackinglistboxitemController::class, 'destroy'])->middleware('permission:packinglistboxitem-delete');
+Route::get('/all_packinglistboxitems', [App\Http\Controllers\PackinglistboxitemController::class,'all_packinglistboxitems']);
+
+
+Route::get('/attachment', [App\Http\Controllers\AttachmentController::class, 'index'])->middleware('permission:attachment-list|attachment-create|attachment-edit|attachment-delete');
+Route::get('/attachment/{id}', [App\Http\Controllers\AttachmentController::class, 'show'])->middleware('permission:attachment-list|attachment-create|attachment-edit|attachment-delete');
+Route::get('/search_attachment/{search_term}', [App\Http\Controllers\AttachmentController::class, 'search'])->middleware('permission:attachment-list|attachment-create|attachment-edit|attachment-delete');
+Route::post('/attachment', [App\Http\Controllers\AttachmentController::class, 'store'])->middleware('permission:attachment-create');
+Route::put('/attachment/{id}', [App\Http\Controllers\AttachmentController::class, 'update'])->middleware('permission:attachment-edit');
+Route::delete('/attachment/{id}', [App\Http\Controllers\AttachmentController::class, 'destroy'])->middleware('permission:attachment-delete');
+Route::get('/all_attachments', [App\Http\Controllers\AttachmentController::class,'all_attachments']);
+
+
+Route::get('/problem', [App\Http\Controllers\ProblemController::class, 'index'])->middleware('permission:problem-list|problem-create|problem-edit|problem-delete');
+Route::get('/problem/{id}', [App\Http\Controllers\ProblemController::class, 'show'])->middleware('permission:problem-list|problem-create|problem-edit|problem-delete');
+Route::get('/search_problem/{search_term}', [App\Http\Controllers\ProblemController::class, 'search'])->middleware('permission:problem-list|problem-create|problem-edit|problem-delete');
+Route::post('/problem', [App\Http\Controllers\ProblemController::class, 'store'])->middleware('permission:problem-create');
+Route::put('/problem/{id}', [App\Http\Controllers\ProblemController::class, 'update'])->middleware('permission:problem-edit');
+Route::delete('/problem/{id}', [App\Http\Controllers\ProblemController::class, 'destroy'])->middleware('permission:problem-delete');
+Route::get('/all_problems', [App\Http\Controllers\ProblemController::class,'all_problems']);
+
+
+Route::get('/problemitem', [App\Http\Controllers\ProblemitemController::class, 'index'])->middleware('permission:problemitem-list|problemitem-create|problemitem-edit|problemitem-delete');
+Route::get('/problemitem/{id}', [App\Http\Controllers\ProblemitemController::class, 'show'])->middleware('permission:problemitem-list|problemitem-create|problemitem-edit|problemitem-delete');
+Route::get('/search_problemitem/{search_term}', [App\Http\Controllers\ProblemitemController::class, 'search'])->middleware('permission:problemitem-list|problemitem-create|problemitem-edit|problemitem-delete');
+Route::post('/problemitem', [App\Http\Controllers\ProblemitemController::class, 'store'])->middleware('permission:problemitem-create');
+Route::put('/problemitem/{id}', [App\Http\Controllers\ProblemitemController::class, 'update'])->middleware('permission:problemitem-edit');
+Route::delete('/problemitem/{id}', [App\Http\Controllers\ProblemitemController::class, 'destroy'])->middleware('permission:problemitem-delete');
+Route::get('/all_problemitems', [App\Http\Controllers\ProblemitemController::class,'all_problemitems']);
+
+
+Route::get('/productstatus', [App\Http\Controllers\ProductstatusController::class, 'index'])->middleware('permission:productstatus-list|productstatus-create|productstatus-edit|productstatus-delete');
+Route::get('/productstatus/{id}', [App\Http\Controllers\ProductstatusController::class, 'show'])->middleware('permission:productstatus-list|productstatus-create|productstatus-edit|productstatus-delete');
+Route::get('/search_productstatus/{search_term}', [App\Http\Controllers\ProductstatusController::class, 'search'])->middleware('permission:productstatus-list|productstatus-create|productstatus-edit|productstatus-delete');
+Route::post('/productstatus', [App\Http\Controllers\ProductstatusController::class, 'store'])->middleware('permission:productstatus-create');
+Route::put('/productstatus/{id}', [App\Http\Controllers\ProductstatusController::class, 'update'])->middleware('permission:productstatus-edit');
+Route::delete('/productstatus/{id}', [App\Http\Controllers\ProductstatusController::class, 'destroy'])->middleware('permission:productstatus-delete');
+Route::get('/all_productstatuss', [App\Http\Controllers\ProductstatusController::class,'all_productstatuss']);
+
+
+Route::get('/customerinvoice', [App\Http\Controllers\CustomerinvoiceController::class, 'index'])->middleware('permission:customerinvoice-list|customerinvoice-create|customerinvoice-edit|customerinvoice-delete');
+Route::get('/customerinvoice/{id}', [App\Http\Controllers\CustomerinvoiceController::class, 'show'])->middleware('permission:customerinvoice-list|customerinvoice-create|customerinvoice-edit|customerinvoice-delete');
+Route::get('/search_customerinvoice/{search_term}', [App\Http\Controllers\CustomerinvoiceController::class, 'search'])->middleware('permission:customerinvoice-list|customerinvoice-create|customerinvoice-edit|customerinvoice-delete');
+Route::post('/customerinvoice', [App\Http\Controllers\CustomerinvoiceController::class, 'store'])->middleware('permission:customerinvoice-create');
+Route::put('/customerinvoice/{id}', [App\Http\Controllers\CustomerinvoiceController::class, 'update'])->middleware('permission:customerinvoice-edit');
+Route::delete('/customerinvoice/{id}', [App\Http\Controllers\CustomerinvoiceController::class, 'destroy'])->middleware('permission:customerinvoice-delete');
+Route::get('/all_customerinvoices', [App\Http\Controllers\CustomerinvoiceController::class,'all_customerinvoices']);
+
+
+Route::get('/warehouse', [App\Http\Controllers\WarehouseController::class, 'index'])->middleware('permission:warehouse-list|warehouse-create|warehouse-edit|warehouse-delete');
+Route::get('/warehouse/{id}', [App\Http\Controllers\WarehouseController::class, 'show'])->middleware('permission:warehouse-list|warehouse-create|warehouse-edit|warehouse-delete');
+Route::get('/search_warehouse/{search_term}', [App\Http\Controllers\WarehouseController::class, 'search'])->middleware('permission:warehouse-list|warehouse-create|warehouse-edit|warehouse-delete');
+Route::post('/warehouse', [App\Http\Controllers\WarehouseController::class, 'store'])->middleware('permission:warehouse-create');
+Route::put('/warehouse/{id}', [App\Http\Controllers\WarehouseController::class, 'update'])->middleware('permission:warehouse-edit');
+Route::delete('/warehouse/{id}', [App\Http\Controllers\WarehouseController::class, 'destroy'])->middleware('permission:warehouse-delete');
+Route::get('/all_warehouses', [App\Http\Controllers\WarehouseController::class,'all_warehouses']);
+
+
+Route::get('/customerinvoiceitem', [App\Http\Controllers\CustomerinvoiceitemController::class, 'index'])->middleware('permission:customerinvoiceitem-list|customerinvoiceitem-create|customerinvoiceitem-edit|customerinvoiceitem-delete');
+Route::get('/customerinvoiceitem/{id}', [App\Http\Controllers\CustomerinvoiceitemController::class, 'show'])->middleware('permission:customerinvoiceitem-list|customerinvoiceitem-create|customerinvoiceitem-edit|customerinvoiceitem-delete');
+Route::get('/search_customerinvoiceitem/{search_term}', [App\Http\Controllers\CustomerinvoiceitemController::class, 'search'])->middleware('permission:customerinvoiceitem-list|customerinvoiceitem-create|customerinvoiceitem-edit|customerinvoiceitem-delete');
+Route::post('/customerinvoiceitem', [App\Http\Controllers\CustomerinvoiceitemController::class, 'store'])->middleware('permission:customerinvoiceitem-create');
+Route::put('/customerinvoiceitem/{id}', [App\Http\Controllers\CustomerinvoiceitemController::class, 'update'])->middleware('permission:customerinvoiceitem-edit');
+Route::delete('/customerinvoiceitem/{id}', [App\Http\Controllers\CustomerinvoiceitemController::class, 'destroy'])->middleware('permission:customerinvoiceitem-delete');
+Route::get('/all_customerinvoiceitems', [App\Http\Controllers\CustomerinvoiceitemController::class,'all_customerinvoiceitems']);
+
+
+Route::get('/supplierinvoice', [App\Http\Controllers\SupplierinvoiceController::class, 'index'])->middleware('permission:supplierinvoice-list|supplierinvoice-create|supplierinvoice-edit|supplierinvoice-delete');
+Route::get('/supplierinvoice/{id}', [App\Http\Controllers\SupplierinvoiceController::class, 'show'])->middleware('permission:supplierinvoice-list|supplierinvoice-create|supplierinvoice-edit|supplierinvoice-delete');
+Route::get('/search_supplierinvoice/{search_term}', [App\Http\Controllers\SupplierinvoiceController::class, 'search'])->middleware('permission:supplierinvoice-list|supplierinvoice-create|supplierinvoice-edit|supplierinvoice-delete');
+Route::post('/supplierinvoice', [App\Http\Controllers\SupplierinvoiceController::class, 'store'])->middleware('permission:supplierinvoice-create');
+Route::put('/supplierinvoice/{id}', [App\Http\Controllers\SupplierinvoiceController::class, 'update'])->middleware('permission:supplierinvoice-edit');
+Route::delete('/supplierinvoice/{id}', [App\Http\Controllers\SupplierinvoiceController::class, 'destroy'])->middleware('permission:supplierinvoice-delete');
+Route::get('/all_supplierinvoices', [App\Http\Controllers\SupplierinvoiceController::class,'all_supplierinvoices']);
+
+
+Route::get('/supplierinvoiceitem', [App\Http\Controllers\SupplierinvoiceitemController::class, 'index'])->middleware('permission:supplierinvoiceitem-list|supplierinvoiceitem-create|supplierinvoiceitem-edit|supplierinvoiceitem-delete');
+Route::get('/supplierinvoiceitem/{id}', [App\Http\Controllers\SupplierinvoiceitemController::class, 'show'])->middleware('permission:supplierinvoiceitem-list|supplierinvoiceitem-create|supplierinvoiceitem-edit|supplierinvoiceitem-delete');
+Route::get('/search_supplierinvoiceitem/{search_term}', [App\Http\Controllers\SupplierinvoiceitemController::class, 'search'])->middleware('permission:supplierinvoiceitem-list|supplierinvoiceitem-create|supplierinvoiceitem-edit|supplierinvoiceitem-delete');
+Route::post('/supplierinvoiceitem', [App\Http\Controllers\SupplierinvoiceitemController::class, 'store'])->middleware('permission:supplierinvoiceitem-create');
+Route::put('/supplierinvoiceitem/{id}', [App\Http\Controllers\SupplierinvoiceitemController::class, 'update'])->middleware('permission:supplierinvoiceitem-edit');
+Route::delete('/supplierinvoiceitem/{id}', [App\Http\Controllers\SupplierinvoiceitemController::class, 'destroy'])->middleware('permission:supplierinvoiceitem-delete');
+Route::get('/all_supplierinvoiceitems', [App\Http\Controllers\SupplierinvoiceitemController::class,'all_supplierinvoiceitems']);
+
+
+Route::get('/accounttype', [App\Http\Controllers\AccounttypeController::class, 'index'])->middleware('permission:accounttype-list|accounttype-create|accounttype-edit|accounttype-delete');
+Route::get('/accounttype/{id}', [App\Http\Controllers\AccounttypeController::class, 'show'])->middleware('permission:accounttype-list|accounttype-create|accounttype-edit|accounttype-delete');
+Route::get('/search_accounttype/{search_term}', [App\Http\Controllers\AccounttypeController::class, 'search'])->middleware('permission:accounttype-list|accounttype-create|accounttype-edit|accounttype-delete');
+Route::post('/accounttype', [App\Http\Controllers\AccounttypeController::class, 'store'])->middleware('permission:accounttype-create');
+Route::put('/accounttype/{id}', [App\Http\Controllers\AccounttypeController::class, 'update'])->middleware('permission:accounttype-edit');
+Route::delete('/accounttype/{id}', [App\Http\Controllers\AccounttypeController::class, 'destroy'])->middleware('permission:accounttype-delete');
+Route::get('/all_accounttypes', [App\Http\Controllers\AccounttypeController::class,'all_accounttypes']);
+
+
+Route::get('/paymentnote', [App\Http\Controllers\PaymentnoteController::class, 'index'])->middleware('permission:paymentnote-list|paymentnote-create|paymentnote-edit|paymentnote-delete');
+Route::get('/paymentnote/{id}', [App\Http\Controllers\PaymentnoteController::class, 'show'])->middleware('permission:paymentnote-list|paymentnote-create|paymentnote-edit|paymentnote-delete');
+Route::get('/search_paymentnote/{search_term}', [App\Http\Controllers\PaymentnoteController::class, 'search'])->middleware('permission:paymentnote-list|paymentnote-create|paymentnote-edit|paymentnote-delete');
+Route::post('/paymentnote', [App\Http\Controllers\PaymentnoteController::class, 'store'])->middleware('permission:paymentnote-create');
+Route::put('/paymentnote/{id}', [App\Http\Controllers\PaymentnoteController::class, 'update'])->middleware('permission:paymentnote-edit');
+Route::delete('/paymentnote/{id}', [App\Http\Controllers\PaymentnoteController::class, 'destroy'])->middleware('permission:paymentnote-delete');
+Route::get('/all_paymentnotes', [App\Http\Controllers\PaymentnoteController::class,'all_paymentnotes']);
+
+
+Route::get('/productrule', [App\Http\Controllers\ProductruleController::class, 'index'])->middleware('permission:productrule-list|productrule-create|productrule-edit|productrule-delete');
+Route::get('/productrule/{id}', [App\Http\Controllers\ProductruleController::class, 'show'])->middleware('permission:productrule-list|productrule-create|productrule-edit|productrule-delete');
+Route::get('/search_productrule/{search_term}', [App\Http\Controllers\ProductruleController::class, 'search'])->middleware('permission:productrule-list|productrule-create|productrule-edit|productrule-delete');
+Route::post('/productrule', [App\Http\Controllers\ProductruleController::class, 'store'])->middleware('permission:productrule-create');
+Route::put('/productrule/{id}', [App\Http\Controllers\ProductruleController::class, 'update'])->middleware('permission:productrule-edit');
+Route::delete('/productrule/{id}', [App\Http\Controllers\ProductruleController::class, 'destroy'])->middleware('permission:productrule-delete');
+Route::get('/all_productrules', [App\Http\Controllers\ProductruleController::class,'all_productrules']);
+
+
+Route::get('/packagingproblem', [App\Http\Controllers\PackagingproblemController::class, 'index'])->middleware('permission:packagingproblem-list|packagingproblem-create|packagingproblem-edit|packagingproblem-delete');
+Route::get('/packagingproblem/{id}', [App\Http\Controllers\PackagingproblemController::class, 'show'])->middleware('permission:packagingproblem-list|packagingproblem-create|packagingproblem-edit|packagingproblem-delete');
+Route::get('/search_packagingproblem/{search_term}', [App\Http\Controllers\PackagingproblemController::class, 'search'])->middleware('permission:packagingproblem-list|packagingproblem-create|packagingproblem-edit|packagingproblem-delete');
+Route::post('/packagingproblem', [App\Http\Controllers\PackagingproblemController::class, 'store'])->middleware('permission:packagingproblem-create');
+Route::put('/packagingproblem/{id}', [App\Http\Controllers\PackagingproblemController::class, 'update'])->middleware('permission:packagingproblem-edit');
+Route::delete('/packagingproblem/{id}', [App\Http\Controllers\PackagingproblemController::class, 'destroy'])->middleware('permission:packagingproblem-delete');
+Route::get('/all_packagingproblems', [App\Http\Controllers\PackagingproblemController::class,'all_packagingproblems']);
+
+
+Route::get('/searchresult', [App\Http\Controllers\SearchresultController::class, 'index'])->middleware('permission:searchresult-list|searchresult-create|searchresult-edit|searchresult-delete');
+Route::get('/searchresult/{id}', [App\Http\Controllers\SearchresultController::class, 'show'])->middleware('permission:searchresult-list|searchresult-create|searchresult-edit|searchresult-delete');
+Route::get('/search_searchresult/{search_term}', [App\Http\Controllers\SearchresultController::class, 'search'])->middleware('permission:searchresult-list|searchresult-create|searchresult-edit|searchresult-delete');
+Route::post('/searchresult', [App\Http\Controllers\SearchresultController::class, 'store'])->middleware('permission:searchresult-create');
+Route::put('/searchresult/{id}', [App\Http\Controllers\SearchresultController::class, 'update'])->middleware('permission:searchresult-edit');
+Route::delete('/searchresult/{id}', [App\Http\Controllers\SearchresultController::class, 'destroy'])->middleware('permission:searchresult-delete');
+Route::get('/all_searchresults', [App\Http\Controllers\SearchresultController::class,'all_searchresults']);
+
+
+Route::get('/fileoperation', [App\Http\Controllers\FileoperationController::class, 'index'])->middleware('permission:fileoperation-list|fileoperation-create|fileoperation-edit|fileoperation-delete');
+Route::get('/fileoperation/{id}', [App\Http\Controllers\FileoperationController::class, 'show'])->middleware('permission:fileoperation-list|fileoperation-create|fileoperation-edit|fileoperation-delete');
+Route::get('/search_fileoperation/{search_term}', [App\Http\Controllers\FileoperationController::class, 'search'])->middleware('permission:fileoperation-list|fileoperation-create|fileoperation-edit|fileoperation-delete');
+Route::post('/fileoperation', [App\Http\Controllers\FileoperationController::class, 'store'])->middleware('permission:fileoperation-create');
+Route::put('/fileoperation/{id}', [App\Http\Controllers\FileoperationController::class, 'update'])->middleware('permission:fileoperation-edit');
+Route::delete('/fileoperation/{id}', [App\Http\Controllers\FileoperationController::class, 'destroy'])->middleware('permission:fileoperation-delete');
+Route::get('/all_fileoperations', [App\Http\Controllers\FileoperationController::class,'all_fileoperations']);
+
+
+Route::get('/customerbrandvisibilit', [App\Http\Controllers\CustomerbrandvisibilitController::class, 'index'])->middleware('permission:customerbrandvisibilit-list|customerbrandvisibilit-create|customerbrandvisibilit-edit|customerbrandvisibilit-delete');
+Route::get('/customerbrandvisibilit/{id}', [App\Http\Controllers\CustomerbrandvisibilitController::class, 'show'])->middleware('permission:customerbrandvisibilit-list|customerbrandvisibilit-create|customerbrandvisibilit-edit|customerbrandvisibilit-delete');
+Route::get('/search_customerbrandvisibilit/{search_term}', [App\Http\Controllers\CustomerbrandvisibilitController::class, 'search'])->middleware('permission:customerbrandvisibilit-list|customerbrandvisibilit-create|customerbrandvisibilit-edit|customerbrandvisibilit-delete');
+Route::post('/customerbrandvisibilit', [App\Http\Controllers\CustomerbrandvisibilitController::class, 'store'])->middleware('permission:customerbrandvisibilit-create');
+Route::put('/customerbrandvisibilit/{id}', [App\Http\Controllers\CustomerbrandvisibilitController::class, 'update'])->middleware('permission:customerbrandvisibilit-edit');
+Route::delete('/customerbrandvisibilit/{id}', [App\Http\Controllers\CustomerbrandvisibilitController::class, 'destroy'])->middleware('permission:customerbrandvisibilit-delete');
+Route::get('/all_customerbrandvisibilits', [App\Http\Controllers\CustomerbrandvisibilitController::class,'all_customerbrandvisibilits']);
+
+
+Route::get('/customerproductvisibilit', [App\Http\Controllers\CustomerproductvisibilitController::class, 'index'])->middleware('permission:customerproductvisibilit-list|customerproductvisibilit-create|customerproductvisibilit-edit|customerproductvisibilit-delete');
+Route::get('/customerproductvisibilit/{id}', [App\Http\Controllers\CustomerproductvisibilitController::class, 'show'])->middleware('permission:customerproductvisibilit-list|customerproductvisibilit-create|customerproductvisibilit-edit|customerproductvisibilit-delete');
+Route::get('/search_customerproductvisibilit/{search_term}', [App\Http\Controllers\CustomerproductvisibilitController::class, 'search'])->middleware('permission:customerproductvisibilit-list|customerproductvisibilit-create|customerproductvisibilit-edit|customerproductvisibilit-delete');
+Route::post('/customerproductvisibilit', [App\Http\Controllers\CustomerproductvisibilitController::class, 'store'])->middleware('permission:customerproductvisibilit-create');
+Route::put('/customerproductvisibilit/{id}', [App\Http\Controllers\CustomerproductvisibilitController::class, 'update'])->middleware('permission:customerproductvisibilit-edit');
+Route::delete('/customerproductvisibilit/{id}', [App\Http\Controllers\CustomerproductvisibilitController::class, 'destroy'])->middleware('permission:customerproductvisibilit-delete');
+Route::get('/all_customerproductvisibilits', [App\Http\Controllers\CustomerproductvisibilitController::class,'all_customerproductvisibilits']);
+
+
+Route::get('/supplierpricingrule', [App\Http\Controllers\SupplierpricingruleController::class, 'index'])->middleware('permission:supplierpricingrule-list|supplierpricingrule-create|supplierpricingrule-edit|supplierpricingrule-delete');
+Route::get('/supplierpricingrule/{id}', [App\Http\Controllers\SupplierpricingruleController::class, 'show'])->middleware('permission:supplierpricingrule-list|supplierpricingrule-create|supplierpricingrule-edit|supplierpricingrule-delete');
+Route::get('/search_supplierpricingrule/{search_term}', [App\Http\Controllers\SupplierpricingruleController::class, 'search'])->middleware('permission:supplierpricingrule-list|supplierpricingrule-create|supplierpricingrule-edit|supplierpricingrule-delete');
+Route::post('/supplierpricingrule', [App\Http\Controllers\SupplierpricingruleController::class, 'store'])->middleware('permission:supplierpricingrule-create');
+Route::put('/supplierpricingrule/{id}', [App\Http\Controllers\SupplierpricingruleController::class, 'update'])->middleware('permission:supplierpricingrule-edit');
+Route::delete('/supplierpricingrule/{id}', [App\Http\Controllers\SupplierpricingruleController::class, 'destroy'])->middleware('permission:supplierpricingrule-delete');
+Route::get('/all_supplierpricingrules', [App\Http\Controllers\SupplierpricingruleController::class,'all_supplierpricingrules']);
+
+
+Route::get('/supplierpricingrulecustomer', [App\Http\Controllers\SupplierpricingrulecustomerController::class, 'index'])->middleware('permission:supplierpricingrulecustomer-list|supplierpricingrulecustomer-create|supplierpricingrulecustomer-edit|supplierpricingrulecustomer-delete');
+Route::get('/supplierpricingrulecustomer/{id}', [App\Http\Controllers\SupplierpricingrulecustomerController::class, 'show'])->middleware('permission:supplierpricingrulecustomer-list|supplierpricingrulecustomer-create|supplierpricingrulecustomer-edit|supplierpricingrulecustomer-delete');
+Route::get('/search_supplierpricingrulecustomer/{search_term}', [App\Http\Controllers\SupplierpricingrulecustomerController::class, 'search'])->middleware('permission:supplierpricingrulecustomer-list|supplierpricingrulecustomer-create|supplierpricingrulecustomer-edit|supplierpricingrulecustomer-delete');
+Route::post('/supplierpricingrulecustomer', [App\Http\Controllers\SupplierpricingrulecustomerController::class, 'store'])->middleware('permission:supplierpricingrulecustomer-create');
+Route::put('/supplierpricingrulecustomer/{id}', [App\Http\Controllers\SupplierpricingrulecustomerController::class, 'update'])->middleware('permission:supplierpricingrulecustomer-edit');
+Route::delete('/supplierpricingrulecustomer/{id}', [App\Http\Controllers\SupplierpricingrulecustomerController::class, 'destroy'])->middleware('permission:supplierpricingrulecustomer-delete');
+Route::get('/all_supplierpricingrulecustomers', [App\Http\Controllers\SupplierpricingrulecustomerController::class,'all_supplierpricingrulecustomers']);
+
+
+Route::get('/supplierproduct', [App\Http\Controllers\SupplierproductController::class, 'index'])->middleware('permission:supplierproduct-list|supplierproduct-create|supplierproduct-edit|supplierproduct-delete');
+Route::get('/supplierproduct/{id}', [App\Http\Controllers\SupplierproductController::class, 'show'])->middleware('permission:supplierproduct-list|supplierproduct-create|supplierproduct-edit|supplierproduct-delete');
+Route::get('/search_supplierproduct/{search_term}', [App\Http\Controllers\SupplierproductController::class, 'search'])->middleware('permission:supplierproduct-list|supplierproduct-create|supplierproduct-edit|supplierproduct-delete');
+Route::post('/supplierproduct', [App\Http\Controllers\SupplierproductController::class, 'store'])->middleware('permission:supplierproduct-create');
+Route::put('/supplierproduct/{id}', [App\Http\Controllers\SupplierproductController::class, 'update'])->middleware('permission:supplierproduct-edit');
+Route::delete('/supplierproduct/{id}', [App\Http\Controllers\SupplierproductController::class, 'destroy'])->middleware('permission:supplierproduct-delete');
+Route::get('/all_supplierproducts', [App\Http\Controllers\SupplierproductController::class,'all_supplierproducts']);
+
+
+Route::get('/customeraccount', [App\Http\Controllers\CustomeraccountController::class, 'index'])->middleware('permission:customeraccount-list|customeraccount-create|customeraccount-edit|customeraccount-delete');
+Route::get('/customeraccount/{id}', [App\Http\Controllers\CustomeraccountController::class, 'show'])->middleware('permission:customeraccount-list|customeraccount-create|customeraccount-edit|customeraccount-delete');
+Route::get('/search_customeraccount/{search_term}', [App\Http\Controllers\CustomeraccountController::class, 'search'])->middleware('permission:customeraccount-list|customeraccount-create|customeraccount-edit|customeraccount-delete');
+Route::post('/customeraccount', [App\Http\Controllers\CustomeraccountController::class, 'store'])->middleware('permission:customeraccount-create');
+Route::put('/customeraccount/{id}', [App\Http\Controllers\CustomeraccountController::class, 'update'])->middleware('permission:customeraccount-edit');
+Route::delete('/customeraccount/{id}', [App\Http\Controllers\CustomeraccountController::class, 'destroy'])->middleware('permission:customeraccount-delete');
+Route::get('/all_customeraccounts', [App\Http\Controllers\CustomeraccountController::class,'all_customeraccounts']);
+
+
+Route::get('/companyaccount', [App\Http\Controllers\CompanyaccountController::class, 'index'])->middleware('permission:companyaccount-list|companyaccount-create|companyaccount-edit|companyaccount-delete');
+Route::get('/companyaccount/{id}', [App\Http\Controllers\CompanyaccountController::class, 'show'])->middleware('permission:companyaccount-list|companyaccount-create|companyaccount-edit|companyaccount-delete');
+Route::get('/search_companyaccount/{search_term}', [App\Http\Controllers\CompanyaccountController::class, 'search'])->middleware('permission:companyaccount-list|companyaccount-create|companyaccount-edit|companyaccount-delete');
+Route::post('/companyaccount', [App\Http\Controllers\CompanyaccountController::class, 'store'])->middleware('permission:companyaccount-create');
+Route::put('/companyaccount/{id}', [App\Http\Controllers\CompanyaccountController::class, 'update'])->middleware('permission:companyaccount-edit');
+Route::delete('/companyaccount/{id}', [App\Http\Controllers\CompanyaccountController::class, 'destroy'])->middleware('permission:companyaccount-delete');
+Route::get('/all_companyaccounts', [App\Http\Controllers\CompanyaccountController::class,'all_companyaccounts']);
+
+
+Route::get('/warehouseaccount', [App\Http\Controllers\WarehouseaccountController::class, 'index'])->middleware('permission:warehouseaccount-list|warehouseaccount-create|warehouseaccount-edit|warehouseaccount-delete');
+Route::get('/warehouseaccount/{id}', [App\Http\Controllers\WarehouseaccountController::class, 'show'])->middleware('permission:warehouseaccount-list|warehouseaccount-create|warehouseaccount-edit|warehouseaccount-delete');
+Route::get('/search_warehouseaccount/{search_term}', [App\Http\Controllers\WarehouseaccountController::class, 'search'])->middleware('permission:warehouseaccount-list|warehouseaccount-create|warehouseaccount-edit|warehouseaccount-delete');
+Route::post('/warehouseaccount', [App\Http\Controllers\WarehouseaccountController::class, 'store'])->middleware('permission:warehouseaccount-create');
+Route::put('/warehouseaccount/{id}', [App\Http\Controllers\WarehouseaccountController::class, 'update'])->middleware('permission:warehouseaccount-edit');
+Route::delete('/warehouseaccount/{id}', [App\Http\Controllers\WarehouseaccountController::class, 'destroy'])->middleware('permission:warehouseaccount-delete');
+Route::get('/all_warehouseaccounts', [App\Http\Controllers\WarehouseaccountController::class,'all_warehouseaccounts']);
+
+
+Route::get('/supplieraccount', [App\Http\Controllers\SupplieraccountController::class, 'index'])->middleware('permission:supplieraccount-list|supplieraccount-create|supplieraccount-edit|supplieraccount-delete');
+Route::get('/supplieraccount/{id}', [App\Http\Controllers\SupplieraccountController::class, 'show'])->middleware('permission:supplieraccount-list|supplieraccount-create|supplieraccount-edit|supplieraccount-delete');
+Route::get('/search_supplieraccount/{search_term}', [App\Http\Controllers\SupplieraccountController::class, 'search'])->middleware('permission:supplieraccount-list|supplieraccount-create|supplieraccount-edit|supplieraccount-delete');
+Route::post('/supplieraccount', [App\Http\Controllers\SupplieraccountController::class, 'store'])->middleware('permission:supplieraccount-create');
+Route::put('/supplieraccount/{id}', [App\Http\Controllers\SupplieraccountController::class, 'update'])->middleware('permission:supplieraccount-edit');
+Route::delete('/supplieraccount/{id}', [App\Http\Controllers\SupplieraccountController::class, 'destroy'])->middleware('permission:supplieraccount-delete');
+Route::get('/all_supplieraccounts', [App\Http\Controllers\SupplieraccountController::class,'all_supplieraccounts']);
+
+
+Route::get('/producthistor', [App\Http\Controllers\ProducthistorController::class, 'index'])->middleware('permission:producthistor-list|producthistor-create|producthistor-edit|producthistor-delete');
+Route::get('/producthistor/{id}', [App\Http\Controllers\ProducthistorController::class, 'show'])->middleware('permission:producthistor-list|producthistor-create|producthistor-edit|producthistor-delete');
+Route::get('/search_producthistor/{search_term}', [App\Http\Controllers\ProducthistorController::class, 'search'])->middleware('permission:producthistor-list|producthistor-create|producthistor-edit|producthistor-delete');
+Route::post('/producthistor', [App\Http\Controllers\ProducthistorController::class, 'store'])->middleware('permission:producthistor-create');
+Route::put('/producthistor/{id}', [App\Http\Controllers\ProducthistorController::class, 'update'])->middleware('permission:producthistor-edit');
+Route::delete('/producthistor/{id}', [App\Http\Controllers\ProducthistorController::class, 'destroy'])->middleware('permission:producthistor-delete');
+Route::get('/all_producthistors', [App\Http\Controllers\ProducthistorController::class,'all_producthistors']);
+
     Route::post('notifications/mark-as-read', [App\Http\Controllers\NotificationController::class, 'markAsRead']);
     // API END
 });

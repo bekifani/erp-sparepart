@@ -29,6 +29,42 @@ import Crosscar  from '@/views/ERP/Crosscar'
 import Productspecification  from '@/views/ERP/Productspecification'
 import Exchangerate  from '@/views/ERP/Exchangerate'
 import Compan  from '@/views/ERP/Compan'
+import Basket  from '@/views/ERP/Basket'
+import Basketfile  from '@/views/ERP/Basketfile'
+import Basketitem  from '@/views/ERP/Basketitem'
+import Order  from '@/views/ERP/Order'
+import Orderdetail  from '@/views/ERP/Orderdetail'
+import Supplierorder  from '@/views/ERP/Supplierorder'
+import Supplierorderdetail  from '@/views/ERP/Supplierorderdetail'
+import Packagin  from '@/views/ERP/Packagin'
+import Packinglist  from '@/views/ERP/Packinglist'
+import Packinglistbox  from '@/views/ERP/Packinglistbox'
+import Packinglistboxitem  from '@/views/ERP/Packinglistboxitem'
+import Attachment  from '@/views/ERP/Attachment'
+import Problem  from '@/views/ERP/Problem'
+import Problemitem  from '@/views/ERP/Problemitem'
+import Productstatus  from '@/views/ERP/Productstatus'
+import Customerinvoice  from '@/views/ERP/Customerinvoice'
+import Warehouse  from '@/views/ERP/Warehouse'
+import Customerinvoiceitem  from '@/views/ERP/Customerinvoiceitem'
+import Supplierinvoice  from '@/views/ERP/Supplierinvoice'
+import Supplierinvoiceitem  from '@/views/ERP/Supplierinvoiceitem'
+import Accounttype  from '@/views/ERP/Accounttype'
+import Paymentnote  from '@/views/ERP/Paymentnote'
+import Productrule  from '@/views/ERP/Productrule'
+import Packagingproblem  from '@/views/ERP/Packagingproblem'
+import Searchresult  from '@/views/ERP/Searchresult'
+import Fileoperation  from '@/views/ERP/Fileoperation'
+import Customerbrandvisibilit  from '@/views/ERP/Customerbrandvisibilit'
+import Customerproductvisibilit  from '@/views/ERP/Customerproductvisibilit'
+import Supplierpricingrule  from '@/views/ERP/Supplierpricingrule'
+import Supplierpricingrulecustomer  from '@/views/ERP/Supplierpricingrulecustomer'
+import Supplierproduct  from '@/views/ERP/Supplierproduct'
+import Customeraccount  from '@/views/ERP/Customeraccount'
+import Companyaccount  from '@/views/ERP/Companyaccount'
+import Warehouseaccount  from '@/views/ERP/Warehouseaccount'
+import Supplieraccount  from '@/views/ERP/Supplieraccount'
+import Producthistor  from '@/views/ERP/Producthistor'
 //add file here 
 
 function Router() {
@@ -131,6 +167,150 @@ function Router() {
   {
     path: "compan",
     element: <Compan />,
+  }, 
+  {
+    path: "/basket",
+    element: <Basket />,
+  }, 
+  {
+    path: "/basketfile",
+    element: <Basketfile />,
+  }, 
+  {
+    path: "/basketitem",
+    element: <Basketitem />,
+  }, 
+  {
+    path: "/order",
+    element: <Order />,
+  }, 
+  {
+    path: "/orderdetail",
+    element: <Orderdetail />,
+  }, 
+  {
+    path: "/supplierorder",
+    element: <Supplierorder />,
+  }, 
+  {
+    path: "/supplierorderdetail",
+    element: <Supplierorderdetail />,
+  }, 
+  {
+    path: "/packagin",
+    element: <Packagin />,
+  }, 
+  {
+    path: "/packinglist",
+    element: <Packinglist />,
+  }, 
+  {
+    path: "/packinglistbox",
+    element: <Packinglistbox />,
+  }, 
+  {
+    path: "/packinglistboxitem",
+    element: <Packinglistboxitem />,
+  }, 
+  {
+    path: "/attachment",
+    element: <Attachment />,
+  }, 
+  {
+    path: "/problem",
+    element: <Problem />,
+  }, 
+  {
+    path: "/problemitem",
+    element: <Problemitem />,
+  }, 
+  {
+    path: "/productstatus",
+    element: <Productstatus />,
+  }, 
+  {
+    path: "/customerinvoice",
+    element: <Customerinvoice />,
+  }, 
+  {
+    path: "/warehouse",
+    element: <Warehouse />,
+  }, 
+  {
+    path: "/customerinvoiceitem",
+    element: <Customerinvoiceitem />,
+  }, 
+  {
+    path: "/supplierinvoice",
+    element: <Supplierinvoice />,
+  }, 
+  {
+    path: "/supplierinvoiceitem",
+    element: <Supplierinvoiceitem />,
+  }, 
+  {
+    path: "/accounttype",
+    element: <Accounttype />,
+  }, 
+  {
+    path: "/paymentnote",
+    element: <Paymentnote />,
+  }, 
+  {
+    path: "/productrule",
+    element: <Productrule />,
+  }, 
+  {
+    path: "/packagingproblem",
+    element: <Packagingproblem />,
+  }, 
+  {
+    path: "/searchresult",
+    element: <Searchresult />,
+  }, 
+  {
+    path: "/fileoperation",
+    element: <Fileoperation />,
+  }, 
+  {
+    path: "/customerbrandvisibilit",
+    element: <Customerbrandvisibilit />,
+  }, 
+  {
+    path: "/customerproductvisibilit",
+    element: <Customerproductvisibilit />,
+  }, 
+  {
+    path: "/supplierpricingrule",
+    element: <Supplierpricingrule />,
+  }, 
+  {
+    path: "/supplierpricingrulecustomer",
+    element: <Supplierpricingrulecustomer />,
+  }, 
+  {
+    path: "/supplierproduct",
+    element: <Supplierproduct />,
+  }, 
+  {
+    path: "/customeraccount",
+    element: <Customeraccount />,
+  }, 
+  {
+    path: "/companyaccount",
+    element: <Companyaccount />,
+  }, 
+  {
+    path: "/warehouseaccount",
+    element: <Warehouseaccount />,
+  }, 
+  {
+    path: "/supplieraccount",
+    element: <Supplieraccount />,
+  }, 
+  {
+    path: "/producthistor",
+    element: <Producthistor />,
   }, 
        // add routes here
       {

@@ -25,6 +25,42 @@ import { crosscarEndpoints } from "./endpoints/crosscarEndpoints"
 import { productspecificationEndpoints } from "./endpoints/productspecificationEndpoints"
 import { exchangerateEndpoints } from "./endpoints/exchangerateEndpoints"
 import { companEndpoints } from "./endpoints/companEndpoints"
+import { basketEndpoints } from "./endpoints/basketEndpoints"
+import { basketfileEndpoints } from "./endpoints/basketfileEndpoints"
+import { basketitemEndpoints } from "./endpoints/basketitemEndpoints"
+import { orderEndpoints } from "./endpoints/orderEndpoints"
+import { orderdetailEndpoints } from "./endpoints/orderdetailEndpoints"
+import { supplierorderEndpoints } from "./endpoints/supplierorderEndpoints"
+import { supplierorderdetailEndpoints } from "./endpoints/supplierorderdetailEndpoints"
+import { packaginEndpoints } from "./endpoints/packaginEndpoints"
+import { packinglistEndpoints } from "./endpoints/packinglistEndpoints"
+import { packinglistboxEndpoints } from "./endpoints/packinglistboxEndpoints"
+import { packinglistboxitemEndpoints } from "./endpoints/packinglistboxitemEndpoints"
+import { attachmentEndpoints } from "./endpoints/attachmentEndpoints"
+import { problemEndpoints } from "./endpoints/problemEndpoints"
+import { problemitemEndpoints } from "./endpoints/problemitemEndpoints"
+import { productstatusEndpoints } from "./endpoints/productstatusEndpoints"
+import { customerinvoiceEndpoints } from "./endpoints/customerinvoiceEndpoints"
+import { warehouseEndpoints } from "./endpoints/warehouseEndpoints"
+import { customerinvoiceitemEndpoints } from "./endpoints/customerinvoiceitemEndpoints"
+import { supplierinvoiceEndpoints } from "./endpoints/supplierinvoiceEndpoints"
+import { supplierinvoiceitemEndpoints } from "./endpoints/supplierinvoiceitemEndpoints"
+import { accounttypeEndpoints } from "./endpoints/accounttypeEndpoints"
+import { paymentnoteEndpoints } from "./endpoints/paymentnoteEndpoints"
+import { productruleEndpoints } from "./endpoints/productruleEndpoints"
+import { packagingproblemEndpoints } from "./endpoints/packagingproblemEndpoints"
+import { searchresultEndpoints } from "./endpoints/searchresultEndpoints"
+import { fileoperationEndpoints } from "./endpoints/fileoperationEndpoints"
+import { customerbrandvisibilitEndpoints } from "./endpoints/customerbrandvisibilitEndpoints"
+import { customerproductvisibilitEndpoints } from "./endpoints/customerproductvisibilitEndpoints"
+import { supplierpricingruleEndpoints } from "./endpoints/supplierpricingruleEndpoints"
+import { supplierpricingrulecustomerEndpoints } from "./endpoints/supplierpricingrulecustomerEndpoints"
+import { supplierproductEndpoints } from "./endpoints/supplierproductEndpoints"
+import { customeraccountEndpoints } from "./endpoints/customeraccountEndpoints"
+import { companyaccountEndpoints } from "./endpoints/companyaccountEndpoints"
+import { warehouseaccountEndpoints } from "./endpoints/warehouseaccountEndpoints"
+import { supplieraccountEndpoints } from "./endpoints/supplieraccountEndpoints"
+import { producthistorEndpoints } from "./endpoints/producthistorEndpoints"
 //import here
 export const apiSlice = createApi({
     reducerPath: "user",
@@ -71,6 +107,42 @@ export const apiSlice = createApi({
 ...productspecificationEndpoints(builder),
 ...exchangerateEndpoints(builder),
 ...companEndpoints(builder),
+...basketEndpoints(builder),
+...basketfileEndpoints(builder),
+...basketitemEndpoints(builder),
+...orderEndpoints(builder),
+...orderdetailEndpoints(builder),
+...supplierorderEndpoints(builder),
+...supplierorderdetailEndpoints(builder),
+...packaginEndpoints(builder),
+...packinglistEndpoints(builder),
+...packinglistboxEndpoints(builder),
+...packinglistboxitemEndpoints(builder),
+...attachmentEndpoints(builder),
+...problemEndpoints(builder),
+...problemitemEndpoints(builder),
+...productstatusEndpoints(builder),
+...customerinvoiceEndpoints(builder),
+...warehouseEndpoints(builder),
+...customerinvoiceitemEndpoints(builder),
+...supplierinvoiceEndpoints(builder),
+...supplierinvoiceitemEndpoints(builder),
+...accounttypeEndpoints(builder),
+...paymentnoteEndpoints(builder),
+...productruleEndpoints(builder),
+...packagingproblemEndpoints(builder),
+...searchresultEndpoints(builder),
+...fileoperationEndpoints(builder),
+...customerbrandvisibilitEndpoints(builder),
+...customerproductvisibilitEndpoints(builder),
+...supplierpricingruleEndpoints(builder),
+...supplierpricingrulecustomerEndpoints(builder),
+...supplierproductEndpoints(builder),
+...customeraccountEndpoints(builder),
+...companyaccountEndpoints(builder),
+...warehouseaccountEndpoints(builder),
+...supplieraccountEndpoints(builder),
+...producthistorEndpoints(builder),
         //disperse here
     }),
 });
@@ -271,6 +343,294 @@ export const {
     useLazyGetCompanDetailQuery,
     useDeleteCompanMutation,
     useGetCompansQuery,
+
+
+    useCreateBasketMutation,
+    useEditBasketMutation,
+    useGetBasketDetailQuery,
+    useLazyGetBasketDetailQuery,
+    useDeleteBasketMutation,
+    useGetBasketsQuery,
+
+
+    useCreateBasketfileMutation,
+    useEditBasketfileMutation,
+    useGetBasketfileDetailQuery,
+    useLazyGetBasketfileDetailQuery,
+    useDeleteBasketfileMutation,
+    useGetBasketfilesQuery,
+
+
+    useCreateBasketitemMutation,
+    useEditBasketitemMutation,
+    useGetBasketitemDetailQuery,
+    useLazyGetBasketitemDetailQuery,
+    useDeleteBasketitemMutation,
+    useGetBasketitemsQuery,
+
+
+    useCreateOrderMutation,
+    useEditOrderMutation,
+    useGetOrderDetailQuery,
+    useLazyGetOrderDetailQuery,
+    useDeleteOrderMutation,
+    useGetOrdersQuery,
+
+
+    useCreateOrderdetailMutation,
+    useEditOrderdetailMutation,
+    useGetOrderdetailDetailQuery,
+    useLazyGetOrderdetailDetailQuery,
+    useDeleteOrderdetailMutation,
+    useGetOrderdetailsQuery,
+
+
+    useCreateSupplierorderMutation,
+    useEditSupplierorderMutation,
+    useGetSupplierorderDetailQuery,
+    useLazyGetSupplierorderDetailQuery,
+    useDeleteSupplierorderMutation,
+    useGetSupplierordersQuery,
+
+
+    useCreateSupplierorderdetailMutation,
+    useEditSupplierorderdetailMutation,
+    useGetSupplierorderdetailDetailQuery,
+    useLazyGetSupplierorderdetailDetailQuery,
+    useDeleteSupplierorderdetailMutation,
+    useGetSupplierorderdetailsQuery,
+
+
+    useCreatePackaginMutation,
+    useEditPackaginMutation,
+    useGetPackaginDetailQuery,
+    useLazyGetPackaginDetailQuery,
+    useDeletePackaginMutation,
+    useGetPackaginsQuery,
+
+
+    useCreatePackinglistMutation,
+    useEditPackinglistMutation,
+    useGetPackinglistDetailQuery,
+    useLazyGetPackinglistDetailQuery,
+    useDeletePackinglistMutation,
+    useGetPackinglistsQuery,
+
+
+    useCreatePackinglistboxMutation,
+    useEditPackinglistboxMutation,
+    useGetPackinglistboxDetailQuery,
+    useLazyGetPackinglistboxDetailQuery,
+    useDeletePackinglistboxMutation,
+    useGetPackinglistboxsQuery,
+
+
+    useCreatePackinglistboxitemMutation,
+    useEditPackinglistboxitemMutation,
+    useGetPackinglistboxitemDetailQuery,
+    useLazyGetPackinglistboxitemDetailQuery,
+    useDeletePackinglistboxitemMutation,
+    useGetPackinglistboxitemsQuery,
+
+
+    useCreateAttachmentMutation,
+    useEditAttachmentMutation,
+    useGetAttachmentDetailQuery,
+    useLazyGetAttachmentDetailQuery,
+    useDeleteAttachmentMutation,
+    useGetAttachmentsQuery,
+
+
+    useCreateProblemMutation,
+    useEditProblemMutation,
+    useGetProblemDetailQuery,
+    useLazyGetProblemDetailQuery,
+    useDeleteProblemMutation,
+    useGetProblemsQuery,
+
+
+    useCreateProblemitemMutation,
+    useEditProblemitemMutation,
+    useGetProblemitemDetailQuery,
+    useLazyGetProblemitemDetailQuery,
+    useDeleteProblemitemMutation,
+    useGetProblemitemsQuery,
+
+
+    useCreateProductstatusMutation,
+    useEditProductstatusMutation,
+    useGetProductstatusDetailQuery,
+    useLazyGetProductstatusDetailQuery,
+    useDeleteProductstatusMutation,
+    useGetProductstatussQuery,
+
+
+    useCreateCustomerinvoiceMutation,
+    useEditCustomerinvoiceMutation,
+    useGetCustomerinvoiceDetailQuery,
+    useLazyGetCustomerinvoiceDetailQuery,
+    useDeleteCustomerinvoiceMutation,
+    useGetCustomerinvoicesQuery,
+
+
+    useCreateWarehouseMutation,
+    useEditWarehouseMutation,
+    useGetWarehouseDetailQuery,
+    useLazyGetWarehouseDetailQuery,
+    useDeleteWarehouseMutation,
+    useGetWarehousesQuery,
+
+
+    useCreateCustomerinvoiceitemMutation,
+    useEditCustomerinvoiceitemMutation,
+    useGetCustomerinvoiceitemDetailQuery,
+    useLazyGetCustomerinvoiceitemDetailQuery,
+    useDeleteCustomerinvoiceitemMutation,
+    useGetCustomerinvoiceitemsQuery,
+
+
+    useCreateSupplierinvoiceMutation,
+    useEditSupplierinvoiceMutation,
+    useGetSupplierinvoiceDetailQuery,
+    useLazyGetSupplierinvoiceDetailQuery,
+    useDeleteSupplierinvoiceMutation,
+    useGetSupplierinvoicesQuery,
+
+
+    useCreateSupplierinvoiceitemMutation,
+    useEditSupplierinvoiceitemMutation,
+    useGetSupplierinvoiceitemDetailQuery,
+    useLazyGetSupplierinvoiceitemDetailQuery,
+    useDeleteSupplierinvoiceitemMutation,
+    useGetSupplierinvoiceitemsQuery,
+
+
+    useCreateAccounttypeMutation,
+    useEditAccounttypeMutation,
+    useGetAccounttypeDetailQuery,
+    useLazyGetAccounttypeDetailQuery,
+    useDeleteAccounttypeMutation,
+    useGetAccounttypesQuery,
+
+
+    useCreatePaymentnoteMutation,
+    useEditPaymentnoteMutation,
+    useGetPaymentnoteDetailQuery,
+    useLazyGetPaymentnoteDetailQuery,
+    useDeletePaymentnoteMutation,
+    useGetPaymentnotesQuery,
+
+
+    useCreateProductruleMutation,
+    useEditProductruleMutation,
+    useGetProductruleDetailQuery,
+    useLazyGetProductruleDetailQuery,
+    useDeleteProductruleMutation,
+    useGetProductrulesQuery,
+
+
+    useCreatePackagingproblemMutation,
+    useEditPackagingproblemMutation,
+    useGetPackagingproblemDetailQuery,
+    useLazyGetPackagingproblemDetailQuery,
+    useDeletePackagingproblemMutation,
+    useGetPackagingproblemsQuery,
+
+
+    useCreateSearchresultMutation,
+    useEditSearchresultMutation,
+    useGetSearchresultDetailQuery,
+    useLazyGetSearchresultDetailQuery,
+    useDeleteSearchresultMutation,
+    useGetSearchresultsQuery,
+
+
+    useCreateFileoperationMutation,
+    useEditFileoperationMutation,
+    useGetFileoperationDetailQuery,
+    useLazyGetFileoperationDetailQuery,
+    useDeleteFileoperationMutation,
+    useGetFileoperationsQuery,
+
+
+    useCreateCustomerbrandvisibilitMutation,
+    useEditCustomerbrandvisibilitMutation,
+    useGetCustomerbrandvisibilitDetailQuery,
+    useLazyGetCustomerbrandvisibilitDetailQuery,
+    useDeleteCustomerbrandvisibilitMutation,
+    useGetCustomerbrandvisibilitsQuery,
+
+
+    useCreateCustomerproductvisibilitMutation,
+    useEditCustomerproductvisibilitMutation,
+    useGetCustomerproductvisibilitDetailQuery,
+    useLazyGetCustomerproductvisibilitDetailQuery,
+    useDeleteCustomerproductvisibilitMutation,
+    useGetCustomerproductvisibilitsQuery,
+
+
+    useCreateSupplierpricingruleMutation,
+    useEditSupplierpricingruleMutation,
+    useGetSupplierpricingruleDetailQuery,
+    useLazyGetSupplierpricingruleDetailQuery,
+    useDeleteSupplierpricingruleMutation,
+    useGetSupplierpricingrulesQuery,
+
+
+    useCreateSupplierpricingrulecustomerMutation,
+    useEditSupplierpricingrulecustomerMutation,
+    useGetSupplierpricingrulecustomerDetailQuery,
+    useLazyGetSupplierpricingrulecustomerDetailQuery,
+    useDeleteSupplierpricingrulecustomerMutation,
+    useGetSupplierpricingrulecustomersQuery,
+
+
+    useCreateSupplierproductMutation,
+    useEditSupplierproductMutation,
+    useGetSupplierproductDetailQuery,
+    useLazyGetSupplierproductDetailQuery,
+    useDeleteSupplierproductMutation,
+    useGetSupplierproductsQuery,
+
+
+    useCreateCustomeraccountMutation,
+    useEditCustomeraccountMutation,
+    useGetCustomeraccountDetailQuery,
+    useLazyGetCustomeraccountDetailQuery,
+    useDeleteCustomeraccountMutation,
+    useGetCustomeraccountsQuery,
+
+
+    useCreateCompanyaccountMutation,
+    useEditCompanyaccountMutation,
+    useGetCompanyaccountDetailQuery,
+    useLazyGetCompanyaccountDetailQuery,
+    useDeleteCompanyaccountMutation,
+    useGetCompanyaccountsQuery,
+
+
+    useCreateWarehouseaccountMutation,
+    useEditWarehouseaccountMutation,
+    useGetWarehouseaccountDetailQuery,
+    useLazyGetWarehouseaccountDetailQuery,
+    useDeleteWarehouseaccountMutation,
+    useGetWarehouseaccountsQuery,
+
+
+    useCreateSupplieraccountMutation,
+    useEditSupplieraccountMutation,
+    useGetSupplieraccountDetailQuery,
+    useLazyGetSupplieraccountDetailQuery,
+    useDeleteSupplieraccountMutation,
+    useGetSupplieraccountsQuery,
+
+
+    useCreateProducthistorMutation,
+    useEditProducthistorMutation,
+    useGetProducthistorDetailQuery,
+    useLazyGetProducthistorDetailQuery,
+    useDeleteProducthistorMutation,
+    useGetProducthistorsQuery,
 
     //add here
 } = apiSlice

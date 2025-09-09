@@ -103,6 +103,114 @@ class PermissionSeeder extends Seeder
            //Compan Permissions list 
              'compan-list', 'compan-create', 'compan-edit', 'compan-delete', 
 
+           //Basket Permissions list 
+             'basket-list', 'basket-create', 'basket-edit', 'basket-delete', 
+
+           //Basketfile Permissions list 
+             'basketfile-list', 'basketfile-create', 'basketfile-edit', 'basketfile-delete', 
+
+           //Basketitem Permissions list 
+             'basketitem-list', 'basketitem-create', 'basketitem-edit', 'basketitem-delete', 
+
+           //Order Permissions list 
+             'order-list', 'order-create', 'order-edit', 'order-delete', 
+
+           //Orderdetail Permissions list 
+             'orderdetail-list', 'orderdetail-create', 'orderdetail-edit', 'orderdetail-delete', 
+
+           //Supplierorder Permissions list 
+             'supplierorder-list', 'supplierorder-create', 'supplierorder-edit', 'supplierorder-delete', 
+
+           //Supplierorderdetail Permissions list 
+             'supplierorderdetail-list', 'supplierorderdetail-create', 'supplierorderdetail-edit', 'supplierorderdetail-delete', 
+
+           //Packagin Permissions list 
+             'packagin-list', 'packagin-create', 'packagin-edit', 'packagin-delete', 
+
+           //Packinglist Permissions list 
+             'packinglist-list', 'packinglist-create', 'packinglist-edit', 'packinglist-delete', 
+
+           //Packinglistbox Permissions list 
+             'packinglistbox-list', 'packinglistbox-create', 'packinglistbox-edit', 'packinglistbox-delete', 
+
+           //Packinglistboxitem Permissions list 
+             'packinglistboxitem-list', 'packinglistboxitem-create', 'packinglistboxitem-edit', 'packinglistboxitem-delete', 
+
+           //Attachment Permissions list 
+             'attachment-list', 'attachment-create', 'attachment-edit', 'attachment-delete', 
+
+           //Problem Permissions list 
+             'problem-list', 'problem-create', 'problem-edit', 'problem-delete', 
+
+           //Problemitem Permissions list 
+             'problemitem-list', 'problemitem-create', 'problemitem-edit', 'problemitem-delete', 
+
+           //Productstatus Permissions list 
+             'productstatus-list', 'productstatus-create', 'productstatus-edit', 'productstatus-delete', 
+
+           //Customerinvoice Permissions list 
+             'customerinvoice-list', 'customerinvoice-create', 'customerinvoice-edit', 'customerinvoice-delete', 
+
+           //Warehouse Permissions list 
+             'warehouse-list', 'warehouse-create', 'warehouse-edit', 'warehouse-delete', 
+
+           //Customerinvoiceitem Permissions list 
+             'customerinvoiceitem-list', 'customerinvoiceitem-create', 'customerinvoiceitem-edit', 'customerinvoiceitem-delete', 
+
+           //Supplierinvoice Permissions list 
+             'supplierinvoice-list', 'supplierinvoice-create', 'supplierinvoice-edit', 'supplierinvoice-delete', 
+
+           //Supplierinvoiceitem Permissions list 
+             'supplierinvoiceitem-list', 'supplierinvoiceitem-create', 'supplierinvoiceitem-edit', 'supplierinvoiceitem-delete', 
+
+           //Accounttype Permissions list 
+             'accounttype-list', 'accounttype-create', 'accounttype-edit', 'accounttype-delete', 
+
+           //Paymentnote Permissions list 
+             'paymentnote-list', 'paymentnote-create', 'paymentnote-edit', 'paymentnote-delete', 
+
+           //Productrule Permissions list 
+             'productrule-list', 'productrule-create', 'productrule-edit', 'productrule-delete', 
+
+           //Packagingproblem Permissions list 
+             'packagingproblem-list', 'packagingproblem-create', 'packagingproblem-edit', 'packagingproblem-delete', 
+
+           //Searchresult Permissions list 
+             'searchresult-list', 'searchresult-create', 'searchresult-edit', 'searchresult-delete', 
+
+           //Fileoperation Permissions list 
+             'fileoperation-list', 'fileoperation-create', 'fileoperation-edit', 'fileoperation-delete', 
+
+           //Customerbrandvisibilit Permissions list 
+             'customerbrandvisibilit-list', 'customerbrandvisibilit-create', 'customerbrandvisibilit-edit', 'customerbrandvisibilit-delete', 
+
+           //Customerproductvisibilit Permissions list 
+             'customerproductvisibilit-list', 'customerproductvisibilit-create', 'customerproductvisibilit-edit', 'customerproductvisibilit-delete', 
+
+           //Supplierpricingrule Permissions list 
+             'supplierpricingrule-list', 'supplierpricingrule-create', 'supplierpricingrule-edit', 'supplierpricingrule-delete', 
+
+           //Supplierpricingrulecustomer Permissions list 
+             'supplierpricingrulecustomer-list', 'supplierpricingrulecustomer-create', 'supplierpricingrulecustomer-edit', 'supplierpricingrulecustomer-delete', 
+
+           //Supplierproduct Permissions list 
+             'supplierproduct-list', 'supplierproduct-create', 'supplierproduct-edit', 'supplierproduct-delete', 
+
+           //Customeraccount Permissions list 
+             'customeraccount-list', 'customeraccount-create', 'customeraccount-edit', 'customeraccount-delete', 
+
+           //Companyaccount Permissions list 
+             'companyaccount-list', 'companyaccount-create', 'companyaccount-edit', 'companyaccount-delete', 
+
+           //Warehouseaccount Permissions list 
+             'warehouseaccount-list', 'warehouseaccount-create', 'warehouseaccount-edit', 'warehouseaccount-delete', 
+
+           //Supplieraccount Permissions list 
+             'supplieraccount-list', 'supplieraccount-create', 'supplieraccount-edit', 'supplieraccount-delete', 
+
+           //Producthistor Permissions list 
+             'producthistor-list', 'producthistor-create', 'producthistor-edit', 'producthistor-delete', 
+
         ];
         $roles = ['Admin', 'Employee', 'Manager','Company Owner'];
         foreach ($permissions as $permission) {
