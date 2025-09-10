@@ -21,6 +21,8 @@ return new class extends Migration
                 $table->string('whatsapp')->nullable();
                 $table->string('wechat_id')->nullable();
                 $table->string('image')->nullable();
+                $table->string('price_adjustment_type')->nullable();
+                $table->decimal('price_adjustment_percent')->nullable();
                 $table->text('additional_note')->nullable();
                 
             $table->timestamps();
