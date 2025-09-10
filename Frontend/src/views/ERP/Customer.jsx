@@ -1,7 +1,7 @@
-
 import "@/assets/css/vendors/tabulator.css";
 import Lucide from "@/components/Base/Lucide";
 import ReactDOMServer from 'react-dom/server';
+import { createPortal } from 'react-dom';
 import { Slideover } from "@/components/Base/Headless";
 import Button from "@/components/Base/Button";
 import React, { useRef, useState } from "react";
@@ -16,6 +16,12 @@ import {
   useCreateCustomerMutation,
   useDeleteCustomerMutation,
   useEditCustomerMutation,
+  useCreateCustomerproductvisibilitMutation,
+  useEditCustomerproductvisibilitMutation,
+  useDeleteCustomerproductvisibilitMutation,
+  useCreateCustomerbrandvisibilitMutation,
+  useEditCustomerbrandvisibilitMutation,
+  useDeleteCustomerbrandvisibilitMutation,
 } from "@/stores/apiSlice";
 import clsx from "clsx";
 import { Dialog } from "@/components/Base/Headless";
@@ -27,7 +33,7 @@ import CameraCapture from "@/helpers/ui/CameraCapture.jsx";
 import TomSelectSearch from "@/helpers/ui/Tomselect.jsx";
 import { useSelector } from "react-redux";
 import { ClassicEditor } from "@/components/Base/Ckeditor";
-
+import { X } from 'lucide-react';
 
 function index_main() {
   const { t, i18n } = useTranslation();
@@ -256,7 +262,7 @@ function index_main() {
             console.log('🟢 Edit form - Loading existing image:', data.image);
             console.log('🟢 Edit form - media_url:', media_url);
             const imageUrl = media_url + data.image;
-            console.log('🟢 Edit form - Final imageUrl:', imageUrl);
+            console.log('🟢 Edit form - Final imageUrl constructed:', imageUrl);
             setUploadedImage(imageUrl);
             setCapturedImage({ url: imageUrl, blob: null });
             setImageSource('upload'); // Default to upload for existing images
@@ -307,6 +313,12 @@ address : yup.string().nullable(),
 image : yup.string().nullable(), 
  
 additional_note : yup.string().nullable(), 
+price_adjustment_type: yup.string().nullable().oneOf(['increase','decrease']),
+price_adjustment_percent: yup
+  .number()
+  .nullable()
+  .min(0, t('Percent cannot be negative'))
+  .max(100, t('Percent cannot exceed 100')),
 
     })
     .required();
@@ -317,6 +329,7 @@ additional_note : yup.string().nullable(),
     getValues,
     setValue,
     handleSubmit,
+    watch,
     formState: { errors },
   } = useForm({
     mode: "onChange",
@@ -374,6 +387,58 @@ additional_note : yup.string().nullable(),
           }
 
   const [refetch, setRefetch] = useState(false);
+  const [rulesTableRefetch, setRulesTableRefetch] = useState(false);
+  // Customer Rules state
+  const [activeCustomerRuleTab, setActiveCustomerRuleTab] = useState('product'); // 'product' | 'brand' | 'pricing'
+  const [showCustomerRuleModal, setShowCustomerRuleModal] = useState(false);
+  // Mutations for visibility rules
+  const [createCustomerproductvisibilit] = useCreateCustomerproductvisibilitMutation();
+  const [updateCustomerproductvisibilit] = useEditCustomerproductvisibilitMutation();
+  const [deleteCustomerproductvisibilit] = useDeleteCustomerproductvisibilitMutation();
+  const [createCustomerbrandvisibilit] = useCreateCustomerbrandvisibilitMutation();
+  const [updateCustomerbrandvisibilit] = useEditCustomerbrandvisibilitMutation();
+  const [deleteCustomerbrandvisibilit] = useDeleteCustomerbrandvisibilitMutation();
+
+  const handleAddProductVisibility = async () => {
+    const cid = getValues('id');
+    const pid = getValues('rule_product_id');
+    const vis = getValues('rule_product_visibility') || 'show';
+    if (!cid || !pid) {
+      setToastMessage(t('Select a product to add visibility rule'));
+      basicStickyNotification.current?.showToast();
+      return;
+    }
+    try {
+      await createCustomerproductvisibilit({ customer_id: cid, product_id: pid, visibility: vis });
+      setToastMessage(t('Product visibility rule added'));
+      basicStickyNotification.current?.showToast();
+      setRulesTableRefetch((v)=>!v);
+    } catch (e) {
+      setToastMessage(t('Failed to add product visibility rule'));
+      basicStickyNotification.current?.showToast();
+    }
+  };
+
+  const handleAddBrandVisibility = async () => {
+    const cid = getValues('id');
+    const bid = getValues('rule_brand_id');
+    const vis = getValues('rule_brand_visibility') || 'show';
+    if (!cid || !bid) {
+      setToastMessage(t('Select a brand to add visibility rule'));
+      basicStickyNotification.current?.showToast();
+      return;
+    }
+    try {
+      await createCustomerbrandvisibilit({ customer_id: cid, brand_id: bid, visibility: vis });
+      setToastMessage(t('Brand visibility rule added'));
+      basicStickyNotification.current?.showToast();
+      setRulesTableRefetch((v)=>!v);
+    } catch (e) {
+      setToastMessage(t('Failed to add brand visibility rule'));
+      basicStickyNotification.current?.showToast();
+    }
+  };
+
   const getMiniDisplay = (url) => {
     let data = app_url +'/api/file/' + url;
     
@@ -514,12 +579,8 @@ additional_note : yup.string().nullable(),
       if (validationErrors) {
         const errorFields = Object.keys(validationErrors);
         if (errorFields.length > 0) {
-          const firstFieldErrors = validationErrors[errorFields[0]];
-          if (Array.isArray(firstFieldErrors) && firstFieldErrors.length > 0) {
-            errorMessage = firstFieldErrors[0];
-          } else if (typeof firstFieldErrors === 'string') {
-            errorMessage = firstFieldErrors;
-          }
+          const firstError = validationErrors[errorFields[0]][0];
+          errorMessage = firstError;
         }
       } else {
         // Fallback to general error messages
@@ -563,6 +624,11 @@ const onUpdate = async (data) => {
       setToastMessage(t('Customer updated successfully'));
       setRefetch(true);
       setShowUpdateModal(false);
+      basicStickyNotification.current?.showToast();
+      // Auto-hide toast after 7 seconds
+      setTimeout(() => {
+        basicStickyNotification.current?.hideToast();
+      }, 7000);
     } else {
       // Handle validation errors with comprehensive error extraction
       let errorMessage = t("Error updating Customer");
@@ -1165,6 +1231,61 @@ return (
                       </div>
                     </div>
 
+                    {/* Row 8: Price Adjustment */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="mt-3 input-form">
+                        <FormLabel
+                          htmlFor="price_adjustment_type"
+                          className="flex flex-col w-full sm:flex-row"
+                        >
+                          {t('Pricing Adjustment Type')}
+                        </FormLabel>
+                        <select
+                          {...register('price_adjustment_type')}
+                          id="price_adjustment_type"
+                          name="price_adjustment_type"
+                          className={clsx('form-select', {
+                            'border-danger': errors.price_adjustment_type,
+                          })}
+                        >
+                          <option value="">{t('None')}</option>
+                          <option value="increase">{t('Increase (markup)')}</option>
+                          <option value="decrease">{t('Decrease (discount)')}</option>
+                        </select>
+                        {errors.price_adjustment_type && (
+                          <div className="mt-2 text-danger">
+                            {typeof errors.price_adjustment_type.message === 'string' &&
+                              errors.price_adjustment_type.message}
+                          </div>
+                        )}
+                      </div>
+                      <div className="mt-3 input-form">
+                        <FormLabel
+                          htmlFor="price_adjustment_percent"
+                          className="flex flex-col w-full sm:flex-row"
+                        >
+                          {t('Pricing Adjustment Percent')}
+                        </FormLabel>
+                        <FormInput
+                          {...register('price_adjustment_percent')}
+                          id="price_adjustment_percent"
+                          type="number"
+                          name="price_adjustment_percent"
+                          min={0}
+                          max={100}
+                          className={clsx({
+                            'border-danger': errors.price_adjustment_percent,
+                          })}
+                          placeholder={t('e.g. 5 for 5%')}
+                        />
+                        {errors.price_adjustment_percent && (
+                          <div className="mt-2 text-danger">
+                            {typeof errors.price_adjustment_percent.message === 'string' &&
+                              errors.price_adjustment_percent.message}
+                          </div>
+                        )}
+                      </div>
+                    </div>
 
                     {/* Row 9: Additional Note */}
                     <div className="input-form">
@@ -1184,7 +1305,6 @@ return (
                         </div>
                       )}
                     </div>
-
 
                   </div>
                       )}
@@ -1225,12 +1345,18 @@ return (
         }}
         size="xl"
       >
-        <Slideover.Panel className="text-center   text-center overflow-y-auto max-h-[110vh]">
+        <Slideover.Panel className="text-left overflow-y-auto max-h-[110vh]">
           <form onSubmit={handleSubmit(onUpdate)}>
             <Slideover.Title>
               <h2 className="mr-auto text-base font-medium">{t("Edit Customer")}</h2>
+              <div className="mt-2 text-left">
+                <Button type="button" variant="outline-secondary" onClick={() => setShowCustomerRuleModal(true)}>
+                  {t("Open Customer Rules")}
+                </Button>
+              </div>
             </Slideover.Title>
-            <Slideover.Description className="relative">
+            <Slideover.Description className="p-6 space-y-6">
+              {/* Customer Edit Form Fields */}
               <div className="relative">
                 {loading || updating || deleting ? (
                   <div className="w-full h-full z-[99999px] absolute backdrop-blur-md bg-gray-600">
@@ -1239,7 +1365,7 @@ return (
                     </div>
                   </div>
                 ) : (
-                  <div className=" w-full grid grid-cols-1  gap-4 gap-y-3">
+                  <div className="w-full grid grid-cols-1 gap-4 gap-y-3">
                     {/* Row 1: Name & Surname */}
                     <div className="grid grid-cols-1 gap-4">
                       <div className="input-form">
@@ -1304,15 +1430,10 @@ return (
                               className="w-32 h-32 object-cover rounded border shadow-sm"
                               onError={(e) => {
                                 console.error('🔴 Image failed to load:', e.target.src);
-                                console.error('🔴 uploadedImage state:', uploadedImage);
-                                console.error('🔴 capturedImage state:', capturedImage);
-                                console.error('🔴 imageSource state:', imageSource);
                                 e.target.style.display = 'none';
                               }}
                               onLoad={(e) => {
-                                console.log('✅ CREATE Image loaded successfully:', e.target.src);
-                                console.log('✅ uploadedImage state:', uploadedImage);
-                                console.log('✅ capturedImage state:', capturedImage);
+                                console.log('✅ Edit Image loaded successfully:', e.target.src);
                               }}
                             />
                           </div>
@@ -1497,6 +1618,61 @@ return (
                       </div>
                     </div>
 
+                    {/* Row 8: Price Adjustment */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="mt-3 input-form">
+                        <FormLabel
+                          htmlFor="price_adjustment_type"
+                          className="flex flex-col w-full sm:flex-row"
+                        >
+                          {t('Pricing Adjustment Type')}
+                        </FormLabel>
+                        <select
+                          {...register('price_adjustment_type')}
+                          id="price_adjustment_type"
+                          name="price_adjustment_type"
+                          className={clsx('form-select', {
+                            'border-danger': errors.price_adjustment_type,
+                          })}
+                        >
+                          <option value="">{t('None')}</option>
+                          <option value="increase">{t('Increase (markup)')}</option>
+                          <option value="decrease">{t('Decrease (discount)')}</option>
+                        </select>
+                        {errors.price_adjustment_type && (
+                          <div className="mt-2 text-danger">
+                            {typeof errors.price_adjustment_type.message === 'string' &&
+                              errors.price_adjustment_type.message}
+                          </div>
+                        )}
+                      </div>
+                      <div className="mt-3 input-form">
+                        <FormLabel
+                          htmlFor="price_adjustment_percent"
+                          className="flex flex-col w-full sm:flex-row"
+                        >
+                          {t('Pricing Adjustment Percent')}
+                        </FormLabel>
+                        <FormInput
+                          {...register('price_adjustment_percent')}
+                          id="price_adjustment_percent"
+                          type="number"
+                          name="price_adjustment_percent"
+                          min={0}
+                          max={100}
+                          className={clsx({
+                            'border-danger': errors.price_adjustment_percent,
+                          })}
+                          placeholder={t('e.g. 5 for 5%')}
+                        />
+                        {errors.price_adjustment_percent && (
+                          <div className="mt-2 text-danger">
+                            {typeof errors.price_adjustment_percent.message === 'string' &&
+                              errors.price_adjustment_percent.message}
+                          </div>
+                        )}
+                      </div>
+                    </div>
 
                     {/* Row 9: Additional Note */}
                     <div className="input-form">
@@ -1516,30 +1692,175 @@ return (
                         </div>
                       )}
                     </div>
-
-
                   </div>
                 )}
               </div>
-            </Slideover.Description>
-            <Slideover.Footer>
-              <Button
-                type="button"
-                variant="outline-secondary"
-                onClick={() => {
-                  setShowUpdateModal(false);
-                }}
-                className="w-20 mx-2"
-              >
-                {t("Cancel")}
-              </Button>
-              <Button variant="primary" type="submit" className="w-20">
-                {t("Update")}
-              </Button>
-            </Slideover.Footer>
-          </form>
-        </Slideover.Panel>
-      </Slideover>
+             </Slideover.Description>
+             <Slideover.Footer>
+               <Button
+                 type="button"
+                 variant="outline-secondary"
+                 onClick={() => {
+                   setShowUpdateModal(false);
+                 }}
+                 className="w-24 mr-1"
+               >
+                 {t("Cancel")}
+               </Button>
+               <Button type="submit" variant="primary" className="w-24">{t('Update')}</Button>
+             </Slideover.Footer>
+           </form>
+         </Slideover.Panel>
+       </Slideover>
+
+      {/* Customer Rules Slideover */}
+      {showCustomerRuleModal && createPortal(
+        <div className="fixed top-0 left-0 h-screen w-full xl:w-[45%] bg-white dark:bg-darkmode-600 shadow-lg overflow-y-auto p-5 z-[200000]">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-base font-medium">{t("Customer Rules")}</h2>
+            <button
+              onClick={() => setShowCustomerRuleModal(false)}
+              className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          </div>
+          
+          <div className="flex gap-2 border-b mb-4">
+            <Button
+              variant={activeCustomerRuleTab === 'product' ? 'primary' : 'outline-secondary'}
+              type="button"
+              onClick={() => setActiveCustomerRuleTab('product')}
+            >
+              {t('Product Visibility')}
+            </Button>
+            <Button
+              variant={activeCustomerRuleTab === 'brand' ? 'primary' : 'outline-secondary'}
+              type="button"
+              onClick={() => setActiveCustomerRuleTab('brand')}
+            >
+              {t('Brand Visibility')}
+            </Button>
+            <Button
+              variant={activeCustomerRuleTab === 'pricing' ? 'primary' : 'outline-secondary'}
+              type="button"
+              onClick={() => setActiveCustomerRuleTab('pricing')}
+            >
+              {t('Pricing')}
+            </Button>
+          </div>
+
+          {activeCustomerRuleTab==='product' && (
+            <div className="mt-4 space-y-6">
+              {/* Table Section */}
+              <TableComponent
+                page_name={t('Product Visibility')}
+                endpoint={`${app_url}/api/customerproductvisibilit`}
+                data={[
+                  { title: t('ID'), minWidth: 60, field: 'id', hozAlign: 'center', headerHozAlign: 'center', vertAlign: 'middle', print: true, download: true },
+                  { title: t('Customer'), minWidth: 180, field: 'customer_name', hozAlign: 'center', headerHozAlign: 'center', vertAlign: 'middle', print: true, download: true },
+                  { title: t('Product'), minWidth: 200, field: 'product_name', hozAlign: 'center', headerHozAlign: 'center', vertAlign: 'middle', print: true, download: true },
+                  { title: t('Visibility'), minWidth: 120, field: 'visibility', hozAlign: 'center', headerHozAlign: 'center', vertAlign: 'middle', print: true, download: true },
+                ]}
+                searchColumns={[ 'customer_name','product_name','visibility' ]}
+                refetch={rulesTableRefetch}
+                setRefetch={setRulesTableRefetch}
+                permission={'customerproductvisibilit'}
+                show_create={false}
+              />
+              
+              {/* Add New Rule Form */}
+              <div className="bg-gray-50 dark:bg-darkmode-700 p-4 rounded-lg border">
+                <h3 className="text-sm font-medium text-gray-900 dark:text-gray-100 mb-3">{t('Add New Product Visibility Rule')}</h3>
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+                  <div>
+                    <FormLabel className="mb-2">{t('Product')}</FormLabel>
+                    <TomSelectSearch apiUrl={`${app_url}/api/search_product`} setValue={setValue} variable="rule_product_id"/>
+                  </div>
+                  <div>
+                    <FormLabel className="mb-2">{t('Visibility')}</FormLabel>
+                    <select id="rule_product_visibility_modal" className="form-select w-full" {...register('rule_product_visibility')}>
+                      <option value="show">{t('Show')}</option>
+                      <option value="hide">{t('Hide')}</option>
+                    </select>
+                  </div>
+                  <div className="flex items-end">
+                    <Button type="button" variant="primary" className="w-full lg:w-auto" onClick={handleAddProductVisibility}>
+                      {t('Add Rule')}
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {activeCustomerRuleTab==='brand' && (
+            <div className="mt-4 space-y-6">
+              {/* Table Section */}
+              <TableComponent
+                page_name={t('Brand Visibility')}
+                endpoint={`${app_url}/api/customerbrandvisibilit`}
+                data={[
+                  { title: t('ID'), minWidth: 60, field: 'id', hozAlign: 'center', headerHozAlign: 'center', vertAlign: 'middle', print: true, download: true },
+                  { title: t('Customer'), minWidth: 180, field: 'customer_name', hozAlign: 'center', headerHozAlign: 'center', vertAlign: 'middle', print: true, download: true },
+                  { title: t('Brand'), minWidth: 200, field: 'brand_name', hozAlign: 'center', headerHozAlign: 'center', vertAlign: 'middle', print: true, download: true },
+                  { title: t('Visibility'), minWidth: 120, field: 'visibility', hozAlign: 'center', headerHozAlign: 'center', vertAlign: 'middle', print: true, download: true },
+                ]}
+                searchColumns={[ 'customer_name','brand_name','visibility' ]}
+                refetch={rulesTableRefetch}
+                setRefetch={setRulesTableRefetch}
+                permission={'customerbrandvisibilit'}
+                show_create={false}
+              />
+              
+              {/* Add New Rule Form */}
+              <div className="bg-gray-50 dark:bg-darkmode-700 p-4 rounded-lg border">
+                <h3 className="text-sm font-medium text-gray-900 dark:text-gray-100 mb-3">{t('Add New Brand Visibility Rule')}</h3>
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+                  <div>
+                    <FormLabel className="mb-2">{t('Brand')}</FormLabel>
+                    <TomSelectSearch apiUrl={`${app_url}/api/search_brandname`} setValue={setValue} variable="rule_brand_id"/>
+                  </div>
+                  <div>
+                    <FormLabel className="mb-2">{t('Visibility')}</FormLabel>
+                    <select id="rule_brand_visibility_modal" className="form-select w-full" {...register('rule_brand_visibility')}>
+                      <option value="show">{t('Show')}</option>
+                      <option value="hide">{t('Hide')}</option>
+                    </select>
+                  </div>
+                  <div className="flex items-end">
+                    <Button type="button" variant="primary" className="w-full lg:w-auto" onClick={handleAddBrandVisibility}>
+                      {t('Add Rule')}
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {activeCustomerRuleTab==='pricing' && (
+            <form onSubmit={handleSubmit(onUpdate)} className="mt-2 grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div>
+                <FormLabel className="mb-1">{t('Price Adjustment Type')}</FormLabel>
+                <select className="form-select" {...register('price_adjustment_type')}>
+                  <option value="">{t('None')}</option>
+                  <option value="increase">{t('Increase')}</option>
+                  <option value="decrease">{t('Decrease')}</option>
+                </select>
+              </div>
+              <div>
+                <FormLabel className="mb-1">{t('Price Adjustment Percent')}</FormLabel>
+                <FormInput type="number" step="0.01" min={0} max={100} {...register('price_adjustment_percent')} />
+                {errors.price_adjustment_percent && <div className="mt-2 text-danger">{String(errors.price_adjustment_percent.message||'')}</div>}
+              </div>
+              <div className="flex items-end">
+                <Button type="submit" variant="primary">{t('Save Pricing')}</Button>
+              </div>
+            </form>
+          )}
+        </div>,
+        document.body
+      )}
       <Notification
         getRef={(el) => {
           basicStickyNotification.current = el;
@@ -1560,7 +1881,7 @@ return (
           page_name={"Customer"}
         />
       </Can>
-    </div>
-  );
-}
-export default index_main;
+     </div>
+   );
+ }
+ export default index_main;

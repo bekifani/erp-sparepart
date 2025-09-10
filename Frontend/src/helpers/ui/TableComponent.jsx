@@ -245,7 +245,7 @@ function Main({setShowCreateModal, show_create=true, endpoint, data, searchColum
                   <Slideover.Description>
                    <div className="w-full flex flex-col justify-start items-center gap-2">
                    {filters.map((d, index)=>(
-                      <div className="w-full grid grid-cols-6 gap-2">
+                      <div key={`filter-row-${d.field}-${index}`} className="w-full grid grid-cols-6 gap-2">
                             <FormInline className="col-span-2 flex-col items-start xl:flex-row xl:items-center gap-y-2">
                               <FormLabel className="mr-3 whitespace-nowrap">
                                 {t(d.field)}

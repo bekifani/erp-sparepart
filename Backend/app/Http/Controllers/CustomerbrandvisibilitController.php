@@ -21,7 +21,15 @@ class CustomerbrandvisibilitController extends BaseController
         }
         $perPage = $request->query('size', 10); 
         $filters = $request['filter'];
-        $query = Customerbrandvisibilit::orderBy($sortBy, $sortDir);
+        // Join customers and brandnames to include readable labels
+        $query = Customerbrandvisibilit::select(
+            'customerbrandvisibilits.*',
+            'customers.name_surname as customer_name',
+            'brandnames.brand_name as brand_name'
+        )
+        ->leftJoin('customers', 'customers.id', '=', 'customerbrandvisibilits.customer_id')
+        ->leftJoin('brandnames', 'brandnames.id', '=', 'customerbrandvisibilits.brand_id')
+        ->orderBy($sortBy, $sortDir);
         if($filters){
             foreach ($filters as $filter) {
                 $field = $filter['field'];
@@ -69,8 +77,9 @@ class CustomerbrandvisibilitController extends BaseController
         $validationRules = [
           
           "customer_id"=>"required|exists:customers,id",
-          "brand_id"=>"required|exists:brand_names,id",
-          "visibility"=>"required|in:allow,deny|default:allow",
+          "brand_id"=>"required|exists:brandnames,id",
+          // accept new UI values
+          "visibility"=>"required|in:allow,deny,show,hide",
           
 
         ];
@@ -81,9 +90,12 @@ class CustomerbrandvisibilitController extends BaseController
         }
         $validated=$validation->validated();
 
-
-
-        
+        // Normalize show/hide from UI to allow/deny for DB
+        if (isset($validated['visibility'])) {
+            if ($validated['visibility'] === 'show') { $validated['visibility'] = 'allow'; }
+            if ($validated['visibility'] === 'hide') { $validated['visibility'] = 'deny'; }
+        }
+ 
         //file uploads
 
         $customerbrandvisibilit = Customerbrandvisibilit::create($validated);
@@ -105,9 +117,9 @@ class CustomerbrandvisibilitController extends BaseController
 
           
           "customer_id"=>"required|exists:customers,id",
-          "brand_id"=>"required|exists:brand_names,id",
-          "visibility"=>"required|in:allow,deny|default:allow",
-          
+          "brand_id"=>"required|exists:brandnames,id",
+          "visibility"=>"required|in:allow,deny,show,hide",
+           
         ];
 
         $validation = Validator::make($request->all() , $validationRules);
@@ -116,9 +128,11 @@ class CustomerbrandvisibilitController extends BaseController
         }
         $validated=$validation->validated();
 
-
-
-
+        if (isset($validated['visibility'])) {
+            if ($validated['visibility'] === 'show') { $validated['visibility'] = 'allow'; }
+            if ($validated['visibility'] === 'hide') { $validated['visibility'] = 'deny'; }
+        }
+ 
         //file uploads update
 
         $customerbrandvisibilit->update($validated);
@@ -129,10 +143,6 @@ class CustomerbrandvisibilitController extends BaseController
     {
         $customerbrandvisibilit = Customerbrandvisibilit::findOrFail($id);
         $customerbrandvisibilit->delete();
-
-
-
-
 
         //delete files uploaded
         return $this->sendResponse(1, "customerbrandvisibilit deleted succesfully");

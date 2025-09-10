@@ -1,10 +1,9 @@
-
 import "@/assets/css/vendors/tabulator.css";
 import Lucide from "@/components/Base/Lucide";
 import ReactDOMServer from 'react-dom/server';
 import { Slideover } from "@/components/Base/Headless";
 import Button from "@/components/Base/Button";
-import React, { useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { yupResolver } from "@hookform/resolvers/yup";
 import Notification from "@/components/Base/Notification";
 import TableComponent from "@/helpers/ui/TableComponent.jsx";
@@ -72,9 +71,9 @@ function index_main() {
     },
    
     {
-      title: t("Customer Id"),
-      minWidth: 200,
-      field: "customer_id",
+      title: t("Customer"),
+      minWidth: 220,
+      field: "customer_name",
       hozAlign: "center",
       headerHozAlign: "center",
       vertAlign: "middle",
@@ -85,9 +84,9 @@ function index_main() {
     
 
     {
-      title: t("Brand Id"),
-      minWidth: 200,
-      field: "brand_id",
+      title: t("Brand"),
+      minWidth: 220,
+      field: "brand_name",
       hozAlign: "center",
       headerHozAlign: "center",
       vertAlign: "middle",
@@ -99,7 +98,7 @@ function index_main() {
 
     {
       title: t("Visibility"),
-      minWidth: 200,
+      minWidth: 160,
       field: "visibility",
       hozAlign: "center",
       headerHozAlign: "center",
@@ -160,13 +159,13 @@ function index_main() {
       },
     },
 ]);
-  const [searchColumns, setSearchColumns] = useState(['customer_id', 'brand_id', 'visibility', ]);
+  const [searchColumns, setSearchColumns] = useState(['customer_name', 'brand_name', 'visibility']);
 
   // schema
   const schema = yup
     .object({
-     customer_id : yup.string().required(t('The Customer Id field is required')), 
-brand_id : yup.string().required(t('The Brand Id field is required')), 
+     customer_id : yup.string().required(t('The Customer field is required')), 
+brand_id : yup.string().required(t('The Brand field is required')), 
 visibility : yup.string().required(t('The Visibility field is required')), 
 
     })
@@ -184,8 +183,29 @@ visibility : yup.string().required(t('The Visibility field is required')),
     resolver: yupResolver(schema),
   });
 
-   
-
+  // Prefill customer_id from query string and lock field
+  const [lockedCustomerName, setLockedCustomerName] = useState("");
+  useEffect(() => {
+    try {
+      const params = new URLSearchParams(window.location.search);
+      const cid = params.get('customer_id');
+      if (cid) {
+        setValue('customer_id', cid);
+        // fetch customer to show name
+        fetch(`${app_url}/api/customer/${cid}`, { credentials: 'include' })
+          .then(r => r.json())
+          .then(res => {
+            const c = res?.data || res; // depending on sendResponse wrapper
+            if (c && (c.name_surname || c.data?.name_surname)) {
+              setLockedCustomerName(c.name_surname || c.data?.name_surname);
+            }
+          })
+          .catch(() => {});
+      }
+    } catch (_) {}
+  }, [setValue, app_url]);
+  
+ 
 
   const [refetch, setRefetch] = useState(false);
   const getMiniDisplay = (url) => {
@@ -621,12 +641,24 @@ return (
                     
    <div className="mt-3 input-form">
       <FormLabel
-        htmlFor="validation-form-1"
+        htmlFor="customer_id"
         className="flex flex-col w-full sm:flex-row"
       >
-        {t("Customer Id")}
+        {t("Customer")}
       </FormLabel>
-      <TomSelectSearch apiUrl={`${app_url}/api/search_customer`} setValue={setValue} variable="customer_id"/>
+      {getValues('customer_id') ? (
+        <>
+          <FormInput
+            id="customer_name"
+            type="text"
+            value={lockedCustomerName || t('Loading...')}
+            readOnly
+          />
+          <input type="hidden" {...register('customer_id')} name="customer_id" />
+        </>
+      ) : (
+        <TomSelectSearch apiUrl={`${app_url}/api/search_customer`} setValue={setValue} variable="customer_id"/>
+      )}
       {errors.customer_id && (
         <div className="mt-2 text-danger">
           {typeof errors.customer_id.message === "string" &&
@@ -637,12 +669,12 @@ return (
 
    <div className="mt-3 input-form">
       <FormLabel
-        htmlFor="validation-form-1"
+        htmlFor="brand_id"
         className="flex flex-col w-full sm:flex-row"
       >
-        {t("Brand Id")}
+        {t("Brand")}
       </FormLabel>
-      <TomSelectSearch apiUrl={`${app_url}/api/search_brand`} setValue={setValue} variable="brand_id"/>
+      <TomSelectSearch apiUrl={`${app_url}/api/search_brandname`} setValue={setValue} variable="brand_id"/>
       {errors.brand_id && (
         <div className="mt-2 text-danger">
           {typeof errors.brand_id.message === "string" &&
@@ -653,27 +685,26 @@ return (
 
 <div className="mt-3 input-form">
                       <FormLabel
-                        htmlFor="validation-form-1"
+                        htmlFor="visibility"
                         className="flex justify-start items-start flex-col w-full sm:flex-row"
                       >
                         {t("Visibility")}
                       </FormLabel>
-                      <FormInput
-                        {...register("visibility")}
-                        id="validation-form-1"
-                        type="text"
+                      <select
+                        {...register('visibility')}
+                        id="visibility"
                         name="visibility"
-                        className={clsx({
-                          "border-danger": errors.visibility,
-                        })}
-                        placeholder={t("Enter visibility")}
-                      />
-                      {errors.visibility && (
-                        <div className="mt-2 text-danger">
-                          {typeof errors.visibility.message === "string" &&
-                            errors.visibility.message}
-                        </div>
-                      )}
+                        className={clsx('form-select', { 'border-danger': errors.visibility })}
+                      >
+                        <option value="show">{t('Show')}</option>
+                        <option value="hide">{t('Hide')}</option>
+                      </select>
+                       {errors.visibility && (
+                         <div className="mt-2 text-danger">
+                           {typeof errors.visibility.message === "string" &&
+                             errors.visibility.message}
+                         </div>
+                       )}
                     </div>
 
 
@@ -724,12 +755,24 @@ return (
                     
    <div className="mt-3 input-form">
       <FormLabel
-        htmlFor="validation-form-1"
+        htmlFor="customer_id_update"
         className="flex flex-col w-full sm:flex-row"
       >
-        {t("Customer Id")}
+        {t("Customer")}
       </FormLabel>
-      <TomSelectSearch apiUrl={`${app_url}/api/search_customer`} setValue={setValue} variable="customer_id"/>
+      {getValues('customer_id') ? (
+        <>
+          <FormInput
+            id="customer_name_update"
+            type="text"
+            value={lockedCustomerName || t('Loading...')}
+            readOnly
+          />
+          <input type="hidden" {...register('customer_id')} name="customer_id" />
+        </>
+      ) : (
+        <TomSelectSearch apiUrl={`${app_url}/api/search_customer`} setValue={setValue} variable="customer_id"/>
+      )}
       {errors.customer_id && (
         <div className="mt-2 text-danger">
           {typeof errors.customer_id.message === "string" &&
@@ -740,43 +783,42 @@ return (
 
    <div className="mt-3 input-form">
       <FormLabel
-        htmlFor="validation-form-1"
+        htmlFor="brand_id_update"
         className="flex flex-col w-full sm:flex-row"
       >
-        {t("Brand Id")}
+        {t("Brand")}
       </FormLabel>
-      <TomSelectSearch apiUrl={`${app_url}/api/search_brand`} setValue={setValue} variable="brand_id"/>
+      <TomSelectSearch apiUrl={`${app_url}/api/search_brandname`} setValue={setValue} variable="brand_id"/>
       {errors.brand_id && (
         <div className="mt-2 text-danger">
           {typeof errors.brand_id.message === "string" &&
             errors.brand_id.message}
         </div>
       )}
-    </div>
+     </div>
 
 <div className="mt-3 input-form">
                       <FormLabel
-                        htmlFor="validation-form-1"
+                        htmlFor="visibility_update"
                         className="flex justify-start items-start flex-col w-full sm:flex-row"
                       >
                         {t("Visibility")}
                       </FormLabel>
-                      <FormInput
-                        {...register("visibility")}
-                        id="validation-form-1"
-                        type="text"
+                      <select
+                        {...register('visibility')}
+                        id="visibility_update"
                         name="visibility"
-                        className={clsx({
-                          "border-danger": errors.visibility,
-                        })}
-                        placeholder={t("Enter visibility")}
-                      />
-                      {errors.visibility && (
-                        <div className="mt-2 text-danger">
-                          {typeof errors.visibility.message === "string" &&
-                            errors.visibility.message}
-                        </div>
-                      )}
+                        className={clsx('form-select', { 'border-danger': errors.visibility })}
+                      >
+                        <option value="show">{t('Show')}</option>
+                        <option value="hide">{t('Hide')}</option>
+                      </select>
+                       {errors.visibility && (
+                         <div className="mt-2 text-danger">
+                           {typeof errors.visibility.message === "string" &&
+                             errors.visibility.message}
+                         </div>
+                       )}
                     </div>
 
 
