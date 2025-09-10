@@ -9,7 +9,9 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\DB;
 use Mail;
+
 class CustomerController extends BaseController
 {
     protected $searchableColumns = ['name_surname', 'shipping_mark', 'country', 'address', 'email', 'phone_number', 'position', 'birth_date', 'whatsapp', 'wechat_id', 'image', 'additional_note'];
@@ -96,7 +98,9 @@ class CustomerController extends BaseController
           "image"=>"nullable|",
           "image_source"=>"nullable|string|in:upload,camera",
           "additional_note"=>"nullable|string",
-          
+          // allow decimal to match DB schema
+          "price_adjustment_percent"=>"nullable|numeric|min:0|max:100",
+          "price_adjustment_type"=>"nullable|string|in:increase,decrease",
 
         ];
 
@@ -106,100 +110,93 @@ class CustomerController extends BaseController
         }
         $validated=$validation->validated();
 
+        try {
+            return DB::transaction(function () use ($validated) {
+                // Handle image field based on source type
+                if (isset($validated['image']) && !empty($validated['image'])) {
+                    $imageSource = $validated['image_source'] ?? null;
+                    
+                    if ($imageSource === 'camera') {
+                        $base64Data = $validated['image'];
+                        if (is_array($validated['image']) && isset($validated['image']['data'])) {
+                            $base64Data = $validated['image']['data'];
+                        }
+                        if (strpos($base64Data, 'data:image') === 0) {
+                            $base64Data = substr($base64Data, strpos($base64Data, ',') + 1);
+                        }
+                        $decodedImageData = base64_decode($base64Data);
+                        if ($decodedImageData !== false) {
+                            $fileName = 'customer_image_' . time() . '.jpg';
+                            $filePath = 'uploads/' . $fileName;
+                            Storage::disk('public')->put($filePath, $decodedImageData);
+                            $validated['image'] = $fileName;
+                        }
+                    } elseif ($imageSource === 'upload') {
+                        // keep filename as is
+                    } else {
+                        $base64Data = $validated['image'];
+                        if (is_array($validated['image']) && isset($validated['image']['data'])) {
+                            $base64Data = $validated['image']['data'];
+                        }
+                        if (strpos($base64Data, 'data:image') === 0) {
+                            $base64Data = substr($base64Data, strpos($base64Data, ',') + 1);
+                        }
+                        $decodedImageData = base64_decode($base64Data);
+                        if ($decodedImageData !== false && base64_encode($decodedImageData) === $base64Data) {
+                            $fileName = 'customer_image_' . time() . '.jpg';
+                            $filePath = 'uploads/' . $fileName;
+                            Storage::disk('public')->put($filePath, $decodedImageData);
+                            $validated['image'] = $fileName;
+                        }
+                    }
+                }
+                unset($validated['image_source']);
 
+                $customer = Customer::create($validated);
 
-        
-        //file uploads
+                // Create user automatically like employee registration
+                $password = rand(10000, 99999);
+                $user_data = [
+                    "name" => $customer->name_surname,
+                    "email" => $customer->email,
+                    "phone" => $customer->phone_number, 
+                    "type" => "Customer",
+                    "customer_id" => $customer->id,
+                    "email_verified_at" => now(),
+                    "phone_verified_at" => now(),
+                    "password" => bcrypt(strval($password))
+                ];
 
-        // Handle image field based on source type
-        if (isset($validated['image']) && !empty($validated['image'])) {
-            $imageSource = $validated['image_source'] ?? null;
-            
-            if ($imageSource === 'camera') {
-                // Handle camera-captured images (base64 data)
-                $base64Data = $validated['image'];
-                
-                // Handle both array format {data: 'base64...', type: 'image/jpeg'} and string format
-                if (is_array($validated['image']) && isset($validated['image']['data'])) {
-                    $base64Data = $validated['image']['data'];
+                try {
+                    $user = User::create($user_data);
+                } catch (\Throwable $ue) {
+                    // If enum does not accept 'Customer', fallback to 'Employee' and log it
+                    Log::warning('User create failed with type Customer, retrying as Employee', [
+                        'error' => $ue->getMessage()
+                    ]);
+                    $user_data['type'] = 'Employee';
+                    $user = User::create($user_data);
                 }
-                
-                // Remove data URL prefix if present
-                if (strpos($base64Data, 'data:image') === 0) {
-                    $base64Data = substr($base64Data, strpos($base64Data, ',') + 1);
+
+                // Optionally email password
+                if($customer->email != null) {
+                    $user_email = $customer->email;
+                    try {
+                        Mail::send('emails.password', ['token' => $password], function($message) use($user_email){
+                            $message->to($user_email);
+                            $message->subject("Your NIBDET Customer Account Password");
+                        });
+                    } catch (\Exception $e) {
+                        Log::warning('Customer password email failed: '.$e->getMessage());
+                    }
                 }
-                
-                // Decode base64 and save as file with generated name
-                $decodedImageData = base64_decode($base64Data);
-                if ($decodedImageData !== false) {
-                    $fileName = 'customer_image_' . time() . '.jpg';
-                    $filePath = 'uploads/' . $fileName;
-                    Storage::disk('public')->put($filePath, $decodedImageData);
-                    $validated['image'] = $fileName;
-                }
-            } elseif ($imageSource === 'upload') {
-                // Handle uploaded files - keep original filename as is
-                // The image field already contains the filename from FileUpload component
-                // No processing needed, just keep the original filename
-            } else {
-                // Fallback: try to detect if it's base64 or filename
-                $base64Data = $validated['image'];
-                
-                if (is_array($validated['image']) && isset($validated['image']['data'])) {
-                    $base64Data = $validated['image']['data'];
-                }
-                
-                if (strpos($base64Data, 'data:image') === 0) {
-                    $base64Data = substr($base64Data, strpos($base64Data, ',') + 1);
-                }
-                
-                $decodedImageData = base64_decode($base64Data);
-                if ($decodedImageData !== false && base64_encode($decodedImageData) === $base64Data) {
-                    // It's base64 data, treat as camera capture
-                    $fileName = 'customer_image_' . time() . '.jpg';
-                    $filePath = 'uploads/' . $fileName;
-                    Storage::disk('public')->put($filePath, $decodedImageData);
-                    $validated['image'] = $fileName;
-                }
-                // Otherwise, keep as filename (uploaded file)
-            }
+
+                return $this->sendResponse($customer, "customer created succesfully");
+            });
+        } catch (\Throwable $e) {
+            Log::error('Customer@store failed: '.$e->getMessage(), ['trace' => $e->getTraceAsString()]);
+            return $this->sendError('Failed to create customer', ['message' => $e->getMessage()], 500);
         }
-        
-        // Remove image_source from validated data as it's not a database field
-        unset($validated['image_source']);
-
-        $customer = Customer::create($validated);
-        
-        // Create user automatically like employee registration
-        $password = rand(10000, 99999);
-        $user_data = [
-            "name" => $customer->name_surname,
-            "email" => $customer->email,
-            "phone" => $customer->phone_number, 
-            "type" => "Customer",
-            "customer_id" => $customer->id,
-            "email_verified_at" => now(),
-            "phone_verified_at" => now(),
-            "password" => bcrypt(strval($password))
-        ];
-        $user = User::create($user_data);
-        
-        // No need to update customer with user_id - relationship is now one-way
-        
-        // Send password via email if available
-        if($customer->email != null) {
-            $user_email = $customer->email;
-            try {
-                Mail::send('emails.password', ['token' => $password], function($message) use($user_email){
-                    $message->to($user_email);
-                    $message->subject("Your NIBDET Customer Account Password");
-                });
-            } catch (Exception $e) {
-                // Handle email sending error silently
-            }
-        }
-        
-        return $this->sendResponse($customer, "customer created succesfully");
     }
 
     public function show($id)
@@ -233,7 +230,10 @@ class CustomerController extends BaseController
           "image"=>"nullable|",
           "image_source"=>"nullable|string|in:upload,camera",
           "additional_note"=>"nullable|string",
-          
+          // allow decimal to match DB schema
+          "price_adjustment_percent"=>"nullable|numeric|min:0|max:100",
+          "price_adjustment_type"=>"nullable|string|in:increase,decrease",
+
         ];
 
         $validation = Validator::make($request->all() , $validationRules);

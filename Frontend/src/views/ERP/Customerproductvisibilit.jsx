@@ -1,10 +1,9 @@
-
 import "@/assets/css/vendors/tabulator.css";
 import Lucide from "@/components/Base/Lucide";
 import ReactDOMServer from 'react-dom/server';
 import { Slideover } from "@/components/Base/Headless";
 import Button from "@/components/Base/Button";
-import React, { useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { yupResolver } from "@hookform/resolvers/yup";
 import Notification from "@/components/Base/Notification";
 import TableComponent from "@/helpers/ui/TableComponent.jsx";
@@ -32,6 +31,7 @@ function index_main() {
   const app_url = useSelector((state) => state.auth.app_url)
   const upload_url = useSelector((state)=> state.auth.upload_url)
   const media_url = useSelector((state)=>state.auth.media_url)
+  const authToken = useSelector((state) => state.auth.token)
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showUpdateModal, setShowUpdateModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
@@ -72,9 +72,9 @@ function index_main() {
     },
    
     {
-      title: t("Customer Id"),
-      minWidth: 200,
-      field: "customer_id",
+      title: t("Customer"),
+      minWidth: 220,
+      field: "customer_name",
       hozAlign: "center",
       headerHozAlign: "center",
       vertAlign: "middle",
@@ -85,9 +85,9 @@ function index_main() {
     
 
     {
-      title: t("Product Id"),
-      minWidth: 200,
-      field: "product_id",
+      title: t("Product"),
+      minWidth: 220,
+      field: "product_name",
       hozAlign: "center",
       headerHozAlign: "center",
       vertAlign: "middle",
@@ -99,7 +99,7 @@ function index_main() {
 
     {
       title: t("Visibility"),
-      minWidth: 200,
+      minWidth: 160,
       field: "visibility",
       hozAlign: "center",
       headerHozAlign: "center",
@@ -160,13 +160,13 @@ function index_main() {
       },
     },
 ]);
-  const [searchColumns, setSearchColumns] = useState(['customer_id', 'product_id', 'visibility', ]);
+  const [searchColumns, setSearchColumns] = useState(['customer_name', 'product_name', 'visibility']);
 
   // schema
   const schema = yup
     .object({
-     customer_id : yup.string().required(t('The Customer Id field is required')), 
-product_id : yup.string().required(t('The Product Id field is required')), 
+     customer_id : yup.string().required(t('The Customer field is required')), 
+product_id : yup.string().required(t('The Product field is required')), 
 visibility : yup.string().required(t('The Visibility field is required')), 
 
     })
@@ -184,8 +184,36 @@ visibility : yup.string().required(t('The Visibility field is required')),
     resolver: yupResolver(schema),
   });
 
-   
-
+  // Prefill customer_id from query string and lock field
+  const [lockedCustomerName, setLockedCustomerName] = useState("");
+  useEffect(() => {
+    try {
+      const params = new URLSearchParams(window.location.search);
+      const cid = params.get('customer_id');
+      if (cid) {
+        setValue('customer_id', cid);
+        // fetch customer to show name
+        fetch(`${app_url}/api/customer/${cid}`, {
+          credentials: 'include',
+          headers: {
+            'Accept': 'application/json',
+            ...(authToken ? { 'Authorization': `Bearer ${authToken}` } : {}),
+            ...(localStorage.getItem('token') && !authToken ? { 'Authorization': `Bearer ${localStorage.getItem('token')}` } : {}),
+          },
+        })
+          .then(r => r.json())
+          .then(res => {
+            const c = res?.data || res; // depending on sendResponse wrapper
+            if (c && (c.name_surname || c.data?.name_surname)) {
+              setLockedCustomerName(c.name_surname || c.data?.name_surname);
+            }
+          })
+          .catch(() => { setLockedCustomerName(String(cid)); });
+      }
+    } catch (_) {}
+  }, [setValue, app_url, authToken]);
+  
+ 
 
   const [refetch, setRefetch] = useState(false);
   const getMiniDisplay = (url) => {
@@ -321,12 +349,24 @@ return (
                     
    <div className="mt-3 input-form">
       <FormLabel
-        htmlFor="validation-form-1"
+        htmlFor="customer_id"
         className="flex flex-col w-full sm:flex-row"
       >
-        {t("Customer Id")}
+        {t("Customer")}
       </FormLabel>
-      <TomSelectSearch apiUrl={`${app_url}/api/search_customer`} setValue={setValue} variable="customer_id"/>
+      {getValues('customer_id') ? (
+        <>
+          <FormInput
+            id="customer_name"
+            type="text"
+            value={lockedCustomerName || t('Loading...')}
+            readOnly
+          />
+          <input type="hidden" {...register('customer_id')} name="customer_id" />
+        </>
+      ) : (
+        <TomSelectSearch apiUrl={`${app_url}/api/search_customer`} setValue={setValue} variable="customer_id"/>
+      )}
       {errors.customer_id && (
         <div className="mt-2 text-danger">
           {typeof errors.customer_id.message === "string" &&
@@ -337,43 +377,42 @@ return (
 
    <div className="mt-3 input-form">
       <FormLabel
-        htmlFor="validation-form-1"
+        htmlFor="product_id"
         className="flex flex-col w-full sm:flex-row"
       >
-        {t("Product Id")}
+        {t("Product")}
       </FormLabel>
       <TomSelectSearch apiUrl={`${app_url}/api/search_product`} setValue={setValue} variable="product_id"/>
       {errors.product_id && (
-        <div className="mt-2 text-danger">
-          {typeof errors.product_id.message === "string" &&
-            errors.product_id.message}
-        </div>
-      )}
-    </div>
+         <div className="mt-2 text-danger">
+           {typeof errors.product_id.message === "string" &&
+             errors.product_id.message}
+         </div>
+       )}
+     </div>
 
 <div className="mt-3 input-form">
                       <FormLabel
-                        htmlFor="validation-form-1"
+                        htmlFor="visibility"
                         className="flex justify-start items-start flex-col w-full sm:flex-row"
                       >
                         {t("Visibility")}
                       </FormLabel>
-                      <FormInput
-                        {...register("visibility")}
-                        id="validation-form-1"
-                        type="text"
+                      <select
+                        {...register('visibility')}
+                        id="visibility"
                         name="visibility"
-                        className={clsx({
-                          "border-danger": errors.visibility,
-                        })}
-                        placeholder={t("Enter visibility")}
-                      />
-                      {errors.visibility && (
-                        <div className="mt-2 text-danger">
-                          {typeof errors.visibility.message === "string" &&
-                            errors.visibility.message}
-                        </div>
-                      )}
+                        className={clsx('form-select', { 'border-danger': errors.visibility })}
+                      >
+                        <option value="show">{t('Show')}</option>
+                        <option value="hide">{t('Hide')}</option>
+                      </select>
+                       {errors.visibility && (
+                         <div className="mt-2 text-danger">
+                           {typeof errors.visibility.message === "string" &&
+                             errors.visibility.message}
+                         </div>
+                       )}
                     </div>
 
 
@@ -424,59 +463,70 @@ return (
                     
    <div className="mt-3 input-form">
       <FormLabel
-        htmlFor="validation-form-1"
+        htmlFor="customer_id_update"
         className="flex flex-col w-full sm:flex-row"
       >
-        {t("Customer Id")}
+        {t("Customer")}
       </FormLabel>
-      <TomSelectSearch apiUrl={`${app_url}/api/search_customer`} setValue={setValue} variable="customer_id"/>
-      {errors.customer_id && (
-        <div className="mt-2 text-danger">
-          {typeof errors.customer_id.message === "string" &&
-            errors.customer_id.message}
-        </div>
+      {getValues('customer_id') ? (
+        <>
+          <FormInput
+            id="customer_name_update"
+            type="text"
+            value={lockedCustomerName || t('Loading...')}
+            readOnly
+          />
+          <input type="hidden" {...register('customer_id')} name="customer_id" />
+        </>
+      ) : (
+        <TomSelectSearch apiUrl={`${app_url}/api/search_customer`} setValue={setValue} variable="customer_id"/>
       )}
-    </div>
+       {errors.customer_id && (
+         <div className="mt-2 text-danger">
+           {typeof errors.customer_id.message === "string" &&
+             errors.customer_id.message}
+         </div>
+       )}
+     </div>
 
    <div className="mt-3 input-form">
       <FormLabel
-        htmlFor="validation-form-1"
+        htmlFor="product_id_update"
         className="flex flex-col w-full sm:flex-row"
       >
-        {t("Product Id")}
+        {t("Product")}
       </FormLabel>
       <TomSelectSearch apiUrl={`${app_url}/api/search_product`} setValue={setValue} variable="product_id"/>
       {errors.product_id && (
-        <div className="mt-2 text-danger">
-          {typeof errors.product_id.message === "string" &&
-            errors.product_id.message}
-        </div>
-      )}
-    </div>
+         <div className="mt-2 text-danger">
+           {typeof errors.product_id.message === "string" &&
+             errors.product_id.message}
+         </div>
+       )}
+     </div>
 
 <div className="mt-3 input-form">
                       <FormLabel
-                        htmlFor="validation-form-1"
+                        htmlFor="visibility_update"
                         className="flex justify-start items-start flex-col w-full sm:flex-row"
                       >
                         {t("Visibility")}
                       </FormLabel>
-                      <FormInput
-                        {...register("visibility")}
-                        id="validation-form-1"
-                        type="text"
+                      <select
+                        {...register('visibility')}
+                        id="visibility_update"
                         name="visibility"
-                        className={clsx({
-                          "border-danger": errors.visibility,
-                        })}
-                        placeholder={t("Enter visibility")}
-                      />
-                      {errors.visibility && (
-                        <div className="mt-2 text-danger">
-                          {typeof errors.visibility.message === "string" &&
-                            errors.visibility.message}
-                        </div>
-                      )}
+                        className={clsx('form-select', { 'border-danger': errors.visibility })}
+                      >
+                        <option value="show">{t('Show')}</option>
+                        <option value="hide">{t('Hide')}</option>
+                      </select>
+                       {errors.visibility && (
+                         <div className="mt-2 text-danger">
+                           {typeof errors.visibility.message === "string" &&
+                             errors.visibility.message}
+                         </div>
+                       )}
                     </div>
 
 

@@ -91,23 +91,57 @@ class BrandnameController extends BaseController
 
         $searchTerm = $search_term;
         if (empty($searchTerm)) {
+            Log::warning('Empty search term provided');
             return response()->json([
                 'message' => 'Please enter a search term.'
             ], 400);
         }
+        
+        Log::info('Executing brand search query', [
+            'search_term' => $searchTerm,
+            'query' => "SELECT id, brand_name FROM brandnames WHERE LOWER(brand_name) LIKE LOWER('%{$searchTerm}%') LIMIT 20"
+        ]);
+        
         $results = Brandname::query()
-            ->leftJoin('products', 'products.brand_id', '=', 'brandnames.id')
-            ->select([
-                'brandnames.id',
-                'brandnames.brand_name',
-                DB::raw('COUNT(products.id) as number_of_products'),
-            ])
-            ->groupBy('brandnames.id', 'brandnames.brand_name')
-            ->where(function ($query) use ($searchTerm) {
-                $query->orWhere('brandnames.brand_name', 'like', "%$searchTerm%");
-            })
-            ->paginate(20);
-        return $this->sendResponse($results, 'search results for brandname');
+            ->select(['id', 'brand_name'])
+            ->whereRaw('LOWER(brand_name) LIKE LOWER(?)', ["%$searchTerm%"])
+            ->limit(20)
+            ->get();
+            
+        Log::info('Brand search query results', [
+            'search_term' => $searchTerm,
+            'results_count' => $results->count(),
+            'results' => $results->toArray()
+        ]);
+        
+        // If no results, let's check if there are any brands at all
+        if ($results->isEmpty()) {
+            $totalBrands = Brandname::count();
+            Log::warning('No brands found for search term', [
+                'search_term' => $searchTerm,
+                'total_brands_in_db' => $totalBrands
+            ]);
+            
+            // Return some sample brands for debugging
+            $sampleBrands = Brandname::select(['id', 'brand_name'])->limit(5)->get();
+            Log::info('Sample brands in database', [
+                'sample_brands' => $sampleBrands->toArray()
+            ]);
+        }
+            
+        // Format for pagination response structure
+        $paginatedResults = [
+            'data' => $results,
+            'current_page' => 1,
+            'per_page' => 20,
+            'total' => $results->count()
+        ];
+        
+        Log::info('Brand search final response', [
+            'paginated_results' => $paginatedResults
+        ]);
+        
+        return $this->sendResponse($paginatedResults, 'search results for brandname');
     }
 
     public function store(Request $request)

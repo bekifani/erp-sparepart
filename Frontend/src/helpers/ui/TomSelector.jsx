@@ -17,25 +17,44 @@ const TomSelectSearch = ({ apiUrl, setValue , variable, defaultValue}) => {
         try {
           if (!query.trim()) return callback();
          
+          console.log('TomSelectSearch: Making API call to:', `${apiUrl}/${query}`);
           const response = await axios.get(`${apiUrl}/${query}`, {
               headers: {
                   'X-Tenant': `${tenant}`,
                   'Authorization': `Bearer ${token}`
               }
           });
-          const options = response.data.data.data.map(item => ({
+          console.log('TomSelectSearch: Response status:', response.status);
+          console.log('TomSelectSearch: Response headers:', response.headers);
+          console.log('TomSelectSearch: API response:', response.data);
+          console.log('TomSelectSearch: Full response structure:', JSON.stringify(response.data, null, 2));
+          
+          // Handle the response structure from brand search API
+          const dataArray = response.data.data?.data || response.data.data || [];
+          console.log('TomSelectSearch: Data array:', dataArray);
+          console.log('TomSelectSearch: First item structure:', dataArray[0]);
+          console.log('TomSelectSearch: Available fields in first item:', dataArray[0] ? Object.keys(dataArray[0]) : 'No items');
+          
+          const options = dataArray.map(item => ({
             value: item.id,  
-            text: item.name || item.brand_name || item.product_name || item.box_name || item.label_name || item.unit_name || item.brand_code || item.product_name_code,
+            text: item.brand_name || item.product_name || item.name || item.box_name || item.label_name || item.unit_name || item.brand_code || item.product_name_code,
           }));
-          console.log('options');
+          console.log('TomSelectSearch: Mapped options:', options);
+          console.log('TomSelectSearch: Individual option mapping:');
+          options.forEach((option, index) => {
+            console.log(`  Option ${index}:`, { value: option.value, text: option.text, originalItem: dataArray[index] });
+          });
           callback(options);  // Return options for the dropdown
         } catch (error) {
           console.error("Error fetching data:", error);
+          console.error("Error details:", error.response?.data);
+          callback(); // Return empty results on error
         }
       },
       create: false, // Disable create option (optional)
       onChange: (value) => {
-        setValue(value);  // Update selected value on change
+        console.log('TomSelectSearch onChange:', { variable, value });
+        setValue(variable, value);  // Update selected value on change using the variable parameter
       },
     });
 
