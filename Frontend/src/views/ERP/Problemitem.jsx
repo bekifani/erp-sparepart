@@ -1,4 +1,5 @@
 
+
 import "@/assets/css/vendors/tabulator.css";
 import Lucide from "@/components/Base/Lucide";
 import ReactDOMServer from 'react-dom/server';
