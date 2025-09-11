@@ -77,7 +77,7 @@ class PackaginController extends BaseController
           "total_volume"=>"nullable|numeric",
           "number_of_boxes"=>"nullable|integer",
           "order_date"=>"required|date",
-          "status_id"=>"required|exists:product_statuses,id",
+          "status_id"=>"required|exists:productstatuses,id",
           "internal_note"=>"nullable|string",
           "customer_note"=>"nullable|string",
           
@@ -122,7 +122,7 @@ class PackaginController extends BaseController
           "total_volume"=>"nullable|numeric",
           "number_of_boxes"=>"nullable|integer",
           "order_date"=>"required|date",
-          "status_id"=>"required|exists:product_statuses,id",
+          "status_id"=>"required|exists:productstatuses,id",
           "internal_note"=>"nullable|string",
           "customer_note"=>"nullable|string",
           

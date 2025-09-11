@@ -7,6 +7,7 @@ use App\Models\Customerinvoice;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Facades\Log;
 class CustomerinvoiceController extends BaseController
 {
     protected $searchableColumns = ['invoice_no', 'customer_id', 'company_name', 'customer_name', 'country', 'address', 'tax_id', 'phone_number', 'email', 'shipping_mark', 'shipped_date', 'language', 'total_qty', 'total_net_weight', 'total_gross_weight', 'total_volume', 'total_amount', 'discount', 'deposit', 'extra_expenses', 'customer_debt', 'balance', 'status', 'attached_file', 'created_by'];
@@ -79,19 +80,19 @@ class CustomerinvoiceController extends BaseController
           "email"=>"nullable|email|max:255",
           "shipping_mark"=>"nullable|string|max:255",
           "shipped_date"=>"nullable|date",
-          "language"=>"nullable|string|default:en",
+          "language"=>"nullable|string|max:255",
           "total_qty"=>"nullable|integer",
           "total_net_weight"=>"nullable|numeric",
           "total_gross_weight"=>"nullable|numeric",
           "total_volume"=>"nullable|numeric",
           "total_amount"=>"nullable|numeric",
-          "discount"=>"nullable|numeric|default:0",
-          "deposit"=>"nullable|numeric|default:0",
-          "extra_expenses"=>"nullable|numeric|default:0",
-          "customer_debt"=>"nullable|numeric|default:0",
+          "discount"=>"nullable|numeric",
+          "deposit"=>"nullable|numeric",
+          "extra_expenses"=>"nullable|numeric",
+          "customer_debt"=>"nullable|numeric",
           "balance"=>"nullable|numeric",
-          "status"=>"nullable|string|default:draft",
-          "attached_"=>"nullable|string|max:255",
+          "status"=>"nullable|string|max:255",
+          "attached_file"=>"nullable|string|max:255",
           "created_by"=>"nullable|exists:users,id",
           
 
@@ -103,13 +104,21 @@ class CustomerinvoiceController extends BaseController
         }
         $validated=$validation->validated();
 
-
-
-        
-        //file uploads
-
-        $customerinvoice = Customerinvoice::create($validated);
-        return $this->sendResponse($customerinvoice, "customerinvoice created succesfully");
+        try {
+            // Set default values programmatically
+            $validated['language'] = $validated['language'] ?? 'en';
+            $validated['discount'] = $validated['discount'] ?? 0;
+            $validated['deposit'] = $validated['deposit'] ?? 0;
+            $validated['extra_expenses'] = $validated['extra_expenses'] ?? 0;
+            $validated['customer_debt'] = $validated['customer_debt'] ?? 0;
+            $validated['status'] = $validated['status'] ?? 'draft';
+            
+            $customerinvoice = Customerinvoice::create($validated);
+            return $this->sendResponse($customerinvoice, "customerinvoice created succesfully");
+        } catch (\Exception $e) {
+            Log::error('CustomerinvoiceController store error: ' . $e->getMessage());
+            return $this->sendError("Error creating customerinvoice", ['error' => $e->getMessage()]);
+        }
     }
 
     public function show($id)
@@ -126,7 +135,7 @@ class CustomerinvoiceController extends BaseController
             //for update
 
           
-          "invoice_no"=>"required|string|unique:customerinvoices,invoice_no|max:255",
+          "invoice_no"=>"required|string|unique:customerinvoices,invoice_no,$id|max:255",
           "customer_id"=>"nullable|exists:customers,id",
           "company_name"=>"required|string|max:255",
           "customer_name"=>"required|string|max:255",
@@ -137,19 +146,19 @@ class CustomerinvoiceController extends BaseController
           "email"=>"nullable|email|max:255",
           "shipping_mark"=>"nullable|string|max:255",
           "shipped_date"=>"nullable|date",
-          "language"=>"nullable|string|default:en",
+          "language"=>"nullable|string|max:255",
           "total_qty"=>"nullable|integer",
           "total_net_weight"=>"nullable|numeric",
           "total_gross_weight"=>"nullable|numeric",
           "total_volume"=>"nullable|numeric",
           "total_amount"=>"nullable|numeric",
-          "discount"=>"nullable|numeric|default:0",
-          "deposit"=>"nullable|numeric|default:0",
-          "extra_expenses"=>"nullable|numeric|default:0",
-          "customer_debt"=>"nullable|numeric|default:0",
+          "discount"=>"nullable|numeric",
+          "deposit"=>"nullable|numeric",
+          "extra_expenses"=>"nullable|numeric",
+          "customer_debt"=>"nullable|numeric",
           "balance"=>"nullable|numeric",
-          "status"=>"nullable|string|default:draft",
-          "attached_"=>"nullable|string|max:255",
+          "status"=>"nullable|string|max:255",
+          "attached_file"=>"nullable|string|max:255",
           "created_by"=>"nullable|exists:users,id",
           
         ];
@@ -160,13 +169,21 @@ class CustomerinvoiceController extends BaseController
         }
         $validated=$validation->validated();
 
-
-
-
-        //file uploads update
-
-        $customerinvoice->update($validated);
-        return $this->sendResponse($customerinvoice, "customerinvoice updated successfully");
+        try {
+            // Set default values programmatically
+            $validated['language'] = $validated['language'] ?? 'en';
+            $validated['discount'] = $validated['discount'] ?? 0;
+            $validated['deposit'] = $validated['deposit'] ?? 0;
+            $validated['extra_expenses'] = $validated['extra_expenses'] ?? 0;
+            $validated['customer_debt'] = $validated['customer_debt'] ?? 0;
+            $validated['status'] = $validated['status'] ?? 'draft';
+            
+            $customerinvoice->update($validated);
+            return $this->sendResponse($customerinvoice, "customerinvoice updated successfully");
+        } catch (\Exception $e) {
+            Log::error('CustomerinvoiceController update error: ' . $e->getMessage());
+            return $this->sendError("Error updating customerinvoice", ['error' => $e->getMessage()]);
+        }
     }
 
     public function destroy($id)

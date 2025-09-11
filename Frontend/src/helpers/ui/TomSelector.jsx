@@ -29,15 +29,15 @@ const TomSelectSearch = ({ apiUrl, setValue , variable, defaultValue}) => {
           console.log('TomSelectSearch: API response:', response.data);
           console.log('TomSelectSearch: Full response structure:', JSON.stringify(response.data, null, 2));
           
-          // Handle the response structure from brand search API
-          const dataArray = response.data.data?.data || response.data.data || [];
+          // Handle the response structure from search APIs
+          const dataArray = response.data.data?.data || response.data.data || response.data || [];
           console.log('TomSelectSearch: Data array:', dataArray);
           console.log('TomSelectSearch: First item structure:', dataArray[0]);
           console.log('TomSelectSearch: Available fields in first item:', dataArray[0] ? Object.keys(dataArray[0]) : 'No items');
           
           const options = dataArray.map(item => ({
-            value: item.id,  
-            text: item.brand_name || item.product_name || item.name || item.box_name || item.label_name || item.unit_name || item.brand_code || item.product_name_code,
+            value: item.value || item.id,  
+            text: item.text || item.name_surname || item.shipping_mark || item.email || item.brand_name || item.product_name || item.name || item.box_name || item.label_name || item.unit_name || item.brand_code || item.product_name_code,
           }));
           console.log('TomSelectSearch: Mapped options:', options);
           console.log('TomSelectSearch: Individual option mapping:');

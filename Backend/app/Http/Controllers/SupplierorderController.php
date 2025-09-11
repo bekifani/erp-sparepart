@@ -7,6 +7,7 @@ use App\Models\Supplierorder;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Facades\Log;
 class SupplierorderController extends BaseController
 {
     protected $searchableColumns = ['supplier_invoice_no', 'supplier_id', 'order_date', 'expected_date', 'shipping_date', 'order_period', 'arrival_time', 'qty', 'amount', 'discount', 'extra_expenses', 'status_id', 'internal_note', 'customer_note'];
@@ -66,39 +67,46 @@ class SupplierorderController extends BaseController
 
     public function store(Request $request)
     {
-        $validationRules = [
-          
-          "supplier_invoice_no"=>"required|string|max:255",
-          "supplier_id"=>"required|exists:suppliers,id",
-          "order_date"=>"required|date",
-          "expected_date"=>"nullable|date",
-          "shipping_date"=>"nullable|date",
-          "order_period"=>"nullable|string|max:255",
-          "arrival_time"=>"nullable|string|max:255",
-          "qty"=>"required|integer",
-          "amount"=>"nullable|numeric",
-          "discount"=>"nullable|numeric|default:0",
-          "extra_expenses"=>"nullable|numeric|default:0",
-          "status_id"=>"required|exists:product_statuses,id",
-          "internal_note"=>"nullable|string",
-          "customer_note"=>"nullable|string",
-          
+        try {
+            $validationRules = [
+              
+              "supplier_invoice_no"=>"required|string|max:255",
+              "supplier_id"=>"required|exists:suppliers,id",
+              "order_date"=>"required|date",
+              "expected_date"=>"nullable|date",
+              "shipping_date"=>"nullable|date",
+              "order_period"=>"nullable|string|max:255",
+              "arrival_time"=>"nullable|string|max:255",
+              "qty"=>"required|integer",
+              "amount"=>"nullable|numeric",
+              "discount"=>"nullable|numeric",
+              "extra_expenses"=>"nullable|numeric",
+              "status_id"=>"required|exists:productstatuses,id",
+              "internal_note"=>"nullable|string",
+              "customer_note"=>"nullable|string",
+              
 
-        ];
+            ];
 
-        $validation = Validator::make($request->all() , $validationRules);
-        if($validation->fails()){
-            return $this->sendError("Invalid Values", ['errors' => $validation->errors()]);
+            $validation = Validator::make($request->all() , $validationRules);
+            if($validation->fails()){
+                return $this->sendError("Invalid Values", ['errors' => $validation->errors()]);
+            }
+            $validated=$validation->validated();
+
+            // Set default values programmatically
+            $validated['discount'] = $validated['discount'] ?? 0;
+            $validated['extra_expenses'] = $validated['extra_expenses'] ?? 0;
+
+            
+            //file uploads
+
+            $supplierorder = Supplierorder::create($validated);
+            return $this->sendResponse($supplierorder, "supplierorder created succesfully");
+        } catch (\Exception $e) {
+            Log::error('Error creating supplierorder: ' . $e->getMessage());
+            return $this->sendError('Error creating supplierorder', ['error' => $e->getMessage()]);
         }
-        $validated=$validation->validated();
-
-
-
-        
-        //file uploads
-
-        $supplierorder = Supplierorder::create($validated);
-        return $this->sendResponse($supplierorder, "supplierorder created succesfully");
     }
 
     public function show($id)
@@ -110,41 +118,48 @@ class SupplierorderController extends BaseController
 
     public function update(Request $request, $id)
     {
-        $supplierorder = Supplierorder::findOrFail($id);
-         $validationRules = [
-            //for update
+        try {
+            $supplierorder = Supplierorder::findOrFail($id);
+             $validationRules = [
+                //for update
 
-          
-          "supplier_invoice_no"=>"required|string|max:255",
-          "supplier_id"=>"required|exists:suppliers,id",
-          "order_date"=>"required|date",
-          "expected_date"=>"nullable|date",
-          "shipping_date"=>"nullable|date",
-          "order_period"=>"nullable|string|max:255",
-          "arrival_time"=>"nullable|string|max:255",
-          "qty"=>"required|integer",
-          "amount"=>"nullable|numeric",
-          "discount"=>"nullable|numeric|default:0",
-          "extra_expenses"=>"nullable|numeric|default:0",
-          "status_id"=>"required|exists:product_statuses,id",
-          "internal_note"=>"nullable|string",
-          "customer_note"=>"nullable|string",
-          
-        ];
+              
+              "supplier_invoice_no"=>"required|string|max:255",
+              "supplier_id"=>"required|exists:suppliers,id",
+              "order_date"=>"required|date",
+              "expected_date"=>"nullable|date",
+              "shipping_date"=>"nullable|date",
+              "order_period"=>"nullable|string|max:255",
+              "arrival_time"=>"nullable|string|max:255",
+              "qty"=>"required|integer",
+              "amount"=>"nullable|numeric",
+              "discount"=>"nullable|numeric",
+              "extra_expenses"=>"nullable|numeric",
+              "status_id"=>"required|exists:productstatuses,id",
+              "internal_note"=>"nullable|string",
+              "customer_note"=>"nullable|string",
+              
+            ];
 
-        $validation = Validator::make($request->all() , $validationRules);
-        if($validation->fails()){
-            return $this->sendError("Invalid Values", ['errors' => $validation->errors()]);
+            $validation = Validator::make($request->all() , $validationRules);
+            if($validation->fails()){
+                return $this->sendError("Invalid Values", ['errors' => $validation->errors()]);
+            }
+            $validated=$validation->validated();
+
+            // Set default values programmatically
+            $validated['discount'] = $validated['discount'] ?? 0;
+            $validated['extra_expenses'] = $validated['extra_expenses'] ?? 0;
+
+
+            //file uploads update
+
+            $supplierorder->update($validated);
+            return $this->sendResponse($supplierorder, "supplierorder updated successfully");
+        } catch (\Exception $e) {
+            Log::error('Error updating supplierorder: ' . $e->getMessage());
+            return $this->sendError('Error updating supplierorder', ['error' => $e->getMessage()]);
         }
-        $validated=$validation->validated();
-
-
-
-
-        //file uploads update
-
-        $supplierorder->update($validated);
-        return $this->sendResponse($supplierorder, "supplierorder updated successfully");
     }
 
     public function destroy($id)

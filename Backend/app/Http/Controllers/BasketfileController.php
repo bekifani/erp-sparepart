@@ -7,6 +7,7 @@ use App\Models\Basketfile;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Facades\Log;
 class BasketfileController extends BaseController
 {
     protected $searchableColumns = ['file'];
@@ -66,26 +67,23 @@ class BasketfileController extends BaseController
 
     public function store(Request $request)
     {
-        $validationRules = [
-          
-          ""=>"required|",
-          
+        try {
+            $validationRules = [
+              "file"=>"required|string|max:255",
+            ];
 
-        ];
+            $validation = Validator::make($request->all() , $validationRules);
+            if($validation->fails()){
+                return $this->sendError("Invalid Values", ['errors' => $validation->errors()]);
+            }
+            $validated=$validation->validated();
 
-        $validation = Validator::make($request->all() , $validationRules);
-        if($validation->fails()){
-            return $this->sendError("Invalid Values", ['errors' => $validation->errors()]);
+            $basketfile = Basketfile::create($validated);
+            return $this->sendResponse($basketfile, "basketfile created succesfully");
+        } catch (\Throwable $e) {
+            Log::error('Basketfile@store failed: '.$e->getMessage(), ['trace' => $e->getTraceAsString()]);
+            return $this->sendError('Failed to create basketfile', ['message' => $e->getMessage()], 500);
         }
-        $validated=$validation->validated();
-
-
-
-        
-        //file uploads
-
-        $basketfile = Basketfile::create($validated);
-        return $this->sendResponse($basketfile, "basketfile created succesfully");
     }
 
     public function show($id)
@@ -97,41 +95,42 @@ class BasketfileController extends BaseController
 
     public function update(Request $request, $id)
     {
-        $basketfile = Basketfile::findOrFail($id);
-         $validationRules = [
-            //for update
+        try {
+            $basketfile = Basketfile::findOrFail($id);
+             $validationRules = [
+                "file"=>"required|string|max:255",
+            ];
 
-          
-          ""=>"required|",
-          
-        ];
+            $validation = Validator::make($request->all() , $validationRules);
+            if($validation->fails()){
+                return $this->sendError("Invalid Values", ['errors' => $validation->errors()]);
+            }
+            $validated=$validation->validated();
 
-        $validation = Validator::make($request->all() , $validationRules);
-        if($validation->fails()){
-            return $this->sendError("Invalid Values", ['errors' => $validation->errors()]);
+            $basketfile->update($validated);
+            return $this->sendResponse($basketfile, "basketfile updated successfully");
+        } catch (\Throwable $e) {
+            Log::error('Basketfile@update failed: '.$e->getMessage(), ['trace' => $e->getTraceAsString()]);
+            return $this->sendError('Failed to update basketfile', ['message' => $e->getMessage()], 500);
         }
-        $validated=$validation->validated();
-
-
-
-
-        //file uploads update
-
-        $basketfile->update($validated);
-        return $this->sendResponse($basketfile, "basketfile updated successfully");
     }
 
     public function destroy($id)
     {
-        $basketfile = Basketfile::findOrFail($id);
-        $basketfile->delete();
+        try {
+            $basketfile = Basketfile::findOrFail($id);
+            $filePath = $basketfile->file;
+            $basketfile->delete();
 
+            if($filePath) {
+                $this->deleteFile($filePath);
+            }
 
-
-$this->deleteFile($basketfile->file);
-
-        //delete files uploaded
-        return $this->sendResponse(1, "basketfile deleted succesfully");
+            return $this->sendResponse(1, "basketfile deleted succesfully");
+        } catch (\Throwable $e) {
+            Log::error('Basketfile@destroy failed: '.$e->getMessage(), ['trace' => $e->getTraceAsString()]);
+            return $this->sendError('Failed to delete basketfile', ['message' => $e->getMessage()], 500);
+        }
     }
 
     public function deleteFile($filePath) {

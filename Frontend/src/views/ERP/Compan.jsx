@@ -275,42 +275,454 @@ function index_main() {
   };
 
   const onCreate = async (data) => {
+    console.log('🟡 onCreate called with data:', data);
+    console.log('🟡 Form errors:', errors);
+    console.log('🟡 Current form values:', getValues());
+    console.log('🟡 Form is valid:', Object.keys(errors).length === 0);
+    
+    // Check if form has validation errors
+    if (Object.keys(errors).length > 0) {
+      console.error('🔴 Form has validation errors:', errors);
+      setToastMessage(t("Please fix the form errors before submitting"));
+      basicStickyNotification.current?.showToast();
+      return;
+    }
+    
     try {
       const response = await createCompan(data);
-      setToastMessage(t("Compan created successfully."));
+      console.log('🟡 API response:', response);
+      
+      if (response && (response.success === true || response.data?.success === true)) {
+        setToastMessage(t("Company created successfully."));
+        setRefetch(true);
+        setShowCreateModal(false);
+        basicStickyNotification.current?.showToast();
+        // Auto-hide toast after 7 seconds
+        setTimeout(() => {
+          basicStickyNotification.current?.hideToast();
+        }, 7000);
+      } else {
+        console.error('🔴 API returned error:', response);
+        let errorMessage = t("Error creating Company");
+        
+        // Check multiple possible error structures
+        const errorSources = [
+          response?.error?.data?.data?.errors,  // RTK Query error structure
+          response?.data?.data?.errors,         // Direct API response
+          response?.error?.data?.errors,        // Alternative error structure
+          response?.data?.errors                // Simple error structure
+        ];
+        
+        let validationErrors = null;
+        for (const errorSource of errorSources) {
+          if (errorSource && typeof errorSource === 'object') {
+            validationErrors = errorSource;
+            break;
+          }
+        }
+        
+        if (validationErrors) {
+          const errorFields = Object.keys(validationErrors);
+          if (errorFields.length > 0) {
+            // Get the first validation error message
+            const firstFieldErrors = validationErrors[errorFields[0]];
+            if (Array.isArray(firstFieldErrors) && firstFieldErrors.length > 0) {
+              errorMessage = firstFieldErrors[0];
+            } else if (typeof firstFieldErrors === 'string') {
+              errorMessage = firstFieldErrors;
+            }
+          }
+        } else {
+          // Handle parsing errors (when server returns HTML instead of JSON)
+          if (response?.error?.status === "PARSING_ERROR") {
+            errorMessage = t("Server error occurred. Please try again later or contact support.");
+          } else {
+            // Fallback to general error messages
+            const generalErrorSources = [
+              response?.error?.data?.message,
+              response?.data?.message,
+              response?.message,
+              response?.error?.error
+            ];
+            
+            for (const errorSource of generalErrorSources) {
+              if (errorSource && typeof errorSource === 'string') {
+                errorMessage = errorSource;
+                break;
+              }
+            }
+          }
+        }
+        
+        setToastMessage(errorMessage);
+        basicStickyNotification.current?.showToast();
+        // Auto-hide toast after 7 seconds
+        setTimeout(() => {
+          basicStickyNotification.current?.hideToast();
+        }, 7000);
+      }
     } catch (error) {
-      setToastMessage(t("Error creating Compan."));
+      console.error('🔴 Exception in onCreate:', error);
+      let errorMessage = t("Error creating Company");
+      
+      // Check multiple possible error structures in catch block
+      const errorSources = [
+        error?.error?.data?.data?.errors,
+        error?.error?.data?.errors,
+        error?.response?.data?.data?.errors,
+        error?.response?.data?.errors,
+        error?.data?.data?.errors,
+        error?.data?.errors
+      ];
+      
+      let validationErrors = null;
+      for (const errorSource of errorSources) {
+        if (errorSource && typeof errorSource === 'object') {
+          validationErrors = errorSource;
+          break;
+        }
+      }
+      
+      if (validationErrors) {
+        const errorFields = Object.keys(validationErrors);
+        if (errorFields.length > 0) {
+          const firstFieldErrors = validationErrors[errorFields[0]];
+          if (Array.isArray(firstFieldErrors) && firstFieldErrors.length > 0) {
+            errorMessage = firstFieldErrors[0];
+          } else if (typeof firstFieldErrors === 'string') {
+            errorMessage = firstFieldErrors;
+          }
+        }
+      } else {
+        // Handle parsing errors in catch block
+        if (error?.error?.status === "PARSING_ERROR") {
+          errorMessage = t("Server error occurred. Please try again later or contact support.");
+        } else {
+          // Fallback to general error messages
+          const generalErrorSources = [
+            error?.error?.data?.message,
+            error?.response?.data?.message,
+            error?.data?.message,
+            error?.message
+          ];
+          
+          for (const errorSource of generalErrorSources) {
+            if (errorSource && typeof errorSource === 'string') {
+              errorMessage = errorSource;
+              break;
+            }
+          }
+        }
+      }
+      
+      setToastMessage(errorMessage);
+      basicStickyNotification.current?.showToast();
+      // Auto-hide toast after 7 seconds
+      setTimeout(() => {
+        basicStickyNotification.current?.hideToast();
+      }, 7000);
     }
-    basicStickyNotification.current?.showToast();
-    setRefetch(true);
-    setShowCreateModal(false);
   };
 
   const onUpdate = async (data) => {
-    setShowUpdateModal(false)
+    console.log('🟡 onUpdate called with data:', data);
+    console.log('🟡 Form errors:', errors);
+    console.log('🟡 Current form values:', getValues());
+    console.log('🟡 Form is valid:', Object.keys(errors).length === 0);
+    
+    // Check if form has validation errors
+    if (Object.keys(errors).length > 0) {
+      console.error('🔴 Form has validation errors:', errors);
+      setToastMessage(t("Please fix the form errors before submitting"));
+      basicStickyNotification.current?.showToast();
+      return;
+    }
+    
+    setShowUpdateModal(false);
+    
     try {
       const response = await updateCompan(data);
-      setToastMessage(t('Compan updated successfully'));
-      setRefetch(true)
+      console.log('🟡 API response:', response);
+      
+      if (response && (response.success === true || response.data?.success === true)) {
+        setToastMessage(t('Company updated successfully'));
+        setRefetch(true);
+        basicStickyNotification.current?.showToast();
+        // Auto-hide toast after 7 seconds
+        setTimeout(() => {
+          basicStickyNotification.current?.hideToast();
+        }, 7000);
+      } else {
+        console.error('🔴 API returned error:', response);
+        let errorMessage = t("Error updating Company");
+        
+        // Check multiple possible error structures
+        const errorSources = [
+          response?.error?.data?.data?.errors,  // RTK Query error structure
+          response?.data?.data?.errors,         // Direct API response
+          response?.error?.data?.errors,        // Alternative error structure
+          response?.data?.errors                // Simple error structure
+        ];
+        
+        let validationErrors = null;
+        for (const errorSource of errorSources) {
+          if (errorSource && typeof errorSource === 'object') {
+            validationErrors = errorSource;
+            break;
+          }
+        }
+        
+        if (validationErrors) {
+          const errorFields = Object.keys(validationErrors);
+          if (errorFields.length > 0) {
+            // Get the first validation error message
+            const firstFieldErrors = validationErrors[errorFields[0]];
+            if (Array.isArray(firstFieldErrors) && firstFieldErrors.length > 0) {
+              errorMessage = firstFieldErrors[0];
+            } else if (typeof firstFieldErrors === 'string') {
+              errorMessage = firstFieldErrors;
+            }
+          }
+        } else {
+          // Handle parsing errors (when server returns HTML instead of JSON)
+          if (response?.error?.status === "PARSING_ERROR") {
+            errorMessage = t("Server error occurred. Please try again later or contact support.");
+          } else {
+            // Fallback to general error messages
+            const generalErrorSources = [
+              response?.error?.data?.message,
+              response?.data?.message,
+              response?.message,
+              response?.error?.error
+            ];
+            
+            for (const errorSource of generalErrorSources) {
+              if (errorSource && typeof errorSource === 'string') {
+                errorMessage = errorSource;
+                break;
+              }
+            }
+          }
+        }
+        
+        setToastMessage(errorMessage);
+        setShowUpdateModal(true);
+        basicStickyNotification.current?.showToast();
+        // Auto-hide toast after 7 seconds
+        setTimeout(() => {
+          basicStickyNotification.current?.hideToast();
+        }, 7000);
+      }
     } catch (error) {
-      setShowUpdateModal(true)
-      setToastMessage(t('Compan deletion failed'));
+      console.error('🔴 Exception in onUpdate:', error);
+      let errorMessage = t("Error updating Company");
+      
+      // Check multiple possible error structures in catch block
+      const errorSources = [
+        error?.error?.data?.data?.errors,
+        error?.error?.data?.errors,
+        error?.response?.data?.data?.errors,
+        error?.response?.data?.errors,
+        error?.data?.data?.errors,
+        error?.data?.errors
+      ];
+      
+      let validationErrors = null;
+      for (const errorSource of errorSources) {
+        if (errorSource && typeof errorSource === 'object') {
+          validationErrors = errorSource;
+          break;
+        }
+      }
+      
+      if (validationErrors) {
+        const errorFields = Object.keys(validationErrors);
+        if (errorFields.length > 0) {
+          const firstFieldErrors = validationErrors[errorFields[0]];
+          if (Array.isArray(firstFieldErrors) && firstFieldErrors.length > 0) {
+            errorMessage = firstFieldErrors[0];
+          } else if (typeof firstFieldErrors === 'string') {
+            errorMessage = firstFieldErrors;
+          }
+        }
+      } else {
+        // Handle parsing errors in catch block
+        if (error?.error?.status === "PARSING_ERROR") {
+          errorMessage = t("Server error occurred. Please try again later or contact support.");
+        } else {
+          // Fallback to general error messages
+          const generalErrorSources = [
+            error?.error?.data?.message,
+            error?.response?.data?.message,
+            error?.data?.message,
+            error?.message
+          ];
+          
+          for (const errorSource of generalErrorSources) {
+            if (errorSource && typeof errorSource === 'string') {
+              errorMessage = errorSource;
+              break;
+            }
+          }
+        }
+      }
+      
+      setToastMessage(errorMessage);
+      setShowUpdateModal(true);
+      basicStickyNotification.current?.showToast();
+      // Auto-hide toast after 7 seconds
+      setTimeout(() => {
+        basicStickyNotification.current?.hideToast();
+      }, 7000);
     }
-    basicStickyNotification.current?.showToast();
   };
 
   const onDelete = async () => {
     let id = getValues("id");
-    setShowDeleteModal(false)
-    try {
-        const response = deleteCompan(id);
-        setToastMessage(t("Compan deleted successfully."));
-        setRefetch(true);
-      }
-    catch (error) {
-      setToastMessage(t("Error deleting Compan."));
+    console.log('🟡 onDelete called with id:', id);
+    
+    if (!id) {
+      console.error('🔴 No ID provided for deletion');
+      setToastMessage(t("No company selected for deletion"));
+      basicStickyNotification.current?.showToast();
+      return;
     }
-    basicStickyNotification.current?.showToast();
+    
+    setShowDeleteModal(false);
+    
+    try {
+      const response = await deleteCompan(id);
+      console.log('🟡 API response:', response);
+      
+      if (response && (response.success === true || response.data?.success === true)) {
+        setToastMessage(t("Company deleted successfully."));
+        setRefetch(true);
+        basicStickyNotification.current?.showToast();
+        // Auto-hide toast after 7 seconds
+        setTimeout(() => {
+          basicStickyNotification.current?.hideToast();
+        }, 7000);
+      } else {
+        console.error('🔴 API returned error:', response);
+        let errorMessage = t("Error deleting Company");
+        
+        // Check multiple possible error structures
+        const errorSources = [
+          response?.error?.data?.data?.errors,  // RTK Query error structure
+          response?.data?.data?.errors,         // Direct API response
+          response?.error?.data?.errors,        // Alternative error structure
+          response?.data?.errors                // Simple error structure
+        ];
+        
+        let validationErrors = null;
+        for (const errorSource of errorSources) {
+          if (errorSource && typeof errorSource === 'object') {
+            validationErrors = errorSource;
+            break;
+          }
+        }
+        
+        if (validationErrors) {
+          const errorFields = Object.keys(validationErrors);
+          if (errorFields.length > 0) {
+            // Get the first validation error message
+            const firstFieldErrors = validationErrors[errorFields[0]];
+            if (Array.isArray(firstFieldErrors) && firstFieldErrors.length > 0) {
+              errorMessage = firstFieldErrors[0];
+            } else if (typeof firstFieldErrors === 'string') {
+              errorMessage = firstFieldErrors;
+            }
+          }
+        } else {
+          // Handle parsing errors (when server returns HTML instead of JSON)
+          if (response?.error?.status === "PARSING_ERROR") {
+            errorMessage = t("Server error occurred. Please try again later or contact support.");
+          } else {
+            // Fallback to general error messages
+            const generalErrorSources = [
+              response?.error?.data?.message,
+              response?.data?.message,
+              response?.message,
+              response?.error?.error
+            ];
+            
+            for (const errorSource of generalErrorSources) {
+              if (errorSource && typeof errorSource === 'string') {
+                errorMessage = errorSource;
+                break;
+              }
+            }
+          }
+        }
+        
+        setToastMessage(errorMessage);
+        basicStickyNotification.current?.showToast();
+        // Auto-hide toast after 7 seconds
+        setTimeout(() => {
+          basicStickyNotification.current?.hideToast();
+        }, 7000);
+      }
+    } catch (error) {
+      console.error('🔴 Exception in onDelete:', error);
+      let errorMessage = t("Error deleting Company");
+      
+      // Check multiple possible error structures in catch block
+      const errorSources = [
+        error?.error?.data?.data?.errors,
+        error?.error?.data?.errors,
+        error?.response?.data?.data?.errors,
+        error?.response?.data?.errors,
+        error?.data?.data?.errors,
+        error?.data?.errors
+      ];
+      
+      let validationErrors = null;
+      for (const errorSource of errorSources) {
+        if (errorSource && typeof errorSource === 'object') {
+          validationErrors = errorSource;
+          break;
+        }
+      }
+      
+      if (validationErrors) {
+        const errorFields = Object.keys(validationErrors);
+        if (errorFields.length > 0) {
+          const firstFieldErrors = validationErrors[errorFields[0]];
+          if (Array.isArray(firstFieldErrors) && firstFieldErrors.length > 0) {
+            errorMessage = firstFieldErrors[0];
+          } else if (typeof firstFieldErrors === 'string') {
+            errorMessage = firstFieldErrors;
+          }
+        }
+      } else {
+        // Handle parsing errors in catch block
+        if (error?.error?.status === "PARSING_ERROR") {
+          errorMessage = t("Server error occurred. Please try again later or contact support.");
+        } else {
+          // Fallback to general error messages
+          const generalErrorSources = [
+            error?.error?.data?.message,
+            error?.response?.data?.message,
+            error?.data?.message,
+            error?.message
+          ];
+          
+          for (const errorSource of generalErrorSources) {
+            if (errorSource && typeof errorSource === 'string') {
+              errorMessage = errorSource;
+              break;
+            }
+          }
+        }
+      }
+      
+      setToastMessage(errorMessage);
+      basicStickyNotification.current?.showToast();
+      // Auto-hide toast after 7 seconds
+      setTimeout(() => {
+        basicStickyNotification.current?.hideToast();
+      }, 7000);
+    }
   };    
 
 return (

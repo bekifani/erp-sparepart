@@ -7,6 +7,7 @@ use App\Models\Customerinvoiceitem;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Facades\Log;
 class CustomerinvoiceitemController extends BaseController
 {
     protected $searchableColumns = ['customer_invoice_id', 'product_id', 'hs_code', 'brand', 'brand_code', 'oe_code', 'description', 'qty', 'price', 'amount', 'additional_note'];
@@ -66,36 +67,41 @@ class CustomerinvoiceitemController extends BaseController
 
     public function store(Request $request)
     {
-        $validationRules = [
-          
-          "customer_invoice_id"=>"required|exists:customer_invoices,id",
-          "product_id"=>"required|exists:products,id",
-          "hs_code"=>"nullable|string|max:255",
-          "brand"=>"nullable|string|max:255",
-          "brand_code"=>"nullable|string|max:255",
-          "oe_code"=>"nullable|string|max:255",
-          "description"=>"nullable|string",
-          "qty"=>"required|integer",
-          "price"=>"required|numeric",
-          "amount"=>"nullable|numeric",
-          "additional_note"=>"nullable|string",
-          
+        try {
+            $validationRules = [
+              
+              "customer_invoice_id"=>"required|exists:customerinvoices,id",
+              "product_id"=>"required|exists:products,id",
+              "hs_code"=>"nullable|string|max:255",
+              "brand"=>"nullable|string|max:255",
+              "brand_code"=>"nullable|string|max:255",
+              "oe_code"=>"nullable|string|max:255",
+              "description"=>"nullable|string",
+              "qty"=>"required|integer",
+              "price"=>"required|numeric",
+              "amount"=>"nullable|numeric",
+              "additional_note"=>"nullable|string",
+              
 
-        ];
+            ];
 
-        $validation = Validator::make($request->all() , $validationRules);
-        if($validation->fails()){
-            return $this->sendError("Invalid Values", ['errors' => $validation->errors()]);
+            $validation = Validator::make($request->all() , $validationRules);
+            if($validation->fails()){
+                return $this->sendError("Invalid Values", ['errors' => $validation->errors()]);
+            }
+            $validated=$validation->validated();
+
+
+
+            
+            //file uploads
+
+            $customerinvoiceitem = Customerinvoiceitem::create($validated);
+            return $this->sendResponse($customerinvoiceitem, "customerinvoiceitem created succesfully");
+        } catch (\Exception $e) {
+            Log::error('CustomerinvoiceitemController store error: ' . $e->getMessage());
+            return $this->sendError("Error creating customerinvoiceitem", ['message' => $e->getMessage()]);
         }
-        $validated=$validation->validated();
-
-
-
-        
-        //file uploads
-
-        $customerinvoiceitem = Customerinvoiceitem::create($validated);
-        return $this->sendResponse($customerinvoiceitem, "customerinvoiceitem created succesfully");
     }
 
     public function show($id)
@@ -107,51 +113,61 @@ class CustomerinvoiceitemController extends BaseController
 
     public function update(Request $request, $id)
     {
-        $customerinvoiceitem = Customerinvoiceitem::findOrFail($id);
-         $validationRules = [
-            //for update
+        try {
+            $customerinvoiceitem = Customerinvoiceitem::findOrFail($id);
+             $validationRules = [
+                //for update
 
-          
-          "customer_invoice_id"=>"required|exists:customer_invoices,id",
-          "product_id"=>"required|exists:products,id",
-          "hs_code"=>"nullable|string|max:255",
-          "brand"=>"nullable|string|max:255",
-          "brand_code"=>"nullable|string|max:255",
-          "oe_code"=>"nullable|string|max:255",
-          "description"=>"nullable|string",
-          "qty"=>"required|integer",
-          "price"=>"required|numeric",
-          "amount"=>"nullable|numeric",
-          "additional_note"=>"nullable|string",
-          
-        ];
+              
+              "customer_invoice_id"=>"required|exists:customerinvoices,id",
+              "product_id"=>"required|exists:products,id",
+              "hs_code"=>"nullable|string|max:255",
+              "brand"=>"nullable|string|max:255",
+              "brand_code"=>"nullable|string|max:255",
+              "oe_code"=>"nullable|string|max:255",
+              "description"=>"nullable|string",
+              "qty"=>"required|integer",
+              "price"=>"required|numeric",
+              "amount"=>"nullable|numeric",
+              "additional_note"=>"nullable|string",
+              
+            ];
 
-        $validation = Validator::make($request->all() , $validationRules);
-        if($validation->fails()){
-            return $this->sendError("Invalid Values", ['errors' => $validation->errors()]);
+            $validation = Validator::make($request->all() , $validationRules);
+            if($validation->fails()){
+                return $this->sendError("Invalid Values", ['errors' => $validation->errors()]);
+            }
+            $validated=$validation->validated();
+
+
+
+
+            //file uploads update
+
+            $customerinvoiceitem->update($validated);
+            return $this->sendResponse($customerinvoiceitem, "customerinvoiceitem updated successfully");
+        } catch (\Exception $e) {
+            Log::error('CustomerinvoiceitemController update error: ' . $e->getMessage());
+            return $this->sendError("Error updating customerinvoiceitem", ['message' => $e->getMessage()]);
         }
-        $validated=$validation->validated();
-
-
-
-
-        //file uploads update
-
-        $customerinvoiceitem->update($validated);
-        return $this->sendResponse($customerinvoiceitem, "customerinvoiceitem updated successfully");
     }
 
     public function destroy($id)
     {
-        $customerinvoiceitem = Customerinvoiceitem::findOrFail($id);
-        $customerinvoiceitem->delete();
+        try {
+            $customerinvoiceitem = Customerinvoiceitem::findOrFail($id);
+            $customerinvoiceitem->delete();
 
 
 
 
 
-        //delete files uploaded
-        return $this->sendResponse(1, "customerinvoiceitem deleted succesfully");
+            //delete files uploaded
+            return $this->sendResponse(1, "customerinvoiceitem deleted succesfully");
+        } catch (\Exception $e) {
+            Log::error('CustomerinvoiceitemController destroy error: ' . $e->getMessage());
+            return $this->sendError("Error deleting customerinvoiceitem", ['message' => $e->getMessage()]);
+        }
     }
 
     public function deleteFile($filePath) {

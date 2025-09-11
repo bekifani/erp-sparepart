@@ -7,6 +7,8 @@ use App\Models\Supplierinvoice;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Facades\Log;
+use Exception;
 class SupplierinvoiceController extends BaseController
 {
     protected $searchableColumns = ['invoice_no', 'supplier_id', 'customer_id', 'user_id', 'arrival_time', 'shipping_date', 'shipped_date', 'shipping_mark', 'supplier_code', 'total_products_qty', 'total_qty', 'total_amount', 'total_weight', 'total_volume', 'total_ctn', 'discount', 'deposit', 'extra_expenses', 'supplier_debt', 'balance', 'additional_note', 'status'];
@@ -66,47 +68,59 @@ class SupplierinvoiceController extends BaseController
 
     public function store(Request $request)
     {
-        $validationRules = [
-          
-          "invoice_no"=>"required|string|max:255",
-          "supplier_id"=>"nullable|exists:suppliers,id",
-          "customer_id"=>"nullable|exists:customers,id",
-          "user_id"=>"nullable|exists:users,id",
-          "arrival_time"=>"nullable|date",
-          "shipping_date"=>"nullable|date",
-          "shipped_date"=>"nullable|date",
-          "shipping_mark"=>"nullable|string|max:255",
-          "supplier_code"=>"nullable|string|max:255",
-          "total_products_qty"=>"nullable|integer",
-          "total_qty"=>"nullable|integer",
-          "total_amount"=>"nullable|numeric",
-          "total_weight"=>"nullable|numeric",
-          "total_volume"=>"nullable|numeric",
-          "total_ctn"=>"nullable|integer",
-          "discount"=>"nullable|numeric|default:0",
-          "deposit"=>"nullable|numeric|default:0",
-          "extra_expenses"=>"nullable|numeric|default:0",
-          "supplier_debt"=>"nullable|numeric|default:0",
-          "balance"=>"nullable|numeric",
-          "additional_note"=>"nullable|string",
-          "status"=>"nullable|string|default:in_warehouse",
-          
+        try {
+            $validationRules = [
+              
+              "invoice_no"=>"required|string|max:255",
+              "supplier_id"=>"nullable|exists:suppliers,id",
+              "customer_id"=>"nullable|exists:customers,id",
+              "user_id"=>"nullable|exists:users,id",
+              "arrival_time"=>"nullable|date",
+              "shipping_date"=>"nullable|date",
+              "shipped_date"=>"nullable|date",
+              "shipping_mark"=>"nullable|string|max:255",
+              "supplier_code"=>"nullable|string|max:255",
+              "total_products_qty"=>"nullable|integer",
+              "total_qty"=>"nullable|integer",
+              "total_amount"=>"nullable|numeric",
+              "total_weight"=>"nullable|numeric",
+              "total_volume"=>"nullable|numeric",
+              "total_ctn"=>"nullable|integer",
+              "discount"=>"nullable|numeric",
+              "deposit"=>"nullable|numeric",
+              "extra_expenses"=>"nullable|numeric",
+              "supplier_debt"=>"nullable|numeric",
+              "balance"=>"nullable|numeric",
+              "additional_note"=>"nullable|string",
+              "status"=>"nullable|string",
+              
 
-        ];
+            ];
 
-        $validation = Validator::make($request->all() , $validationRules);
-        if($validation->fails()){
-            return $this->sendError("Invalid Values", ['errors' => $validation->errors()]);
+            $validation = Validator::make($request->all() , $validationRules);
+            if($validation->fails()){
+                return $this->sendError("Invalid Values", ['errors' => $validation->errors()]);
+            }
+            $validated=$validation->validated();
+
+
+
+            
+            //file uploads
+
+            $supplierinvoice = Supplierinvoice::create($validated);
+            return $this->sendResponse($supplierinvoice, "supplierinvoice created succesfully");
+        } catch (Exception $e) {
+            Log::error('Error creating supplier invoice: ' . $e->getMessage(), [
+                'request_data' => $request->all(),
+                'exception' => $e
+            ]);
+            return response()->json([
+                'success' => false,
+                'message' => 'An error occurred while creating the supplier invoice.',
+                'error' => $e->getMessage()
+            ], 500);
         }
-        $validated=$validation->validated();
-
-
-
-        
-        //file uploads
-
-        $supplierinvoice = Supplierinvoice::create($validated);
-        return $this->sendResponse($supplierinvoice, "supplierinvoice created succesfully");
     }
 
     public function show($id)
@@ -118,62 +132,87 @@ class SupplierinvoiceController extends BaseController
 
     public function update(Request $request, $id)
     {
-        $supplierinvoice = Supplierinvoice::findOrFail($id);
-         $validationRules = [
-            //for update
+        try {
+            $supplierinvoice = Supplierinvoice::findOrFail($id);
+             $validationRules = [
+                //for update
 
-          
-          "invoice_no"=>"required|string|max:255",
-          "supplier_id"=>"nullable|exists:suppliers,id",
-          "customer_id"=>"nullable|exists:customers,id",
-          "user_id"=>"nullable|exists:users,id",
-          "arrival_time"=>"nullable|date",
-          "shipping_date"=>"nullable|date",
-          "shipped_date"=>"nullable|date",
-          "shipping_mark"=>"nullable|string|max:255",
-          "supplier_code"=>"nullable|string|max:255",
-          "total_products_qty"=>"nullable|integer",
-          "total_qty"=>"nullable|integer",
-          "total_amount"=>"nullable|numeric",
-          "total_weight"=>"nullable|numeric",
-          "total_volume"=>"nullable|numeric",
-          "total_ctn"=>"nullable|integer",
-          "discount"=>"nullable|numeric|default:0",
-          "deposit"=>"nullable|numeric|default:0",
-          "extra_expenses"=>"nullable|numeric|default:0",
-          "supplier_debt"=>"nullable|numeric|default:0",
-          "balance"=>"nullable|numeric",
-          "additional_note"=>"nullable|string",
-          "status"=>"nullable|string|default:in_warehouse",
-          
-        ];
+              
+              "invoice_no"=>"required|string|max:255",
+              "supplier_id"=>"nullable|exists:suppliers,id",
+              "customer_id"=>"nullable|exists:customers,id",
+              "user_id"=>"nullable|exists:users,id",
+              "arrival_time"=>"nullable|date",
+              "shipping_date"=>"nullable|date",
+              "shipped_date"=>"nullable|date",
+              "shipping_mark"=>"nullable|string|max:255",
+              "supplier_code"=>"nullable|string|max:255",
+              "total_products_qty"=>"nullable|integer",
+              "total_qty"=>"nullable|integer",
+              "total_amount"=>"nullable|numeric",
+              "total_weight"=>"nullable|numeric",
+              "total_volume"=>"nullable|numeric",
+              "total_ctn"=>"nullable|integer",
+              "discount"=>"nullable|numeric",
+              "deposit"=>"nullable|numeric",
+              "extra_expenses"=>"nullable|numeric",
+              "supplier_debt"=>"nullable|numeric",
+              "balance"=>"nullable|numeric",
+              "additional_note"=>"nullable|string",
+              "status"=>"nullable|string",
+              
+            ];
 
-        $validation = Validator::make($request->all() , $validationRules);
-        if($validation->fails()){
-            return $this->sendError("Invalid Values", ['errors' => $validation->errors()]);
+            $validation = Validator::make($request->all() , $validationRules);
+            if($validation->fails()){
+                return $this->sendError("Invalid Values", ['errors' => $validation->errors()]);
+            }
+            $validated=$validation->validated();
+
+
+
+
+            //file uploads update
+
+            $supplierinvoice->update($validated);
+            return $this->sendResponse($supplierinvoice, "supplierinvoice updated successfully");
+        } catch (Exception $e) {
+            Log::error('Error updating supplier invoice: ' . $e->getMessage(), [
+                'id' => $id,
+                'request_data' => $request->all(),
+                'exception' => $e
+            ]);
+            return response()->json([
+                'success' => false,
+                'message' => 'An error occurred while updating the supplier invoice.',
+                'error' => $e->getMessage()
+            ], 500);
         }
-        $validated=$validation->validated();
-
-
-
-
-        //file uploads update
-
-        $supplierinvoice->update($validated);
-        return $this->sendResponse($supplierinvoice, "supplierinvoice updated successfully");
     }
 
     public function destroy($id)
     {
-        $supplierinvoice = Supplierinvoice::findOrFail($id);
-        $supplierinvoice->delete();
+        try {
+            $supplierinvoice = Supplierinvoice::findOrFail($id);
+            $supplierinvoice->delete();
 
 
 
 
 
-        //delete files uploaded
-        return $this->sendResponse(1, "supplierinvoice deleted succesfully");
+            //delete files uploaded
+            return $this->sendResponse(1, "supplierinvoice deleted succesfully");
+        } catch (Exception $e) {
+            Log::error('Error deleting supplier invoice: ' . $e->getMessage(), [
+                'id' => $id,
+                'exception' => $e
+            ]);
+            return response()->json([
+                'success' => false,
+                'message' => 'An error occurred while deleting the supplier invoice.',
+                'error' => $e->getMessage()
+            ], 500);
+        }
     }
 
     public function deleteFile($filePath) {
