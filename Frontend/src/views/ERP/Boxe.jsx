@@ -139,6 +139,27 @@ function index_main() {
 
     },
 
+    {
+      title: t("Available Qty"),
+      minWidth: 200,
+      field: "available_qty",
+      hozAlign: "center",
+      headerHozAlign: "center",
+      vertAlign: "middle",
+      print: true,
+      download: true,
+      formatter(cell) {
+        const data = cell.getData();
+        const stockQty = parseFloat(data.stock_qty) || 0;
+        const orderQty = parseFloat(data.order_qty) || 0;
+        const availableQty = stockQty - orderQty;
+        
+        // Apply red color and bold if available qty <= 0
+        const style = availableQty <= 0 ? 'color: red; font-weight: bold;' : '';
+        return `<span style="${style}">${availableQty}</span>`;
+      }
+    },
+
 
     {
       title: t("Price"),
@@ -273,11 +294,10 @@ function index_main() {
 
     },
 
-
     {
-      title: t("Is Factory Supplied"),
-      minWidth: 200,
-      field: "is_factory_supplied",
+      title: t("Package Type"),
+      minWidth: 150,
+      field: "package_type",
       hozAlign: "center",
       headerHozAlign: "center",
       vertAlign: "middle",
@@ -285,6 +305,34 @@ function index_main() {
       download: true,
 
     },
+
+    {
+      title: t("Box Size (L×W×H)"),
+      minWidth: 200,
+      field: "box_size",
+      hozAlign: "center",
+      headerHozAlign: "center",
+      vertAlign: "middle",
+      print: true,
+      download: true,
+      formatter(cell) {
+        const data = cell.getData();
+        const packageType = data.package_type || '3D';
+        const sizeA = parseFloat(data.size_a) || 0;
+        const sizeB = parseFloat(data.size_b) || 0;
+        const sizeC = parseFloat(data.size_c) || 0;
+        
+        if (packageType === '3D') {
+          // 3D Boxes: Show L×W×H format
+          return `${sizeA}×${sizeB}×${sizeC} cm`;
+        } else {
+          // 2D Packaging: Show L×W format
+          return `${sizeA}×${sizeB} cm`;
+        }
+      }
+    },
+
+
 
 
     {
@@ -337,7 +385,8 @@ function index_main() {
       },
     },
   ]);
-  const [searchColumns, setSearchColumns] = useState(['brand', 'box_name', 'material', 'stock_qty', 'order_qty', 'price', 'size_a', 'size_b', 'size_c', 'volume', 'label', 'additional_note', 'operation_mode', 'is_factory_supplied',]);
+  const [searchColumns, setSearchColumns] = useState(['brand', 'box_name', 'material', 'stock_qty', 'order_qty', 'available_qty', 'price', 'size_a', 'size_b', 'size_c', 'volume', 'label', 'additional_note', 'operation_mode', 'package_type']);
+  const [packageType, setPackageType] = useState('3D');
 
   // schema
   const schema = yup
@@ -352,13 +401,12 @@ function index_main() {
       unit_id: yup.string().nullable(),
       volume: yup.number().nullable(),
       stock_qty: yup.number().nullable(),
-      order_qty: yup.number().nullable(),
       price: yup.number().nullable(),
       image: yup.string().nullable(),
       design_file: yup.string().nullable(),
       additional_note: yup.string().nullable(),
       operation_mode: yup.string().nullable(),
-      is_factory_supplied: yup.string().required(t('The Is Factory Supplied field is required')),
+      package_type: yup.string().nullable(),
     })
     .required();
 
@@ -425,6 +473,35 @@ function index_main() {
     return ReactDOMServer.renderToString(element); // Convert JSX to HTML string
   };
 
+  const onCreateModal = () => {
+    setShowCreateModal(true);
+    // Set default package type to 3D
+    setValue("package_type", "3D");
+    setPackageType("3D");
+  };
+
+  const onEdit = (data) => {
+    setShowUpdateModal(true);
+    setValue("brand", data.brand);
+    setValue("box_name", data.box_name);
+    setValue("material", data.material);
+    setValue("label", data.label);
+    setValue("size_a", data.size_a);
+    setValue("size_b", data.size_b);
+    setValue("size_c", data.size_c);
+    setValue("unit_id", data.unit_id);
+    setValue("volume", data.volume);
+    setValue("stock_qty", data.stock_qty);
+    setValue("price", data.price);
+    setValue("image", data.image);
+    setValue("design_file", data.design_file);
+    setValue("additional_note", data.additional_note);
+    setValue("operation_mode", data.operation_mode);
+    setValue("package_type", data.package_type || '3D');
+    setPackageType(data.package_type || '3D');
+    setSelectedData(data);
+  };
+
   const onCreate = async (data) => {
     // Filter out unwanted fields and only send necessary data
     const cleanData = {
@@ -438,13 +515,12 @@ function index_main() {
       unit_id: data.unit_id,
       volume: data.volume,
       stock_qty: data.stock_qty,
-      order_qty: data.order_qty,
       price: data.price,
       image: data.image,
       design_file: data.design_file,
       additional_note: data.additional_note,
       operation_mode: data.operation_mode,
-      is_factory_supplied: data.is_factory_supplied,
+      package_type: data.package_type,
     };
     
     console.log('Frontend sending clean data:', cleanData);
@@ -668,6 +744,45 @@ function index_main() {
                         )}
                       </div>
                     </div>
+
+                    {/* Package Type Selection */}
+                    <div className="mt-3 input-form">
+                      <FormLabel
+                        htmlFor="validation-form-1"
+                        className="flex justify-start items-start flex-col w-full sm:flex-row"
+                      >
+                        {t("Package Type")}
+                      </FormLabel>
+                      <select
+                        {...register("package_type")}
+                        className={clsx("form-select", {
+                          "border-danger": errors.package_type,
+                        })}
+                        onChange={(e) => {
+                          setValue("package_type", e.target.value);
+                          setPackageType(e.target.value);
+                          // Clear Size C if switching to 2D
+                          if (e.target.value === '2D') {
+                            setValue("size_c", null);
+                          }
+                          // Recalculate volume when package type changes
+                          const sizeA = parseFloat(getValues("size_a")) || 0;
+                          const sizeB = parseFloat(getValues("size_b")) || 0;
+                          const sizeC = parseFloat(getValues("size_c")) || 0;
+                          const volume = e.target.value === '3D' ? sizeA * sizeB * sizeC : sizeA * sizeB;
+                          setValue("volume", volume);
+                        }}
+                      >
+                        <option value="3D">{t("3D Boxes (L×W×H)")}</option>
+                        <option value="2D">{t("2D Packaging (L×W)")}</option>
+                      </select>
+                      {errors.package_type && (
+                        <div className="mt-2 text-danger">
+                          {typeof errors.package_type.message === "string" &&
+                            errors.package_type.message}
+                        </div>
+                      )}
+                    </div>
   
                     {/* Row 3: Box Sizes (A, B, C) with Unit Type */}
                     <div className="grid grid-cols-4 gap-4 mt-3">
@@ -681,6 +796,13 @@ function index_main() {
                           name="size_a"
                           className={clsx({"border-danger": errors.size_a})}
                           placeholder={t("Enter size A")}
+                          onChange={(e) => {
+                            const sizeA = parseFloat(e.target.value) || 0;
+                            const sizeB = parseFloat(getValues("size_b")) || 0;
+                            const sizeC = parseFloat(getValues("size_c")) || 0;
+                            const volume = sizeA * sizeB * sizeC;
+                            setValue("volume", volume);
+                          }}
                         />
                         {errors.size_a && (
                           <div className="mt-2 text-danger">
@@ -699,6 +821,13 @@ function index_main() {
                           name="size_b"
                           className={clsx({"border-danger": errors.size_b})}
                           placeholder={t("Enter size B")}
+                          onChange={(e) => {
+                            const sizeA = parseFloat(getValues("size_a")) || 0;
+                            const sizeB = parseFloat(e.target.value) || 0;
+                            const sizeC = parseFloat(getValues("size_c")) || 0;
+                            const volume = sizeA * sizeB * sizeC;
+                            setValue("volume", volume);
+                          }}
                         />
                         {errors.size_b && (
                           <div className="mt-2 text-danger">
@@ -707,23 +836,33 @@ function index_main() {
                         )}
                       </div>
   
-                      <div className="input-form">
-                        <FormLabel className="flex justify-start items-start flex-col w-full sm:flex-row">
-                          {t("Size C")}
-                        </FormLabel>
-                        <FormInput
-                          {...register("size_c")}
-                          type="number"
-                          name="size_c"
-                          className={clsx({"border-danger": errors.size_c})}
-                          placeholder={t("Enter size C")}
-                        />
-                        {errors.size_c && (
-                          <div className="mt-2 text-danger">
-                            {typeof errors.size_c.message === "string" && errors.size_c.message}
-                          </div>
-                        )}
-                      </div>
+                      {/* Size C - Only show for 3D packages */}
+                      {packageType === '3D' && (
+                        <div className="input-form">
+                          <FormLabel className="flex justify-start items-start flex-col w-full sm:flex-row">
+                            {t("Size C (Height)")}
+                          </FormLabel>
+                          <FormInput
+                            {...register("size_c")}
+                            type="number"
+                            name="size_c"
+                            className={clsx({"border-danger": errors.size_c})}
+                            placeholder={t("Enter size C (Height)")}
+                            onChange={(e) => {
+                              const sizeA = parseFloat(getValues("size_a")) || 0;
+                              const sizeB = parseFloat(getValues("size_b")) || 0;
+                              const sizeC = parseFloat(e.target.value) || 0;
+                              const volume = sizeA * sizeB * sizeC;
+                              setValue("volume", volume);
+                            }}
+                          />
+                          {errors.size_c && (
+                            <div className="mt-2 text-danger">
+                              {typeof errors.size_c.message === "string" && errors.size_c.message}
+                            </div>
+                          )}
+                        </div>
+                      )}
   
                       <div className="input-form">
                         <FormLabel className="flex justify-start items-start flex-col w-full sm:flex-row">
@@ -747,8 +886,8 @@ function index_main() {
                       </div>
                     </div>
   
-                    {/* Row 4: Volume, Stock Qty, Order Qty */}
-                    <div className="grid grid-cols-3 gap-4 mt-3">
+                    {/* Row 4: Volume, Stock Qty */}
+                    <div className="grid grid-cols-2 gap-4 mt-3">
                       <div className="input-form">
                         <FormLabel className="flex justify-start items-start flex-col w-full sm:flex-row">
                           {t("Volume")}
@@ -758,7 +897,9 @@ function index_main() {
                           type="number"
                           name="volume"
                           className={clsx({"border-danger": errors.volume})}
-                          placeholder={t("Enter volume")}
+                          placeholder={t("Auto-calculated volume")}
+                          readOnly
+                          style={{backgroundColor: '#f8f9fa'}}
                         />
                         {errors.volume && (
                           <div className="mt-2 text-danger">
@@ -785,23 +926,6 @@ function index_main() {
                         )}
                       </div>
   
-                      <div className="input-form">
-                        <FormLabel className="flex justify-start items-start flex-col w-full sm:flex-row">
-                          {t("Order Qty")}
-                        </FormLabel>
-                        <FormInput
-                          {...register("order_qty")}
-                          type="number"
-                          name="order_qty"
-                          className={clsx({"border-danger": errors.order_qty})}
-                          placeholder={t("Enter order qty")}
-                        />
-                        {errors.order_qty && (
-                          <div className="mt-2 text-danger">
-                            {typeof errors.order_qty.message === "string" && errors.order_qty.message}
-                          </div>
-                        )}
-                      </div>
                     </div>
   
                     {/* Row 5: Price */}
@@ -899,37 +1023,7 @@ function index_main() {
                         </div>
                       )}
                     </div>
-  
-                    <div className="mt-3 input-form">
-                      <FormLabel
-                        htmlFor="validation-form-1"
-                        className="flex flex-col w-full sm:flex-row"
-                      >
-                        {t("Is Factory Supplied")}
-                      </FormLabel>
-                      <div className="flex flex-col mt-2 sm:flex-row">
-                        <div>
-                          <input
-                            {...register('is_factory_supplied')}
-                            type="radio"
-                            value={1}
-                            className="mx-2"
-                          /> Yes
-                          <input
-                            {...register('is_factory_supplied')}
-                            type="radio"
-                            value={0}
-                            className="mx-2"
-                          /> No
-                        </div>
-                      </div>
-                      {errors.is_factory_supplied && (
-                        <div className="mt-2 text-danger">
-                          {typeof errors.is_factory_supplied.message === "string" &&
-                            errors.is_factory_supplied.message}
-                        </div>
-                      )}
-                    </div>
+
                   </div>
                 )}
               </div>
@@ -1084,6 +1178,45 @@ function index_main() {
                         )}
                       </div>
                     </div>
+
+                    {/* Package Type Selection */}
+                    <div className="mt-3 input-form">
+                      <FormLabel
+                        htmlFor="validation-form-1"
+                        className="flex justify-start items-start flex-col w-full sm:flex-row"
+                      >
+                        {t("Package Type")}
+                      </FormLabel>
+                      <select
+                        {...register("package_type")}
+                        className={clsx("form-select", {
+                          "border-danger": errors.package_type,
+                        })}
+                        onChange={(e) => {
+                          setValue("package_type", e.target.value);
+                          setPackageType(e.target.value);
+                          // Clear Size C if switching to 2D
+                          if (e.target.value === '2D') {
+                            setValue("size_c", null);
+                          }
+                          // Recalculate volume when package type changes
+                          const sizeA = parseFloat(getValues("size_a")) || 0;
+                          const sizeB = parseFloat(getValues("size_b")) || 0;
+                          const sizeC = parseFloat(getValues("size_c")) || 0;
+                          const volume = e.target.value === '3D' ? sizeA * sizeB * sizeC : sizeA * sizeB;
+                          setValue("volume", volume);
+                        }}
+                      >
+                        <option value="3D">{t("3D Boxes (L×W×H)")}</option>
+                        <option value="2D">{t("2D Packaging (L×W)")}</option>
+                      </select>
+                      {errors.package_type && (
+                        <div className="mt-2 text-danger">
+                          {typeof errors.package_type.message === "string" &&
+                            errors.package_type.message}
+                        </div>
+                      )}
+                    </div>
   
                     {/* Row 3: Box Sizes (A, B, C) with Unit Type */}
                     <div className="grid grid-cols-4 gap-4 mt-3">
@@ -1097,6 +1230,13 @@ function index_main() {
                           name="size_a"
                           className={clsx({"border-danger": errors.size_a})}
                           placeholder={t("Enter size A")}
+                          onChange={(e) => {
+                            const sizeA = parseFloat(e.target.value) || 0;
+                            const sizeB = parseFloat(getValues("size_b")) || 0;
+                            const sizeC = parseFloat(getValues("size_c")) || 0;
+                            const volume = sizeA * sizeB * sizeC;
+                            setValue("volume", volume);
+                          }}
                         />
                         {errors.size_a && (
                           <div className="mt-2 text-danger">
@@ -1115,6 +1255,13 @@ function index_main() {
                           name="size_b"
                           className={clsx({"border-danger": errors.size_b})}
                           placeholder={t("Enter size B")}
+                          onChange={(e) => {
+                            const sizeA = parseFloat(getValues("size_a")) || 0;
+                            const sizeB = parseFloat(e.target.value) || 0;
+                            const sizeC = parseFloat(getValues("size_c")) || 0;
+                            const volume = packageType === '3D' ? sizeA * sizeB * sizeC : sizeA * sizeB;
+                            setValue("volume", volume);
+                          }}
                         />
                         {errors.size_b && (
                           <div className="mt-2 text-danger">
@@ -1123,23 +1270,26 @@ function index_main() {
                         )}
                       </div>
   
-                      <div className="input-form">
-                        <FormLabel className="flex justify-start items-start flex-col w-full sm:flex-row">
-                          {t("Size C")}
-                        </FormLabel>
-                        <FormInput
-                          {...register("size_c")}
-                          type="number"
-                          name="size_c"
-                          className={clsx({"border-danger": errors.size_c})}
-                          placeholder={t("Enter size C")}
-                        />
-                        {errors.size_c && (
-                          <div className="mt-2 text-danger">
-                            {typeof errors.size_c.message === "string" && errors.size_c.message}
-                          </div>
-                        )}
-                      </div>
+                      {/* Size C - Only show for 3D packages */}
+                      {packageType === '3D' && (
+                        <div className="input-form">
+                          <FormLabel className="flex justify-start items-start flex-col w-full sm:flex-row">
+                            {t("Size C (Height)")}
+                          </FormLabel>
+                          <FormInput
+                            {...register("size_c")}
+                            type="number"
+                            name="size_c"
+                            className={clsx({"border-danger": errors.size_c})}
+                            placeholder={t("Enter size C (Height)")}
+                          />
+                          {errors.size_c && (
+                            <div className="mt-2 text-danger">
+                              {typeof errors.size_c.message === "string" && errors.size_c.message}
+                            </div>
+                          )}
+                        </div>
+                      )}
   
                       <div className="input-form">
                         <FormLabel className="flex justify-start items-start flex-col w-full sm:flex-row">
@@ -1163,8 +1313,8 @@ function index_main() {
                       </div>
                     </div>
   
-                    {/* Row 4: Volume, Stock Qty, Order Qty */}
-                    <div className="grid grid-cols-3 gap-4 mt-3">
+                    {/* Row 4: Volume, Stock Qty */}
+                    <div className="grid grid-cols-2 gap-4 mt-3">
                       <div className="input-form">
                         <FormLabel className="flex justify-start items-start flex-col w-full sm:flex-row">
                           {t("Volume")}
@@ -1174,7 +1324,9 @@ function index_main() {
                           type="number"
                           name="volume"
                           className={clsx({"border-danger": errors.volume})}
-                          placeholder={t("Enter volume")}
+                          placeholder={t("Auto-calculated volume")}
+                          readOnly
+                          style={{backgroundColor: '#f8f9fa'}}
                         />
                         {errors.volume && (
                           <div className="mt-2 text-danger">
@@ -1201,23 +1353,6 @@ function index_main() {
                         )}
                       </div>
   
-                      <div className="input-form">
-                        <FormLabel className="flex justify-start items-start flex-col w-full sm:flex-row">
-                          {t("Order Qty")}
-                        </FormLabel>
-                        <FormInput
-                          {...register("order_qty")}
-                          type="number"
-                          name="order_qty"
-                          className={clsx({"border-danger": errors.order_qty})}
-                          placeholder={t("Enter order qty")}
-                        />
-                        {errors.order_qty && (
-                          <div className="mt-2 text-danger">
-                            {typeof errors.order_qty.message === "string" && errors.order_qty.message}
-                          </div>
-                        )}
-                      </div>
                     </div>
   
                     {/* Row 5: Price */}
@@ -1315,37 +1450,7 @@ function index_main() {
                         </div>
                       )}
                     </div>
-  
-                    <div className="mt-3 input-form">
-                      <FormLabel
-                        htmlFor="validation-form-1"
-                        className="flex flex-col w-full sm:flex-row"
-                      >
-                        {t("Is Factory Supplied")}
-                      </FormLabel>
-                      <div className="flex flex-col mt-2 sm:flex-row">
-                        <div>
-                          <input
-                            {...register('is_factory_supplied')}
-                            type="radio"
-                            value={1}
-                            className="mx-2"
-                          /> Yes
-                          <input
-                            {...register('is_factory_supplied')}
-                            type="radio"
-                            value={0}
-                            className="mx-2"
-                          /> No
-                        </div>
-                      </div>
-                      {errors.is_factory_supplied && (
-                        <div className="mt-2 text-danger">
-                          {typeof errors.is_factory_supplied.message === "string" &&
-                            errors.is_factory_supplied.message}
-                        </div>
-                      )}
-                    </div>
+
                   </div>
                 )}
               </div>
