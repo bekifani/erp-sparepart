@@ -44,10 +44,18 @@ const TomSelectSearch = ({ apiUrl, setValue , variable, defaultValue, customData
           
           // Normalize data
           let data = response.data;
-          if (data?.data?.data) {
+          // Handle BaseController response format: {success: true, data: {data: [items], ...}, message: "..."}
+          if (data?.success && data?.data?.data && Array.isArray(data.data.data)) {
             data = data.data.data;
-          } else if (data?.data) {
+          } else if (data?.data?.data && Array.isArray(data.data.data)) {
+            data = data.data.data;
+          } else if (data?.data && Array.isArray(data.data)) {
             data = data.data;
+          } else if (Array.isArray(data)) {
+            // data is already the array
+          } else {
+            console.warn('TomSelectSearch: Unexpected data format:', data);
+            data = [];
           }
 
           const items = Array.isArray(data) ? data : [];

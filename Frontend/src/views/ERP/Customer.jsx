@@ -391,6 +391,7 @@ price_adjustment_percent: yup
   // Customer Rules state
   const [activeCustomerRuleTab, setActiveCustomerRuleTab] = useState('product'); // 'product' | 'brand' | 'pricing'
   const [showCustomerRuleModal, setShowCustomerRuleModal] = useState(false);
+  const [selectedCustomerId, setSelectedCustomerId] = useState(null);
   // Mutations for visibility rules
   const [createCustomerproductvisibilit] = useCreateCustomerproductvisibilitMutation();
   const [updateCustomerproductvisibilit] = useEditCustomerproductvisibilitMutation();
@@ -400,7 +401,7 @@ price_adjustment_percent: yup
   const [deleteCustomerbrandvisibilit] = useDeleteCustomerbrandvisibilitMutation();
 
   const handleAddProductVisibility = async () => {
-    const cid = getValues('id');
+    const cid = selectedCustomerId;
     const pid = getValues('rule_product_id');
     const vis = getValues('rule_product_visibility') || 'show';
     if (!cid || !pid) {
@@ -420,9 +421,9 @@ price_adjustment_percent: yup
   };
 
   const handleAddBrandVisibility = async () => {
-    const cid = getValues('id');
+    const cid = selectedCustomerId;
     const bid = getValues('rule_brand_id');
-    const vis = getValues('rule_brand_visibility') || 'show';
+    const vis = getValues('rule_brand_visibility') || 'allow';
     if (!cid || !bid) {
       setToastMessage(t('Select a brand to add visibility rule'));
       basicStickyNotification.current?.showToast();
@@ -1231,62 +1232,6 @@ return (
                       </div>
                     </div>
 
-                    {/* Row 8: Price Adjustment */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div className="mt-3 input-form">
-                        <FormLabel
-                          htmlFor="price_adjustment_type"
-                          className="flex flex-col w-full sm:flex-row"
-                        >
-                          {t('Pricing Adjustment Type')}
-                        </FormLabel>
-                        <select
-                          {...register('price_adjustment_type')}
-                          id="price_adjustment_type"
-                          name="price_adjustment_type"
-                          className={clsx('form-select', {
-                            'border-danger': errors.price_adjustment_type,
-                          })}
-                        >
-                          <option value="">{t('None')}</option>
-                          <option value="increase">{t('Increase (markup)')}</option>
-                          <option value="decrease">{t('Decrease (discount)')}</option>
-                        </select>
-                        {errors.price_adjustment_type && (
-                          <div className="mt-2 text-danger">
-                            {typeof errors.price_adjustment_type.message === 'string' &&
-                              errors.price_adjustment_type.message}
-                          </div>
-                        )}
-                      </div>
-                      <div className="mt-3 input-form">
-                        <FormLabel
-                          htmlFor="price_adjustment_percent"
-                          className="flex flex-col w-full sm:flex-row"
-                        >
-                          {t('Pricing Adjustment Percent')}
-                        </FormLabel>
-                        <FormInput
-                          {...register('price_adjustment_percent')}
-                          id="price_adjustment_percent"
-                          type="number"
-                          name="price_adjustment_percent"
-                          min={0}
-                          max={100}
-                          className={clsx({
-                            'border-danger': errors.price_adjustment_percent,
-                          })}
-                          placeholder={t('e.g. 5 for 5%')}
-                        />
-                        {errors.price_adjustment_percent && (
-                          <div className="mt-2 text-danger">
-                            {typeof errors.price_adjustment_percent.message === 'string' &&
-                              errors.price_adjustment_percent.message}
-                          </div>
-                        )}
-                      </div>
-                    </div>
-
                     {/* Row 9: Additional Note */}
                     <div className="input-form">
                       <FormLabel className="flex justify-start items-start flex-col w-full sm:flex-row">
@@ -1350,7 +1295,10 @@ return (
             <Slideover.Title>
               <h2 className="mr-auto text-base font-medium">{t("Edit Customer")}</h2>
               <div className="mt-2 text-left">
-                <Button type="button" variant="outline-secondary" onClick={() => setShowCustomerRuleModal(true)}>
+                <Button type="button" variant="outline-secondary" onClick={() => {
+                  setSelectedCustomerId(getValues('id'));
+                  setShowCustomerRuleModal(true);
+                }}>
                   {t("Open Customer Rules")}
                 </Button>
               </div>
@@ -1755,7 +1703,7 @@ return (
               {/* Table Section */}
               <TableComponent
                 page_name={t('Product Visibility')}
-                endpoint={`${app_url}/api/customerproductvisibilit`}
+                endpoint={`${app_url}/api/customerproductvisibilit?customer_id=${selectedCustomerId || ''}`}
                 data={[
                   { title: t('ID'), minWidth: 60, field: 'id', hozAlign: 'center', headerHozAlign: 'center', vertAlign: 'middle', print: true, download: true },
                   { title: t('Customer'), minWidth: 180, field: 'customer_name', hozAlign: 'center', headerHozAlign: 'center', vertAlign: 'middle', print: true, download: true },
@@ -1799,7 +1747,7 @@ return (
               {/* Table Section */}
               <TableComponent
                 page_name={t('Brand Visibility')}
-                endpoint={`${app_url}/api/customerbrandvisibilit`}
+                endpoint={`${app_url}/api/customerbrandvisibilit?customer_id=${selectedCustomerId || ''}`}
                 data={[
                   { title: t('ID'), minWidth: 60, field: 'id', hozAlign: 'center', headerHozAlign: 'center', vertAlign: 'middle', print: true, download: true },
                   { title: t('Customer'), minWidth: 180, field: 'customer_name', hozAlign: 'center', headerHozAlign: 'center', vertAlign: 'middle', print: true, download: true },
@@ -1819,13 +1767,18 @@ return (
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
                   <div>
                     <FormLabel className="mb-2">{t('Brand')}</FormLabel>
-                    <TomSelectSearch apiUrl={`${app_url}/api/search_brandname`} setValue={setValue} variable="rule_brand_id"/>
+                    <TomSelectSearch 
+                      apiUrl={`${app_url}/api/search_brandname`} 
+                      setValue={setValue} 
+                      variable="rule_brand_id"
+                      customDataMapping={(item) => ({ value: item.id, text: item.brand_name })}
+                    />
                   </div>
                   <div>
                     <FormLabel className="mb-2">{t('Visibility')}</FormLabel>
                     <select id="rule_brand_visibility_modal" className="form-select w-full" {...register('rule_brand_visibility')}>
-                      <option value="show">{t('Show')}</option>
-                      <option value="hide">{t('Hide')}</option>
+                      <option value="allow">{t('Allow')}</option>
+                      <option value="deny">{t('Deny')}</option>
                     </select>
                   </div>
                   <div className="flex items-end">
