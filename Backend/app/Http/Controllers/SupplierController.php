@@ -12,7 +12,7 @@ use Illuminate\Support\Facades\Log;
 
 class SupplierController extends BaseController
 {
-    protected $searchableColumns = ['supplier', 'name_surname', 'occupation', 'code', 'address', 'email', 'phone_number', 'whatsapp', 'wechat_id', 'image', 'number_of_products', 'category_of_products', 'name_of_products', 'additional_note'];
+    protected $searchableColumns = ['supplier', 'name_surname', 'occupation', 'code', 'address', 'email', 'phone_number', 'whatsapp', 'wechat_id', 'image', 'category_of_products', 'name_of_products', 'additional_note'];
 
     public function index(Request $request)
     {
@@ -24,7 +24,7 @@ class SupplierController extends BaseController
         }
         $perPage = $request->query('size', 10); 
         $filters = $request['filter'];
-        $query = Supplier::with(['products.ProductInformation.productname', 'images'])
+        $query = Supplier::with(['products.productname.category', 'products.ProductInformation.productname.category', 'products', 'images'])
             ->orderBy($sortBy, $sortDir);
         if($filters){
             foreach ($filters as $filter) {
@@ -42,22 +42,28 @@ class SupplierController extends BaseController
         // Compute derived fields from related products and map related images for FE
         $supplier->getCollection()->transform(function ($s) {
             $products = $s->products ?? collect();
+            
+            // Get product names from productname relationship (products now have productname_id)
             $names = collect($products)->map(function ($p) {
+                // First try direct productname relationship
+                if ($p->productname) {
+                    return $p->productname->name_az ?? null;
+                }
+                // Fallback to ProductInformation->productname
                 $pi = $p->ProductInformation ?? null;
                 return $pi && $pi->productname ? $pi->productname->name_az : null;
             })->filter()->unique()->values();
 
+            // Get categories from productname->category relationship
             $categories = collect($products)->map(function ($p) {
+                // First try direct productname->category relationship
+                if ($p->productname && $p->productname->category) {
+                    return $p->productname->category->category_en ?? null;
+                }
+                // Fallback to ProductInformation->productname->category
                 $pi = $p->ProductInformation ?? null;
-                return $pi && $pi->productname ? $pi->productname->categories : null;
-            })->filter()
-              ->flatMap(function ($c) {
-                  // categories might be a comma-separated string
-                  return collect(explode(',', (string) $c))->map(fn($v) => trim($v));
-              })
-              ->filter()
-              ->unique()
-              ->values();
+                return $pi && $pi->productname && $pi->productname->category ? $pi->productname->category->category_en : null;
+            })->filter()->unique()->values();
 
             // Set computed attributes for response
             $s->setAttribute('name_of_products', $names->join(', '));
@@ -118,10 +124,9 @@ class SupplierController extends BaseController
             "wechat_id" => "nullable|string|max:255|unique:suppliers,wechat_id",
             "images" => "nullable|array",
             "images.*" => "nullable|string",
-            "number_of_products" => "nullable|numeric",
-            "category_of_products" => "nullable|string|max:255",
-            "name_of_products" => "nullable|string|max:255",
             "additional_note" => "nullable|string",
+            "price_adjustment_type" => "nullable|string|in:increase,decrease",
+            "price_adjustment_percent" => "nullable|numeric|min:0|max:100",
         ];
     
         $validation = Validator::make($request->all(), $validationRules);
@@ -264,10 +269,9 @@ class SupplierController extends BaseController
           "wechat_id"=>"nullable|string|max:255|unique:suppliers,wechat_id,{$supplier->id}",
           "images"=>"nullable|array",
           "images.*"=>"nullable|string",
-          "number_of_products"=>"nullable|numeric",
-          "category_of_products"=>"nullable|string|max:255",
-          "name_of_products"=>"nullable|string|max:255",
           "additional_note"=>"nullable|string",
+          "price_adjustment_type"=>"nullable|string|in:increase,decrease",
+          "price_adjustment_percent"=>"nullable|numeric|min:0|max:100",
         ];
 
         $validation = Validator::make($request->all() , $validationRules);

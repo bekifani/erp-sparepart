@@ -13,7 +13,7 @@ use Illuminate\Notifications\Notifiable;
 class Product extends Model
 {
     use HasFactory, LogsActivity, Notifiable;
-    public $fillable = ['supplier_id', 'brand_id', 'brand_code', 'oe_code', 'description', 'qty', 'min_qty', 'purchase_price', 'extra_cost', 'cost_basis', 'selling_price', 'additional_note', 'status'];
+    public $fillable = ['supplier_id', 'brand_id', 'brand_code', 'oe_code', 'description', 'productname_id', 'qty', 'min_qty', 'purchase_price', 'extra_cost', 'cost_basis', 'selling_price', 'additional_note', 'status'];
     protected static $logAttributes = ['*'];
     public $guarded = [];
 
@@ -38,5 +38,9 @@ class Product extends Model
     }
     public function supplier() { 
         return $this->belongsTo(Supplier::class, 'supplier_id', 'id');
+    }
+
+    public function productname() { 
+        return $this->belongsTo(Productname::class, 'productname_id', 'id');
     }
 }

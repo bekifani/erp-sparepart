@@ -31,4 +31,9 @@ class Productname extends Model
             ->useLogName("Productname");
     }
 
+    public function category()
+    {
+        return $this->belongsTo(Categor::class, 'category_id', 'id');
+    }
+
 }

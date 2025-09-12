@@ -10,6 +10,7 @@ use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 class ProductController extends BaseController
 {
@@ -27,7 +28,10 @@ class ProductController extends BaseController
         'products.status',
         // moved fields now on products
         'products.oe_code',
-        'products.description',
+        'product_desc.name_az',
+        'product_desc.description_en',
+        'product_desc.name_ru',
+        'product_desc.name_cn',
         // related joined columns
         'product_information.product_code',
         'productnames.name_az',
@@ -76,6 +80,7 @@ class ProductController extends BaseController
         $query = Product::with(['ProductInformation'])
             ->leftJoin('product_information', 'product_information.product_id', '=', 'products.id')
             ->leftJoin('productnames', 'product_information.product_name_id', '=', 'productnames.id')
+            ->leftJoin('productnames as product_desc', 'products.productname_id', '=', 'product_desc.id')
             ->leftJoin('brandnames', 'products.brand_id', '=', 'brandnames.id')
             ->leftJoin('boxes', 'product_information.box_id', '=', 'boxes.id')
             ->leftJoin('labels', 'product_information.label_id', '=', 'labels.id')
@@ -87,7 +92,7 @@ class ProductController extends BaseController
             'product_information.product_code',
             // moved fields now selected from products
             'products.oe_code',
-            'products.description',
+            'product_desc.name_az as description',
             'productnames.name_az as product_name',
             'productnames.product_name_code',
             'brandnames.brand_name',
@@ -147,6 +152,7 @@ class ProductController extends BaseController
         $query = Product::with(['ProductInformation'])
             ->leftJoin('product_information', 'product_information.product_id', '=', 'products.id')
             ->leftJoin('productnames', 'product_information.product_name_id', '=', 'productnames.id')
+            ->leftJoin('productnames as product_desc', 'products.productname_id', '=', 'product_desc.id')
             ->leftJoin('brandnames', 'products.brand_id', '=', 'brandnames.id')
             ->leftJoin('boxes', 'product_information.box_id', '=', 'boxes.id')
             ->leftJoin('labels', 'product_information.label_id', '=', 'labels.id')
@@ -157,7 +163,7 @@ class ProductController extends BaseController
             DB::raw('products.id as value'),
             'product_information.product_code',
             'products.oe_code',
-            'products.description',
+            'product_desc.name_az as description',
             'products.brand_code as brand_code_name',
             'productnames.name_az as product_name',
             'productnames.product_name_code',
@@ -223,7 +229,8 @@ class ProductController extends BaseController
             "brand_id" => "nullable|exists:brandnames,id",
             "brand_code" => "nullable|string|max:255",
             "oe_code" => "nullable|string|max:255",
-            "description" => "nullable|string|max:255",
+            "description" => "nullable|exists:productnames,id",
+            "productname_id" => "nullable|exists:productnames,id",
             // virtual field from frontend to support find-or-create brand
             "brand_name" => "nullable|string|max:255",
         ];
@@ -248,6 +255,12 @@ class ProductController extends BaseController
             $validated['brand_id'] = $brand->id;
             // do not persist brand_name on products
             unset($validated['brand_name']);
+        }
+
+        // Map description field to productname_id
+        if (!empty($validated['description'])) {
+            $validated['productname_id'] = $validated['description'];
+            unset($validated['description']);
         }
 
         try {
@@ -281,7 +294,8 @@ class ProductController extends BaseController
             "brand_id" => "nullable|exists:brandnames,id",
             "brand_code" => "nullable|string|max:255",
             "oe_code" => "nullable|string|max:255",
-            "description" => "nullable|string|max:255",
+            "description" => "nullable|exists:productnames,id",
+            "productname_id" => "nullable|exists:productnames,id",
             // virtual field from frontend to support find-or-create brand
             "brand_name" => "nullable|string|max:255",
         ];
@@ -306,6 +320,12 @@ class ProductController extends BaseController
             unset($validated['brand_name']);
         }
 
+        // Map description field to productname_id
+        if (!empty($validated['description'])) {
+            $validated['productname_id'] = $validated['description'];
+            unset($validated['description']);
+        }
+
         try {
             $product->update($validated);
             return $this->sendResponse($product, "product updated successfully");
@@ -317,11 +337,90 @@ class ProductController extends BaseController
     public function destroy($id)
     {
         try {
+            Log::info('ProductController@destroy called', ['id' => $id]);
+            
             $product = Product::findOrFail($id);
+            
+            // Define tables in deletion order (respecting foreign key constraints)
+            // Tables that reference other tables should be deleted first
+            $relatedTablesInOrder = [
+                // First: Delete tables that reference orderdetails
+                'supplierorderdetails', // References orderdetails.id
+                'packinglistboxitems',  // May reference orderdetails
+                
+                // Second: Delete tables that reference other related tables
+                'problemitems',
+                'customerinvoiceitems',
+                'supplierinvoiceitems',
+                'fileoperations',
+                
+                // Third: Delete direct product references
+                'orderdetails',
+                'basketitems',
+                'productspecifications',
+                'crosscodes',
+                'crosscars',
+                'productrules',
+                'customerproductvisibilits',
+                'supplierproducts',
+                'producthistors',
+                'product_information'
+            ];
+            
+            // Check for foreign key constraints and handle cascade deletion
+            $deletionSummary = [];
+            
+            foreach ($relatedTablesInOrder as $table) {
+                $count = DB::table($table)->where('product_id', $id)->count();
+                if ($count > 0) {
+                    $deletionSummary[$table] = $count;
+                }
+            }
+            
+            if (!empty($deletionSummary)) {
+                Log::info('Cascade deleting related records', [
+                    'product_id' => $id,
+                    'related_records' => $deletionSummary
+                ]);
+                
+                // Delete related records in proper order
+                foreach ($relatedTablesInOrder as $table) {
+                    try {
+                        $deleted = DB::table($table)->where('product_id', $id)->delete();
+                        if ($deleted > 0) {
+                            Log::info("Deleted $deleted records from $table");
+                        }
+                    } catch (\Exception $e) {
+                        Log::error("Error deleting from $table: " . $e->getMessage());
+                        // Continue with other tables
+                    }
+                }
+                
+                Log::info('Related records deleted successfully', [
+                    'product_id' => $id,
+                    'deleted_records' => $deletionSummary
+                ]);
+            }
+            
             $product->delete();
-            return $this->sendResponse(1, "product deleted succesfully");
+            
+            Log::info('Product deleted successfully', ['id' => $id]);
+            return $this->sendResponse(1, "product deleted successfully");
         } catch (\Exception $e) {
-            return $this->sendError("Error deleting product", ['message' => $e->getMessage()]);
+            Log::error('Error deleting product', [
+                'id' => $id,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            
+            // Handle foreign key constraint violations with user-friendly messages
+            if (str_contains($e->getMessage(), 'Integrity constraint violation') || str_contains($e->getMessage(), 'foreign key constraint fails')) {
+                return $this->sendError("Cannot delete product", [
+                    'message' => "This product is being used in other records and cannot be deleted. Please remove those references first."
+                ], 409);
+            }
+            
+            return $this->sendError("Error deleting product", ['message' => $e->getMessage()], 500);
         }
     }
 

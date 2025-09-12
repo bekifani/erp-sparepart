@@ -18,6 +18,7 @@ import {
   useEditProductMutation,
   useCreateProductruleMutation,
   useGetProductrulesByProductQuery,
+  useGetProductnamesQuery,
 } from "@/stores/apiSlice";
 import clsx from "clsx";
 import { Dialog } from "@/components/Base/Headless";
@@ -479,16 +480,20 @@ function index_main() {
     let id = getValues("id");
     setShowDeleteModal(false)
     try {
-        const response = await deleteProduct(id);
-        if (response && response.success !== false && !response.error) {
+        console.log('Attempting to delete product with ID:', id);
+        const response = await deleteProduct(id).unwrap();
+        console.log('Delete response:', response);
+        
+        if (response?.success !== false) {
           setToastMessage(t("Product deleted successfully."));
           setRefetch(true);
         } else {
-          const msg = response?.data?.message || response?.error?.data?.message || response?.message || t('Deletion failed');
+          const msg = response?.message || t('Deletion failed');
           throw new Error(msg);
         }
       }
     catch (error) {
+      console.error('Delete error:', error);
       const msg = getErrorMessage(error, t("Error deleting Product."));
       setToastMessage(msg);
     }
@@ -833,13 +838,14 @@ function index_main() {
       <FormLabel htmlFor="description" className="flex justify-start items-start flex-col w-full sm:flex-row">
         {t("Description")}
       </FormLabel>
-      <FormInput
-        {...register("description")}
-        id="description"
-        type="text"
-        name="description"
-        className={clsx({ "border-danger": errors.description })}
-        placeholder={t("Enter description")}
+      <TomSelectSearch
+        apiUrl={`${app_url}/api/search_productname`}
+        setValue={setValue}
+        variable="description"
+        customDataMapping={(item) => ({ 
+          value: item.id, 
+          text: item.name_az || item.description_en || item.name_ru || item.name_cn || String(item.id) 
+        })}
       />
       {errors.description && (
         <div className="mt-2 text-danger">{typeof errors.description.message === "string" && errors.description.message}</div>
@@ -1195,13 +1201,14 @@ function index_main() {
       <FormLabel htmlFor="description" className="flex justify-start items-start flex-col w-full sm:flex-row">
         {t("Description")}
       </FormLabel>
-      <FormInput
-        {...register("description")}
-        id="description"
-        type="text"
-        name="description"
-        className={clsx({ "border-danger": errors.description })}
-        placeholder={t("Enter description")}
+      <TomSelectSearch
+        apiUrl={`${app_url}/api/search_productname`}
+        setValue={setValue}
+        variable="description"
+        customDataMapping={(item) => ({ 
+          value: item.id, 
+          text: item.name_az || item.description_en || item.name_ru || item.name_cn || String(item.id) 
+        })}
       />
       {errors.description && (
         <div className="mt-2 text-danger">{typeof errors.description.message === "string" && errors.description.message}</div>

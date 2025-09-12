@@ -371,7 +371,7 @@ function index_main() {
       },
     },
 ]);
-  const [searchColumns, setSearchColumns] = useState(['supplier', 'name_surname', 'occupation', 'code', 'address', 'email', 'phone_number', 'whatsapp', 'wechat_id', 'number_of_products', 'category_of_products', 'name_of_products', 'additional_note', ]);
+  const [searchColumns, setSearchColumns] = useState(['supplier', 'name_surname', 'occupation', 'code', 'address', 'email', 'phone_number', 'whatsapp', 'wechat_id', 'category_of_products', 'name_of_products', 'additional_note', ]);
 
   // schema
   const schema = yup
@@ -389,12 +389,13 @@ function index_main() {
       whatsapp: yup.string().max(20).nullable(),
       wechat_id: yup.string().max(255).nullable(),
       images: yup.array().of(yup.string()).nullable(),
-      number_of_products: yup
-        .number()
-        .typeError(t('The Number Of Products must be a number'))
-        .transform((value, originalValue) => (originalValue === '' || originalValue === null ? null : value))
-        .nullable(),
       additional_note: yup.string().nullable(),
+      price_adjustment_type: yup.string().nullable().oneOf(['increase','decrease']),
+      price_adjustment_percent: yup
+        .number()
+        .nullable()
+        .min(0, t('Percent cannot be negative'))
+        .max(100, t('Percent cannot exceed 100')),
     })
     .required();
 
@@ -1236,30 +1237,6 @@ function index_main() {
               )}
           </div>
         
-<div className="mt-3 input-form">
-                      <FormLabel
-                        htmlFor="validation-form-1"
-                        className="flex justify-start items-start flex-col w-full sm:flex-row"
-                      >
-                        {t("Number Of Products")}
-                      </FormLabel>
-                      <FormInput
-                        {...register("number_of_products")}
-                        id="validation-form-1"
-                        type="number"
-                        name="number_of_products"
-                        className={clsx({
-                          "border-danger": errors.number_of_products,
-                        })}
-                        placeholder={t("Enter number_of_products")}
-                      />
-                      {errors.number_of_products && (
-                        <div className="mt-2 text-danger">
-                          {typeof errors.number_of_products.message === "string" &&
-                            errors.number_of_products.message}
-                        </div>
-                      )}
-                    </div>
 
 
 <div className="mt-3 input-form md:col-span-2">
@@ -1622,30 +1599,6 @@ function index_main() {
               )}
           </div>
         
-<div className="mt-3 input-form">
-                      <FormLabel
-                        htmlFor="validation-form-1"
-                        className="flex justify-start items-start flex-col w-full sm:flex-row"
-                      >
-                        {t("Number Of Products")}
-                      </FormLabel>
-                      <FormInput
-                        {...register("number_of_products")}
-                        id="validation-form-1"
-                        type="number"
-                        name="number_of_products"
-                        className={clsx({
-                          "border-danger": errors.number_of_products,
-                        })}
-                        placeholder={t("Enter number_of_products")}
-                      />
-                      {errors.number_of_products && (
-                        <div className="mt-2 text-danger">
-                          {typeof errors.number_of_products.message === "string" &&
-                            errors.number_of_products.message}
-                        </div>
-                      )}
-                    </div>
 
 
 <div className="mt-3 input-form md:col-span-2">
@@ -1673,6 +1626,64 @@ function index_main() {
                       )}
                     </div>
 
+                    {/* Price Adjustment Section - Only in Edit Form */}
+                    <div className="col-span-2 mt-6 border-t pt-4">
+                      <h3 className="text-lg font-medium text-gray-900 mb-4">{t("Global Price Adjustment")}</h3>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="mt-3 input-form">
+                          <FormLabel
+                            htmlFor="price_adjustment_type"
+                            className="flex flex-col w-full sm:flex-row"
+                          >
+                            {t('Pricing Adjustment Type')}
+                          </FormLabel>
+                          <select
+                            {...register('price_adjustment_type')}
+                            id="price_adjustment_type"
+                            name="price_adjustment_type"
+                            className={clsx('form-select', {
+                              'border-danger': errors.price_adjustment_type,
+                            })}
+                          >
+                            <option value="">{t('None')}</option>
+                            <option value="increase">{t('Increase (markup)')}</option>
+                            <option value="decrease">{t('Decrease (discount)')}</option>
+                          </select>
+                          {errors.price_adjustment_type && (
+                            <div className="mt-2 text-danger">
+                              {typeof errors.price_adjustment_type.message === 'string' &&
+                                errors.price_adjustment_type.message}
+                            </div>
+                          )}
+                        </div>
+                        <div className="mt-3 input-form">
+                          <FormLabel
+                            htmlFor="price_adjustment_percent"
+                            className="flex flex-col w-full sm:flex-row"
+                          >
+                            {t('Pricing Adjustment Percent')}
+                          </FormLabel>
+                          <FormInput
+                            {...register('price_adjustment_percent')}
+                            id="price_adjustment_percent"
+                            type="number"
+                            name="price_adjustment_percent"
+                            min={0}
+                            max={100}
+                            className={clsx({
+                              'border-danger': errors.price_adjustment_percent,
+                            })}
+                            placeholder={t('e.g. 5 for 5%')}
+                          />
+                          {errors.price_adjustment_percent && (
+                            <div className="mt-2 text-danger">
+                              {typeof errors.price_adjustment_percent.message === 'string' &&
+                                errors.price_adjustment_percent.message}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
 
                   </div>
                 )}
