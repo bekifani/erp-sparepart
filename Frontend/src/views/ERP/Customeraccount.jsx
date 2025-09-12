@@ -842,7 +842,15 @@ return (
       >
         {t("Account Type Id")}
       </FormLabel>
-      <TomSelectSearch apiUrl={`${app_url}/api/search_account type`} setValue={setValue} variable="account_type_id"/>
+      <TomSelectSearch 
+        apiUrl={`${app_url}/api/search_accounttype`} 
+        setValue={setValue} 
+        variable="account_type_id"
+        customDataMapping={(item) => ({
+          value: item.id,
+          text: item.name || item.name_ch || item.name_az || String(item.id)
+        })}
+      />
       {errors.account_type_id && (
         <div className="mt-2 text-danger">
           {typeof errors.account_type_id.message === "string" &&
@@ -858,7 +866,15 @@ return (
       >
         {t("Payment Note Id")}
       </FormLabel>
-      <TomSelectSearch apiUrl={`${app_url}/api/search_payment note`} setValue={setValue} variable="payment_note_id"/>
+      <TomSelectSearch 
+        apiUrl={`${app_url}/api/search_paymentnote`} 
+        setValue={setValue} 
+        variable="payment_note_id"
+        customDataMapping={(item) => ({
+          value: item.id,
+          text: item.note || item.note_ch || item.note_az || String(item.id)
+        })}
+      />
       {errors.payment_note_id && (
         <div className="mt-2 text-danger">
           {typeof errors.payment_note_id.message === "string" &&
@@ -1117,7 +1133,15 @@ return (
       >
         {t("Account Type Id")}
       </FormLabel>
-      <TomSelectSearch apiUrl={`${app_url}/api/search_account type`} setValue={setValue} variable="account_type_id"/>
+      <TomSelectSearch 
+        apiUrl={`${app_url}/api/search_accounttype`} 
+        setValue={setValue} 
+        variable="account_type_id"
+        customDataMapping={(item) => ({
+          value: item.id,
+          text: item.name || item.name_ch || item.name_az || String(item.id)
+        })}
+      />
       {errors.account_type_id && (
         <div className="mt-2 text-danger">
           {typeof errors.account_type_id.message === "string" &&
@@ -1133,7 +1157,15 @@ return (
       >
         {t("Payment Note Id")}
       </FormLabel>
-      <TomSelectSearch apiUrl={`${app_url}/api/search_payment note`} setValue={setValue} variable="payment_note_id"/>
+      <TomSelectSearch 
+        apiUrl={`${app_url}/api/search_paymentnote`} 
+        setValue={setValue} 
+        variable="payment_note_id"
+        customDataMapping={(item) => ({
+          value: item.id,
+          text: item.note || item.note_ch || item.note_az || String(item.id)
+        })}
+      />
       {errors.payment_note_id && (
         <div className="mt-2 text-danger">
           {typeof errors.payment_note_id.message === "string" &&

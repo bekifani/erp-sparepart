@@ -68,7 +68,7 @@ class ProductstatusController extends BaseController
     {
         $validationRules = [
           
-          "status_key"=>"required|string|unique:product_statuses,status_key|max:255",
+          "status_key"=>"required|string|unique:productstatuses,status_key|max:255",
           "status_name_en"=>"required|string|max:255",
           "status_name_ch"=>"nullable|string|max:255",
           "status_name_az"=>"nullable|string|max:255",
@@ -106,7 +106,7 @@ class ProductstatusController extends BaseController
             //for update
 
           
-          "status_key"=>"required|string|unique:product_statuses,status_key|max:255",
+          "status_key"=>"required|string|unique:productstatuses,status_key," . $id . "|max:255",
           "status_name_en"=>"required|string|max:255",
           "status_name_ch"=>"nullable|string|max:255",
           "status_name_az"=>"nullable|string|max:255",

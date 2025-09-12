@@ -7,6 +7,7 @@ use App\Models\Problem;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Facades\Log;
 class ProblemController extends BaseController
 {
     protected $searchableColumns = ['problem_number', 'supplier_invoice_id', 'customer_invoice_id', 'user_id', 'problem_type', 'solution_type', 'status_id', 'refund_amount', 'internal_note', 'customer_note'];
@@ -66,35 +67,38 @@ class ProblemController extends BaseController
 
     public function store(Request $request)
     {
-        $validationRules = [
-          
-          "problem_number"=>"required|string|unique:problems,problem_number|max:255",
-          "supplier_invoice_id"=>"nullable|exists:supplier_invoices,id",
-          "customer_invoice_id"=>"nullable|exists:customer_invoices,id",
-          "user_id"=>"required|exists:users,id",
-          "problem_type"=>"required|string|max:255",
-          "solution_type"=>"nullable|string|max:255",
-          "status_id"=>"required|exists:product_statuses,id",
-          "refund_amount"=>"nullable|numeric",
-          "internal_note"=>"nullable|string",
-          "customer_note"=>"nullable|string",
-          
+        try {
+            $validationRules = [
+              
+              "problem_number"=>"required|string|unique:problems,problem_number|max:255",
+              "supplier_invoice_id"=>"nullable|exists:supplierinvoices,id",
+              "customer_invoice_id"=>"nullable|exists:customerinvoices,id",
+              "user_id"=>"required|exists:users,id",
+              "problem_type"=>"required|string|max:255",
+              "solution_type"=>"nullable|string|max:255",
+              "status_id"=>"required|exists:productstatuses,id",
+              "refund_amount"=>"nullable|numeric",
+              "internal_note"=>"nullable|string",
+              "customer_note"=>"nullable|string",
+              
 
-        ];
+            ];
 
-        $validation = Validator::make($request->all() , $validationRules);
-        if($validation->fails()){
-            return $this->sendError("Invalid Values", ['errors' => $validation->errors()]);
+            $validation = Validator::make($request->all() , $validationRules);
+            if($validation->fails()){
+                return $this->sendError("Invalid Values", ['errors' => $validation->errors()]);
+            }
+            $validated=$validation->validated();
+
+            
+            //file uploads
+
+            $problem = Problem::create($validated);
+            return $this->sendResponse($problem, "problem created succesfully");
+        } catch (\Exception $e) {
+            Log::error('Error creating problem: ' . $e->getMessage());
+            return $this->sendError('Error creating problem', ['error' => $e->getMessage()]);
         }
-        $validated=$validation->validated();
-
-
-
-        
-        //file uploads
-
-        $problem = Problem::create($validated);
-        return $this->sendResponse($problem, "problem created succesfully");
     }
 
     public function show($id)
@@ -106,50 +110,53 @@ class ProblemController extends BaseController
 
     public function update(Request $request, $id)
     {
-        $problem = Problem::findOrFail($id);
-         $validationRules = [
-            //for update
+        try {
+            $problem = Problem::findOrFail($id);
+             $validationRules = [
+                //for update
 
-          
-          "problem_number"=>"required|string|unique:problems,problem_number|max:255",
-          "supplier_invoice_id"=>"nullable|exists:supplier_invoices,id",
-          "customer_invoice_id"=>"nullable|exists:customer_invoices,id",
-          "user_id"=>"required|exists:users,id",
-          "problem_type"=>"required|string|max:255",
-          "solution_type"=>"nullable|string|max:255",
-          "status_id"=>"required|exists:product_statuses,id",
-          "refund_amount"=>"nullable|numeric",
-          "internal_note"=>"nullable|string",
-          "customer_note"=>"nullable|string",
-          
-        ];
+              
+              "problem_number"=>"required|string|unique:problems,problem_number," . $id . "|max:255",
+              "supplier_invoice_id"=>"nullable|exists:supplierinvoices,id",
+              "customer_invoice_id"=>"nullable|exists:customerinvoices,id",
+              "user_id"=>"required|exists:users,id",
+              "problem_type"=>"required|string|max:255",
+              "solution_type"=>"nullable|string|max:255",
+              "status_id"=>"required|exists:productstatuses,id",
+              "refund_amount"=>"nullable|numeric",
+              "internal_note"=>"nullable|string",
+              "customer_note"=>"nullable|string",
+              
+            ];
 
-        $validation = Validator::make($request->all() , $validationRules);
-        if($validation->fails()){
-            return $this->sendError("Invalid Values", ['errors' => $validation->errors()]);
+            $validation = Validator::make($request->all() , $validationRules);
+            if($validation->fails()){
+                return $this->sendError("Invalid Values", ['errors' => $validation->errors()]);
+            }
+            $validated=$validation->validated();
+
+            //file uploads update
+
+            $problem->update($validated);
+            return $this->sendResponse($problem, "problem updated successfully");
+        } catch (\Exception $e) {
+            Log::error('Error updating problem: ' . $e->getMessage());
+            return $this->sendError('Error updating problem', ['error' => $e->getMessage()]);
         }
-        $validated=$validation->validated();
-
-
-
-
-        //file uploads update
-
-        $problem->update($validated);
-        return $this->sendResponse($problem, "problem updated successfully");
     }
 
     public function destroy($id)
     {
-        $problem = Problem::findOrFail($id);
-        $problem->delete();
+        try {
+            $problem = Problem::findOrFail($id);
+            $problem->delete();
 
-
-
-
-
-        //delete files uploaded
-        return $this->sendResponse(1, "problem deleted succesfully");
+            //delete files uploaded
+            return $this->sendResponse(1, "problem deleted succesfully");
+        } catch (\Exception $e) {
+            Log::error('Error deleting problem: ' . $e->getMessage());
+            return $this->sendError('Error deleting problem', ['error' => $e->getMessage()]);
+        }
     }
 
     public function deleteFile($filePath) {

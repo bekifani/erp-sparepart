@@ -22,7 +22,7 @@ import Can from "@/helpers/PermissionChecker/index.js";
 import { useTranslation } from "react-i18next";
 import LoadingIcon from "@/components/Base/LoadingIcon/index.tsx";
 import FileUpload from "@/helpers/ui/FileUpload.jsx";
-import TomSelectSearch from "@/helpers/ui/Tomselect.jsx";
+import TomSelectSearch from "@/helpers/ui/TomSelector.jsx";
 import { useSelector } from "react-redux";
 import { ClassicEditor } from "@/components/Base/Ckeditor";
 
@@ -735,7 +735,16 @@ return (
       >
         {t("Customer Invoice Id")}
       </FormLabel>
-      <TomSelectSearch apiUrl={`${app_url}/api/search_customer invoice`} setValue={setValue} variable="customer_invoice_id"/>
+      <TomSelectSearch 
+        key="customer_invoice_id_search" 
+        apiUrl={`${app_url}/api/search_customerinvoice`} 
+        setValue={setValue} 
+        variable="customer_invoice_id"
+        customDataMapping={(item) => ({
+          value: item.id,
+          text: item.invoice_no || item.customer_name || item.shipping_mark || String(item.id)
+        })}
+      />
       {errors.customer_invoice_id && (
         <div className="mt-2 text-danger">
           {typeof errors.customer_invoice_id.message === "string" &&
@@ -751,7 +760,11 @@ return (
       >
         {t("Product Id")}
       </FormLabel>
-      <TomSelectSearch apiUrl={`${app_url}/api/search_product`} setValue={setValue} variable="product_id"/>
+      <TomSelectSearch 
+        apiUrl={`${app_url}/api/search_product`} 
+        setValue={setValue} 
+        variable="product_id"
+      />
       {errors.product_id && (
         <div className="mt-2 text-danger">
           {typeof errors.product_id.message === "string" &&
@@ -1046,7 +1059,16 @@ return (
       >
         {t("Customer Invoice Id")}
       </FormLabel>
-      <TomSelectSearch apiUrl={`${app_url}/api/search_customer invoice`} setValue={setValue} variable="customer_invoice_id"/>
+      <TomSelectSearch 
+        key="customer_invoice_id_search_update" 
+        apiUrl={`${app_url}/api/search_customerinvoice`} 
+        setValue={setValue} 
+        variable="customer_invoice_id"
+        customDataMapping={(item) => ({
+          value: item.id,
+          text: item.invoice_no || item.customer_name || item.shipping_mark || String(item.id)
+        })}
+      />
       {errors.customer_invoice_id && (
         <div className="mt-2 text-danger">
           {typeof errors.customer_invoice_id.message === "string" &&
@@ -1062,7 +1084,11 @@ return (
       >
         {t("Product Id")}
       </FormLabel>
-      <TomSelectSearch apiUrl={`${app_url}/api/search_product`} setValue={setValue} variable="product_id"/>
+      <TomSelectSearch 
+        apiUrl={`${app_url}/api/search_product`} 
+        setValue={setValue} 
+        variable="product_id"
+      />
       {errors.product_id && (
         <div className="mt-2 text-danger">
           {typeof errors.product_id.message === "string" &&

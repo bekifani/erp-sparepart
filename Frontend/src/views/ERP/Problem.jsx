@@ -749,7 +749,7 @@ return (
       >
         {t("Supplier Invoice Id")}
       </FormLabel>
-      <TomSelectSearch apiUrl={`${app_url}/api/search_supplier invoice`} setValue={setValue} variable="supplier_invoice_id"/>
+      <TomSelectSearch apiUrl={`${app_url}/api/search_supplierinvoice`} setValue={setValue} variable="supplier_invoice_id" customDataMapping={(item) => ({ value: item.id, text: item.invoice_no || item.supplier_name || item.total_amount || String(item.id) })}/>
       {errors.supplier_invoice_id && (
         <div className="mt-2 text-danger">
           {typeof errors.supplier_invoice_id.message === "string" &&
@@ -765,7 +765,7 @@ return (
       >
         {t("Customer Invoice Id")}
       </FormLabel>
-      <TomSelectSearch apiUrl={`${app_url}/api/search_customer invoice`} setValue={setValue} variable="customer_invoice_id"/>
+      <TomSelectSearch apiUrl={`${app_url}/api/search_customerinvoice`} setValue={setValue} variable="customer_invoice_id" customDataMapping={(item) => ({ value: item.id, text: item.invoice_no || item.customer_name || item.total_amount || String(item.id) })}/>
       {errors.customer_invoice_id && (
         <div className="mt-2 text-danger">
           {typeof errors.customer_invoice_id.message === "string" &&
@@ -849,7 +849,7 @@ return (
       >
         {t("Status Id")}
       </FormLabel>
-      <TomSelectSearch apiUrl={`${app_url}/api/search_status`} setValue={setValue} variable="status_id"/>
+      <TomSelectSearch apiUrl={`${app_url}/api/search_productstatus`} setValue={setValue} variable="status_id" customDataMapping={(item) => ({ value: item.id, text: item.status_name_en || item.status_key || item.status_name_az || String(item.id) })}/>
       {errors.status_id && (
         <div className="mt-2 text-danger">
           {typeof errors.status_id.message === "string" &&
@@ -1014,7 +1014,7 @@ return (
       >
         {t("Supplier Invoice Id")}
       </FormLabel>
-      <TomSelectSearch apiUrl={`${app_url}/api/search_supplier invoice`} setValue={setValue} variable="supplier_invoice_id"/>
+      <TomSelectSearch apiUrl={`${app_url}/api/search_supplierinvoice`} setValue={setValue} variable="supplier_invoice_id" customDataMapping={(item) => ({ value: item.id, text: item.invoice_no || item.supplier_name || item.total_amount || String(item.id) })}/>
       {errors.supplier_invoice_id && (
         <div className="mt-2 text-danger">
           {typeof errors.supplier_invoice_id.message === "string" &&
@@ -1030,7 +1030,7 @@ return (
       >
         {t("Customer Invoice Id")}
       </FormLabel>
-      <TomSelectSearch apiUrl={`${app_url}/api/search_customer invoice`} setValue={setValue} variable="customer_invoice_id"/>
+      <TomSelectSearch apiUrl={`${app_url}/api/search_customerinvoice`} setValue={setValue} variable="customer_invoice_id" customDataMapping={(item) => ({ value: item.id, text: item.invoice_no || item.customer_name || item.total_amount || String(item.id) })}/>
       {errors.customer_invoice_id && (
         <div className="mt-2 text-danger">
           {typeof errors.customer_invoice_id.message === "string" &&
@@ -1114,7 +1114,7 @@ return (
       >
         {t("Status Id")}
       </FormLabel>
-      <TomSelectSearch apiUrl={`${app_url}/api/search_status`} setValue={setValue} variable="status_id"/>
+      <TomSelectSearch apiUrl={`${app_url}/api/search_productstatus`} setValue={setValue} variable="status_id" customDataMapping={(item) => ({ value: item.id, text: item.status_name_en || item.status_key || item.status_name_az || String(item.id) })}/>
       {errors.status_id && (
         <div className="mt-2 text-danger">
           {typeof errors.status_id.message === "string" &&

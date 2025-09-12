@@ -7,6 +7,7 @@ use App\Models\Customeraccount;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Facades\Log;
 class CustomeraccountController extends BaseController
 {
     protected $searchableColumns = ['trans_number', 'user_id', 'amount', 'invoice_number', 'payment_status', 'account_type_id', 'payment_note_id', 'picture_url', 'additional_note', 'balance'];
@@ -66,35 +67,43 @@ class CustomeraccountController extends BaseController
 
     public function store(Request $request)
     {
-        $validationRules = [
-          
-          "trans_number"=>"required|string|unique:customeraccounts,trans_number|max:50",
-          "user_id"=>"nullable|exists:users,id",
-          "amount"=>"required|numeric",
-          "invoice_number"=>"nullable|string|max:100",
-          "payment_status"=>"nullable|string|max:50",
-          "account_type_id"=>"nullable|exists:account_types,id",
-          "payment_note_id"=>"nullable|exists:payment_notes,id",
-          "picture_url"=>"nullable|string",
-          "additional_note"=>"nullable|string",
-          "balance"=>"nullable|numeric|default:0",
-          
+        try {
+            $validationRules = [
+              
+              "trans_number"=>"required|string|unique:customeraccounts,trans_number|max:50",
+              "user_id"=>"nullable|exists:users,id",
+              "amount"=>"required|numeric",
+              "invoice_number"=>"nullable|string|max:100",
+              "payment_status"=>"nullable|string|max:50",
+              "account_type_id"=>"nullable|exists:accounttypes,id",
+              "payment_note_id"=>"nullable|exists:paymentnotes,id",
+              "picture_url"=>"nullable|string",
+              "additional_note"=>"nullable|string",
+              "balance"=>"nullable|numeric",
+              
 
-        ];
+            ];
 
-        $validation = Validator::make($request->all() , $validationRules);
-        if($validation->fails()){
-            return $this->sendError("Invalid Values", ['errors' => $validation->errors()]);
+            $validation = Validator::make($request->all() , $validationRules);
+            if($validation->fails()){
+                return $this->sendError("Invalid Values", ['errors' => $validation->errors()]);
+            }
+            $validated=$validation->validated();
+
+            // Set default values programmatically
+            if (!isset($validated['balance'])) {
+                $validated['balance'] = 0;
+            }
+
+            
+            //file uploads
+
+            $customeraccount = Customeraccount::create($validated);
+            return $this->sendResponse($customeraccount, "customeraccount created succesfully");
+        } catch (\Exception $e) {
+            Log::error('Error creating customeraccount: ' . $e->getMessage());
+            return $this->sendError('Error creating customeraccount', ['error' => $e->getMessage()]);
         }
-        $validated=$validation->validated();
-
-
-
-        
-        //file uploads
-
-        $customeraccount = Customeraccount::create($validated);
-        return $this->sendResponse($customeraccount, "customeraccount created succesfully");
     }
 
     public function show($id)
@@ -106,50 +115,60 @@ class CustomeraccountController extends BaseController
 
     public function update(Request $request, $id)
     {
-        $customeraccount = Customeraccount::findOrFail($id);
-         $validationRules = [
-            //for update
+        try {
+            $customeraccount = Customeraccount::findOrFail($id);
+             $validationRules = [
+                //for update
 
-          
-          "trans_number"=>"required|string|unique:customeraccounts,trans_number|max:50",
-          "user_id"=>"nullable|exists:users,id",
-          "amount"=>"required|numeric",
-          "invoice_number"=>"nullable|string|max:100",
-          "payment_status"=>"nullable|string|max:50",
-          "account_type_id"=>"nullable|exists:account_types,id",
-          "payment_note_id"=>"nullable|exists:payment_notes,id",
-          "picture_url"=>"nullable|string",
-          "additional_note"=>"nullable|string",
-          "balance"=>"nullable|numeric|default:0",
-          
-        ];
+              
+              "trans_number"=>"required|string|unique:customeraccounts,trans_number," . $id . "|max:50",
+              "user_id"=>"nullable|exists:users,id",
+              "amount"=>"required|numeric",
+              "invoice_number"=>"nullable|string|max:100",
+              "payment_status"=>"nullable|string|max:50",
+              "account_type_id"=>"nullable|exists:accounttypes,id",
+              "payment_note_id"=>"nullable|exists:paymentnotes,id",
+              "picture_url"=>"nullable|string",
+              "additional_note"=>"nullable|string",
+              "balance"=>"nullable|numeric",
+              
+            ];
 
-        $validation = Validator::make($request->all() , $validationRules);
-        if($validation->fails()){
-            return $this->sendError("Invalid Values", ['errors' => $validation->errors()]);
+            $validation = Validator::make($request->all() , $validationRules);
+            if($validation->fails()){
+                return $this->sendError("Invalid Values", ['errors' => $validation->errors()]);
+            }
+            $validated=$validation->validated();
+
+
+
+
+            //file uploads update
+
+            $customeraccount->update($validated);
+            return $this->sendResponse($customeraccount, "customeraccount updated successfully");
+        } catch (\Exception $e) {
+            Log::error('Error updating customeraccount: ' . $e->getMessage());
+            return $this->sendError('Error updating customeraccount', ['error' => $e->getMessage()]);
         }
-        $validated=$validation->validated();
-
-
-
-
-        //file uploads update
-
-        $customeraccount->update($validated);
-        return $this->sendResponse($customeraccount, "customeraccount updated successfully");
     }
 
     public function destroy($id)
     {
-        $customeraccount = Customeraccount::findOrFail($id);
-        $customeraccount->delete();
+        try {
+            $customeraccount = Customeraccount::findOrFail($id);
+            $customeraccount->delete();
 
 
 
 
 
-        //delete files uploaded
-        return $this->sendResponse(1, "customeraccount deleted succesfully");
+            //delete files uploaded
+            return $this->sendResponse(1, "customeraccount deleted succesfully");
+        } catch (\Exception $e) {
+            Log::error('Error deleting customeraccount: ' . $e->getMessage());
+            return $this->sendError('Error deleting customeraccount', ['error' => $e->getMessage()]);
+        }
     }
 
     public function deleteFile($filePath) {

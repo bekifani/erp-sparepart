@@ -7,6 +7,7 @@ use App\Models\Supplieraccount;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Facades\Log;
 class SupplieraccountController extends BaseController
 {
     protected $searchableColumns = ['date', 'transaction_number', 'invoice_id', 'user_id', 'supplier_id', 'amount', 'invoice', 'payment_status', 'account_type_id', 'payment_note_id', 'picture_url', 'additional_note', 'balance'];
@@ -66,38 +67,43 @@ class SupplieraccountController extends BaseController
 
     public function store(Request $request)
     {
-        $validationRules = [
-          
-          "date"=>"required|date",
-          "transaction_number"=>"required|string|unique:supplieraccounts,transaction_number|max:255",
-          "invoice_id"=>"nullable|exists:supplier_invoices,id",
-          "user_id"=>"nullable|exists:users,id",
-          "supplier_id"=>"nullable|exists:suppliers,id",
-          "amount"=>"required|numeric",
-          "invoice"=>"nullable|string|max:255",
-          "payment_status"=>"required|string|max:255",
-          "account_type_id"=>"nullable|exists:account_types,id",
-          "payment_note_id"=>"nullable|exists:payment_notes,id",
-          "picture_url"=>"nullable|string",
-          "additional_note"=>"nullable|string",
-          "balance"=>"nullable|numeric",
-          
+        try {
+            $validationRules = [
+              
+              "date"=>"required|date",
+              "transaction_number"=>"required|string|unique:supplieraccounts,transaction_number|max:255",
+              "invoice_id"=>"nullable|exists:supplierinvoices,id",
+              "user_id"=>"nullable|exists:users,id",
+              "supplier_id"=>"nullable|exists:suppliers,id",
+              "amount"=>"required|numeric",
+              "invoice"=>"nullable|string|max:255",
+              "payment_status"=>"required|string|max:255",
+              "account_type_id"=>"nullable|exists:accounttypes,id",
+              "payment_note_id"=>"nullable|exists:paymentnotes,id",
+              "picture_url"=>"nullable|string",
+              "additional_note"=>"nullable|string",
+              "balance"=>"nullable|numeric",
+              
 
-        ];
+            ];
 
-        $validation = Validator::make($request->all() , $validationRules);
-        if($validation->fails()){
-            return $this->sendError("Invalid Values", ['errors' => $validation->errors()]);
+            $validation = Validator::make($request->all() , $validationRules);
+            if($validation->fails()){
+                return $this->sendError("Invalid Values", ['errors' => $validation->errors()]);
+            }
+            $validated=$validation->validated();
+
+
+
+            
+            //file uploads
+
+            $supplieraccount = Supplieraccount::create($validated);
+            return $this->sendResponse($supplieraccount, "supplieraccount created succesfully");
+        } catch (\Exception $e) {
+            Log::error('Error creating supplieraccount: ' . $e->getMessage());
+            return $this->sendError('Error creating supplieraccount', ['error' => $e->getMessage()]);
         }
-        $validated=$validation->validated();
-
-
-
-        
-        //file uploads
-
-        $supplieraccount = Supplieraccount::create($validated);
-        return $this->sendResponse($supplieraccount, "supplieraccount created succesfully");
     }
 
     public function show($id)
@@ -109,53 +115,63 @@ class SupplieraccountController extends BaseController
 
     public function update(Request $request, $id)
     {
-        $supplieraccount = Supplieraccount::findOrFail($id);
-         $validationRules = [
-            //for update
+        try {
+            $supplieraccount = Supplieraccount::findOrFail($id);
+             $validationRules = [
+                //for update
 
-          
-          "date"=>"required|date",
-          "transaction_number"=>"required|string|unique:supplieraccounts,transaction_number|max:255",
-          "invoice_id"=>"nullable|exists:supplier_invoices,id",
-          "user_id"=>"nullable|exists:users,id",
-          "supplier_id"=>"nullable|exists:suppliers,id",
-          "amount"=>"required|numeric",
-          "invoice"=>"nullable|string|max:255",
-          "payment_status"=>"required|string|max:255",
-          "account_type_id"=>"nullable|exists:account_types,id",
-          "payment_note_id"=>"nullable|exists:payment_notes,id",
-          "picture_url"=>"nullable|string",
-          "additional_note"=>"nullable|string",
-          "balance"=>"nullable|numeric",
-          
-        ];
+              
+              "date"=>"required|date",
+              "transaction_number"=>"required|string|unique:supplieraccounts,transaction_number," . $id . "|max:255",
+              "invoice_id"=>"nullable|exists:supplierinvoices,id",
+              "user_id"=>"nullable|exists:users,id",
+              "supplier_id"=>"nullable|exists:suppliers,id",
+              "amount"=>"required|numeric",
+              "invoice"=>"nullable|string|max:255",
+              "payment_status"=>"required|string|max:255",
+              "account_type_id"=>"nullable|exists:accounttypes,id",
+              "payment_note_id"=>"nullable|exists:paymentnotes,id",
+              "picture_url"=>"nullable|string",
+              "additional_note"=>"nullable|string",
+              "balance"=>"nullable|numeric",
+              
+            ];
 
-        $validation = Validator::make($request->all() , $validationRules);
-        if($validation->fails()){
-            return $this->sendError("Invalid Values", ['errors' => $validation->errors()]);
+            $validation = Validator::make($request->all() , $validationRules);
+            if($validation->fails()){
+                return $this->sendError("Invalid Values", ['errors' => $validation->errors()]);
+            }
+            $validated=$validation->validated();
+
+
+
+
+            //file uploads update
+
+            $supplieraccount->update($validated);
+            return $this->sendResponse($supplieraccount, "supplieraccount updated successfully");
+        } catch (\Exception $e) {
+            Log::error('Error updating supplieraccount: ' . $e->getMessage());
+            return $this->sendError('Error updating supplieraccount', ['error' => $e->getMessage()]);
         }
-        $validated=$validation->validated();
-
-
-
-
-        //file uploads update
-
-        $supplieraccount->update($validated);
-        return $this->sendResponse($supplieraccount, "supplieraccount updated successfully");
     }
 
     public function destroy($id)
     {
-        $supplieraccount = Supplieraccount::findOrFail($id);
-        $supplieraccount->delete();
+        try {
+            $supplieraccount = Supplieraccount::findOrFail($id);
+            $supplieraccount->delete();
 
 
 
 
 
-        //delete files uploaded
-        return $this->sendResponse(1, "supplieraccount deleted succesfully");
+            //delete files uploaded
+            return $this->sendResponse(1, "supplieraccount deleted succesfully");
+        } catch (\Exception $e) {
+            Log::error('Error deleting supplieraccount: ' . $e->getMessage());
+            return $this->sendError('Error deleting supplieraccount', ['error' => $e->getMessage()]);
+        }
     }
 
     public function deleteFile($filePath) {

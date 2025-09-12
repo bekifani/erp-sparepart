@@ -7,6 +7,7 @@ use App\Models\Supplierorderdetail;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Facades\Log;
 class SupplierorderdetailController extends BaseController
 {
     protected $searchableColumns = ['supplier_order_id', 'product_id', 'order_detail_id', 'qty', 'price', 'shipping_mark', 'arrival_time', 'box_name', 'purchase_price', 'extra_cost', 'amount', 'status_id', 'additional_note', 'image_url'];
@@ -66,39 +67,44 @@ class SupplierorderdetailController extends BaseController
 
     public function store(Request $request)
     {
-        $validationRules = [
-          
-          "supplier_order_id"=>"required|exists:supplier_orders,id",
-          "product_id"=>"required|exists:products,id",
-          "order_detail_id"=>"nullable|exists:order_details,id",
-          "qty"=>"required|integer",
-          "price"=>"nullable|numeric",
-          "shipping_mark"=>"nullable|string|max:255",
-          "arrival_time"=>"nullable|string|max:255",
-          "box_name"=>"nullable|string|max:255",
-          "purchase_price"=>"nullable|numeric",
-          "extra_cost"=>"nullable|numeric",
-          "amount"=>"nullable|numeric",
-          "status_id"=>"required|exists:product_statuses,id",
-          "additional_note"=>"nullable|string|max:255",
-          "image_url"=>"nullable|string|max:255",
-          
+        try {
+            $validationRules = [
+              
+              "supplier_order_id"=>"required|exists:supplierorders,id",
+              "product_id"=>"required|exists:products,id",
+              "order_detail_id"=>"nullable|exists:orderdetails,id",
+              "qty"=>"required|integer",
+              "price"=>"nullable|numeric",
+              "shipping_mark"=>"nullable|string|max:255",
+              "arrival_time"=>"nullable|string|max:255",
+              "box_name"=>"nullable|string|max:255",
+              "purchase_price"=>"nullable|numeric",
+              "extra_cost"=>"nullable|numeric",
+              "amount"=>"nullable|numeric",
+              "status_id"=>"required|exists:productstatuses,id",
+              "additional_note"=>"nullable|string|max:255",
+              "image_url"=>"nullable|string|max:255",
+              
 
-        ];
+            ];
 
-        $validation = Validator::make($request->all() , $validationRules);
-        if($validation->fails()){
-            return $this->sendError("Invalid Values", ['errors' => $validation->errors()]);
+            $validation = Validator::make($request->all() , $validationRules);
+            if($validation->fails()){
+                return $this->sendError("Invalid Values", ['errors' => $validation->errors()]);
+            }
+            $validated=$validation->validated();
+
+
+
+            
+            //file uploads
+
+            $supplierorderdetail = Supplierorderdetail::create($validated);
+            return $this->sendResponse($supplierorderdetail, "supplierorderdetail created succesfully");
+        } catch (\Exception $e) {
+            Log::error('Error creating supplierorderdetail: ' . $e->getMessage());
+            return $this->sendError('Error creating supplierorderdetail', ['error' => $e->getMessage()]);
         }
-        $validated=$validation->validated();
-
-
-
-        
-        //file uploads
-
-        $supplierorderdetail = Supplierorderdetail::create($validated);
-        return $this->sendResponse($supplierorderdetail, "supplierorderdetail created succesfully");
     }
 
     public function show($id)
@@ -110,41 +116,46 @@ class SupplierorderdetailController extends BaseController
 
     public function update(Request $request, $id)
     {
-        $supplierorderdetail = Supplierorderdetail::findOrFail($id);
-         $validationRules = [
-            //for update
+        try {
+            $supplierorderdetail = Supplierorderdetail::findOrFail($id);
+             $validationRules = [
+                //for update
 
-          
-          "supplier_order_id"=>"required|exists:supplier_orders,id",
-          "product_id"=>"required|exists:products,id",
-          "order_detail_id"=>"nullable|exists:order_details,id",
-          "qty"=>"required|integer",
-          "price"=>"nullable|numeric",
-          "shipping_mark"=>"nullable|string|max:255",
-          "arrival_time"=>"nullable|string|max:255",
-          "box_name"=>"nullable|string|max:255",
-          "purchase_price"=>"nullable|numeric",
-          "extra_cost"=>"nullable|numeric",
-          "amount"=>"nullable|numeric",
-          "status_id"=>"required|exists:product_statuses,id",
-          "additional_note"=>"nullable|string|max:255",
-          "image_url"=>"nullable|string|max:255",
-          
-        ];
+              
+              "supplier_order_id"=>"required|exists:supplierorders,id",
+              "product_id"=>"required|exists:products,id",
+              "order_detail_id"=>"nullable|exists:orderdetails,id",
+              "qty"=>"required|integer",
+              "price"=>"nullable|numeric",
+              "shipping_mark"=>"nullable|string|max:255",
+              "arrival_time"=>"nullable|string|max:255",
+              "box_name"=>"nullable|string|max:255",
+              "purchase_price"=>"nullable|numeric",
+              "extra_cost"=>"nullable|numeric",
+              "amount"=>"nullable|numeric",
+              "status_id"=>"required|exists:productstatuses,id",
+              "additional_note"=>"nullable|string|max:255",
+              "image_url"=>"nullable|string|max:255",
+              
+            ];
 
-        $validation = Validator::make($request->all() , $validationRules);
-        if($validation->fails()){
-            return $this->sendError("Invalid Values", ['errors' => $validation->errors()]);
+            $validation = Validator::make($request->all() , $validationRules);
+            if($validation->fails()){
+                return $this->sendError("Invalid Values", ['errors' => $validation->errors()]);
+            }
+            $validated=$validation->validated();
+
+
+
+
+            //file uploads update
+
+            $supplierorderdetail->update($validated);
+            return $this->sendResponse($supplierorderdetail, "supplierorderdetail updated successfully");
+        } catch (\Exception $e) {
+            Log::error('Error updating supplierorderdetail: ' . $e->getMessage());
+            return $this->sendError('Error updating supplierorderdetail', ['error' => $e->getMessage()]);
         }
-        $validated=$validation->validated();
-
-
-
-
-        //file uploads update
-
-        $supplierorderdetail->update($validated);
-        return $this->sendResponse($supplierorderdetail, "supplierorderdetail updated successfully");
     }
 
     public function destroy($id)

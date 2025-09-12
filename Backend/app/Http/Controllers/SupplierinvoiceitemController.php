@@ -7,6 +7,7 @@ use App\Models\Supplierinvoiceitem;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Facades\Log;
 class SupplierinvoiceitemController extends BaseController
 {
     protected $searchableColumns = ['supplier_invoice_id', 'product_id', 'supplier_code', 'brand', 'brand_code', 'oe_code', 'description', 'qty', 'box_name', 'purchase_price', 'extra_cost', 'amount', 'additional_note', 'status'];
@@ -66,39 +67,50 @@ class SupplierinvoiceitemController extends BaseController
 
     public function store(Request $request)
     {
-        $validationRules = [
-          
-          "supplier_invoice_id"=>"required|exists:supplierinvoices,id",
-          "product_id"=>"required|exists:products,id",
-          "supplier_code"=>"nullable|string|max:255",
-          "brand"=>"nullable|string|max:255",
-          "brand_code"=>"nullable|string|max:255",
-          "oe_code"=>"nullable|string|max:255",
-          "description"=>"nullable|string",
-          "qty"=>"required|integer",
-          "box_name"=>"nullable|string|max:255",
-          "purchase_price"=>"required|numeric",
-          "extra_cost"=>"nullable|numeric|default:0",
-          "amount"=>"nullable|numeric",
-          "additional_note"=>"nullable|string",
-          "status"=>"nullable|string|default:in_warehouse",
-          
+        try {
+            $validationRules = [
+              
+              "supplier_invoice_id"=>"required|exists:supplierinvoices,id",
+              "product_id"=>"required|exists:products,id",
+              "supplier_code"=>"nullable|string|max:255",
+              "brand"=>"nullable|string|max:255",
+              "brand_code"=>"nullable|string|max:255",
+              "oe_code"=>"nullable|string|max:255",
+              "description"=>"nullable|string",
+              "qty"=>"required|integer",
+              "box_name"=>"nullable|string|max:255",
+              "purchase_price"=>"required|numeric",
+              "extra_cost"=>"nullable|numeric",
+              "amount"=>"nullable|numeric",
+              "additional_note"=>"nullable|string",
+              "status"=>"nullable|string",
+              
 
-        ];
+            ];
 
-        $validation = Validator::make($request->all() , $validationRules);
-        if($validation->fails()){
-            return $this->sendError("Invalid Values", ['errors' => $validation->errors()]);
+            $validation = Validator::make($request->all() , $validationRules);
+            if($validation->fails()){
+                return $this->sendError("Invalid Values", ['errors' => $validation->errors()]);
+            }
+            $validated=$validation->validated();
+
+            // Set default values programmatically
+            if (!isset($validated['extra_cost'])) {
+                $validated['extra_cost'] = 0;
+            }
+            if (!isset($validated['status'])) {
+                $validated['status'] = 'in_warehouse';
+            }
+
+            
+            //file uploads
+
+            $supplierinvoiceitem = Supplierinvoiceitem::create($validated);
+            return $this->sendResponse($supplierinvoiceitem, "supplierinvoiceitem created succesfully");
+        } catch (\Exception $e) {
+            Log::error('Error creating supplierinvoiceitem: ' . $e->getMessage());
+            return $this->sendError('Error creating supplierinvoiceitem', ['error' => $e->getMessage()]);
         }
-        $validated=$validation->validated();
-
-
-
-        
-        //file uploads
-
-        $supplierinvoiceitem = Supplierinvoiceitem::create($validated);
-        return $this->sendResponse($supplierinvoiceitem, "supplierinvoiceitem created succesfully");
     }
 
     public function show($id)
@@ -110,54 +122,65 @@ class SupplierinvoiceitemController extends BaseController
 
     public function update(Request $request, $id)
     {
-        $supplierinvoiceitem = Supplierinvoiceitem::findOrFail($id);
-         $validationRules = [
-            //for update
+        try {
+            $supplierinvoiceitem = Supplierinvoiceitem::findOrFail($id);
+             $validationRules = [
+                //for update
 
-          
-          "supplier_invoice_id"=>"required|exists:supplierinvoices,id",
-          "product_id"=>"required|exists:products,id",
-          "supplier_code"=>"nullable|string|max:255",
-          "brand"=>"nullable|string|max:255",
-          "brand_code"=>"nullable|string|max:255",
-          "oe_code"=>"nullable|string|max:255",
-          "description"=>"nullable|string",
-          "qty"=>"required|integer",
-          "box_name"=>"nullable|string|max:255",
-          "purchase_price"=>"required|numeric",
-          "extra_cost"=>"nullable|numeric|default:0",
-          "amount"=>"nullable|numeric",
-          "additional_note"=>"nullable|string",
-          "status"=>"nullable|string|default:in_warehouse",
-          
-        ];
+              
+              "supplier_invoice_id"=>"required|exists:supplierinvoices,id",
+              "product_id"=>"required|exists:products,id",
+              "supplier_code"=>"nullable|string|max:255",
+              "brand"=>"nullable|string|max:255",
+              "brand_code"=>"nullable|string|max:255",
+              "oe_code"=>"nullable|string|max:255",
+              "description"=>"nullable|string",
+              "qty"=>"required|integer",
+              "box_name"=>"nullable|string|max:255",
+              "purchase_price"=>"required|numeric",
+              "extra_cost"=>"nullable|numeric",
+              "amount"=>"nullable|numeric",
+              "additional_note"=>"nullable|string",
+              "status"=>"nullable|string",
+              
+            ];
 
-        $validation = Validator::make($request->all() , $validationRules);
-        if($validation->fails()){
-            return $this->sendError("Invalid Values", ['errors' => $validation->errors()]);
+            $validation = Validator::make($request->all() , $validationRules);
+            if($validation->fails()){
+                return $this->sendError("Invalid Values", ['errors' => $validation->errors()]);
+            }
+            $validated=$validation->validated();
+
+            // Set default values programmatically
+            if (!isset($validated['extra_cost'])) {
+                $validated['extra_cost'] = 0;
+            }
+            if (!isset($validated['status'])) {
+                $validated['status'] = 'in_warehouse';
+            }
+
+            //file uploads update
+
+            $supplierinvoiceitem->update($validated);
+            return $this->sendResponse($supplierinvoiceitem, "supplierinvoiceitem updated successfully");
+        } catch (\Exception $e) {
+            Log::error('Error updating supplierinvoiceitem: ' . $e->getMessage());
+            return $this->sendError('Error updating supplierinvoiceitem', ['error' => $e->getMessage()]);
         }
-        $validated=$validation->validated();
-
-
-
-
-        //file uploads update
-
-        $supplierinvoiceitem->update($validated);
-        return $this->sendResponse($supplierinvoiceitem, "supplierinvoiceitem updated successfully");
     }
 
     public function destroy($id)
     {
-        $supplierinvoiceitem = Supplierinvoiceitem::findOrFail($id);
-        $supplierinvoiceitem->delete();
+        try {
+            $supplierinvoiceitem = Supplierinvoiceitem::findOrFail($id);
+            $supplierinvoiceitem->delete();
 
-
-
-
-
-        //delete files uploaded
-        return $this->sendResponse(1, "supplierinvoiceitem deleted succesfully");
+            //delete files uploaded
+            return $this->sendResponse(1, "supplierinvoiceitem deleted succesfully");
+        } catch (\Exception $e) {
+            Log::error('Error deleting supplierinvoiceitem: ' . $e->getMessage());
+            return $this->sendError('Error deleting supplierinvoiceitem', ['error' => $e->getMessage()]);
+        }
     }
 
     public function deleteFile($filePath) {

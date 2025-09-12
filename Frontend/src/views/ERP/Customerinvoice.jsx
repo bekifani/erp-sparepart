@@ -22,7 +22,7 @@ import Can from "@/helpers/PermissionChecker/index.js";
 import { useTranslation } from "react-i18next";
 import LoadingIcon from "@/components/Base/LoadingIcon/index.tsx";
 import FileUpload from "@/helpers/ui/FileUpload.jsx";
-import TomSelectSearch from "@/helpers/ui/Tomselect.jsx";
+import TomSelectSearch from "@/helpers/ui/TomSelector.jsx";
 import { useSelector } from "react-redux";
 import { ClassicEditor } from "@/components/Base/Ckeditor";
 
@@ -948,7 +948,11 @@ return (
       >
         {t("Customer Id")}
       </FormLabel>
-      <TomSelectSearch apiUrl={`${app_url}/api/search_customer`} setValue={setValue} variable="customer_id"/>
+      <TomSelectSearch 
+        apiUrl={`${app_url}/api/search_customer`} 
+        setValue={setValue} 
+        variable="customer_id"
+      />
       {errors.customer_id && (
         <div className="mt-2 text-danger">
           {typeof errors.customer_id.message === "string" &&
@@ -1536,7 +1540,11 @@ return (
       >
         {t("Created By")}
       </FormLabel>
-      <TomSelectSearch apiUrl={`${app_url}/api/search_created by`} setValue={setValue} variable="created_by"/>
+      <TomSelectSearch 
+        apiUrl={`${app_url}/api/search_user`} 
+        setValue={setValue} 
+        variable="created_by"
+      />
       {errors.created_by && (
         <div className="mt-2 text-danger">
           {typeof errors.created_by.message === "string" &&
@@ -1623,7 +1631,11 @@ return (
       >
         {t("Customer Id")}
       </FormLabel>
-      <TomSelectSearch apiUrl={`${app_url}/api/search_customer`} setValue={setValue} variable="customer_id"/>
+      <TomSelectSearch 
+        apiUrl={`${app_url}/api/search_customer`} 
+        setValue={setValue} 
+        variable="customer_id"
+      />
       {errors.customer_id && (
         <div className="mt-2 text-danger">
           {typeof errors.customer_id.message === "string" &&
@@ -2211,7 +2223,11 @@ return (
       >
         {t("Created By")}
       </FormLabel>
-      <TomSelectSearch apiUrl={`${app_url}/api/search_created by`} setValue={setValue} variable="created_by"/>
+      <TomSelectSearch 
+        apiUrl={`${app_url}/api/search_user`} 
+        setValue={setValue} 
+        variable="created_by"
+      />
       {errors.created_by && (
         <div className="mt-2 text-danger">
           {typeof errors.created_by.message === "string" &&

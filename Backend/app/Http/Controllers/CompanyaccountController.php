@@ -7,6 +7,7 @@ use App\Models\Companyaccount;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Facades\Log;
 class CompanyaccountController extends BaseController
 {
     protected $searchableColumns = ['trans_number', 'user_id', 'amount', 'invoice_number', 'payment_status', 'account_type_id', 'payment_note_id', 'picture_url', 'additional_note', 'balance'];
@@ -66,35 +67,43 @@ class CompanyaccountController extends BaseController
 
     public function store(Request $request)
     {
-        $validationRules = [
-          
-          "trans_number"=>"required|string|unique:companyaccounts,trans_number|max:50",
-          "user_id"=>"nullable|exists:users,id",
-          "amount"=>"required|numeric",
-          "invoice_number"=>"nullable|string|max:100",
-          "payment_status"=>"nullable|string|max:50",
-          "account_type_id"=>"nullable|exists:account_types,id",
-          "payment_note_id"=>"nullable|exists:payment_notes,id",
-          "picture_url"=>"nullable|string",
-          "additional_note"=>"nullable|string",
-          "balance"=>"nullable|numeric|default:0",
-          
+        try {
+            $validationRules = [
+              
+              "trans_number"=>"required|string|unique:companyaccounts,trans_number|max:50",
+              "user_id"=>"nullable|exists:users,id",
+              "amount"=>"required|numeric",
+              "invoice_number"=>"nullable|string|max:100",
+              "payment_status"=>"nullable|string|max:50",
+              "account_type_id"=>"nullable|exists:accounttypes,id",
+              "payment_note_id"=>"nullable|exists:paymentnotes,id",
+              "picture_url"=>"nullable|string",
+              "additional_note"=>"nullable|string",
+              "balance"=>"nullable|numeric",
+              
 
-        ];
+            ];
 
-        $validation = Validator::make($request->all() , $validationRules);
-        if($validation->fails()){
-            return $this->sendError("Invalid Values", ['errors' => $validation->errors()]);
+            $validation = Validator::make($request->all() , $validationRules);
+            if($validation->fails()){
+                return $this->sendError("Invalid Values", ['errors' => $validation->errors()]);
+            }
+            $validated=$validation->validated();
+
+            // Set default values programmatically
+            if (!isset($validated['balance'])) {
+                $validated['balance'] = 0;
+            }
+
+            
+            //file uploads
+
+            $companyaccount = Companyaccount::create($validated);
+            return $this->sendResponse($companyaccount, "companyaccount created succesfully");
+        } catch (\Exception $e) {
+            Log::error('CompanyaccountController store error: ' . $e->getMessage());
+            return $this->sendError("Error creating companyaccount", ['error' => $e->getMessage()]);
         }
-        $validated=$validation->validated();
-
-
-
-        
-        //file uploads
-
-        $companyaccount = Companyaccount::create($validated);
-        return $this->sendResponse($companyaccount, "companyaccount created succesfully");
     }
 
     public function show($id)
@@ -106,50 +115,63 @@ class CompanyaccountController extends BaseController
 
     public function update(Request $request, $id)
     {
-        $companyaccount = Companyaccount::findOrFail($id);
-         $validationRules = [
-            //for update
+        try {
+            $companyaccount = Companyaccount::findOrFail($id);
+             $validationRules = [
+                //for update
 
-          
-          "trans_number"=>"required|string|unique:companyaccounts,trans_number|max:50",
-          "user_id"=>"nullable|exists:users,id",
-          "amount"=>"required|numeric",
-          "invoice_number"=>"nullable|string|max:100",
-          "payment_status"=>"nullable|string|max:50",
-          "account_type_id"=>"nullable|exists:account_types,id",
-          "payment_note_id"=>"nullable|exists:payment_notes,id",
-          "picture_url"=>"nullable|string",
-          "additional_note"=>"nullable|string",
-          "balance"=>"nullable|numeric|default:0",
-          
-        ];
+              
+              "trans_number"=>"required|string|unique:companyaccounts,trans_number," . $id . "|max:50",
+              "user_id"=>"nullable|exists:users,id",
+              "amount"=>"required|numeric",
+              "invoice_number"=>"nullable|string|max:100",
+              "payment_status"=>"nullable|string|max:50",
+              "account_type_id"=>"nullable|exists:accounttypes,id",
+              "payment_note_id"=>"nullable|exists:paymentnotes,id",
+              "picture_url"=>"nullable|string",
+              "additional_note"=>"nullable|string",
+              "balance"=>"nullable|numeric",
+              
+            ];
 
-        $validation = Validator::make($request->all() , $validationRules);
-        if($validation->fails()){
-            return $this->sendError("Invalid Values", ['errors' => $validation->errors()]);
+            $validation = Validator::make($request->all() , $validationRules);
+            if($validation->fails()){
+                return $this->sendError("Invalid Values", ['errors' => $validation->errors()]);
+            }
+            $validated=$validation->validated();
+
+            // Set default values programmatically
+            if (!isset($validated['balance'])) {
+                $validated['balance'] = 0;
+            }
+
+
+            //file uploads update
+
+            $companyaccount->update($validated);
+            return $this->sendResponse($companyaccount, "companyaccount updated successfully");
+        } catch (\Exception $e) {
+            Log::error('CompanyaccountController update error: ' . $e->getMessage());
+            return $this->sendError("Error updating companyaccount", ['error' => $e->getMessage()]);
         }
-        $validated=$validation->validated();
-
-
-
-
-        //file uploads update
-
-        $companyaccount->update($validated);
-        return $this->sendResponse($companyaccount, "companyaccount updated successfully");
     }
 
     public function destroy($id)
     {
-        $companyaccount = Companyaccount::findOrFail($id);
-        $companyaccount->delete();
+        try {
+            $companyaccount = Companyaccount::findOrFail($id);
+            $companyaccount->delete();
 
 
 
 
 
-        //delete files uploaded
-        return $this->sendResponse(1, "companyaccount deleted succesfully");
+            //delete files uploaded
+            return $this->sendResponse(1, "companyaccount deleted succesfully");
+        } catch (\Exception $e) {
+            Log::error('CompanyaccountController destroy error: ' . $e->getMessage());
+            return $this->sendError("Error deleting companyaccount", ['error' => $e->getMessage()]);
+        }
     }
 
     public function deleteFile($filePath) {

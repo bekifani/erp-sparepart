@@ -7,6 +7,7 @@ use App\Models\Packinglistbox;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Facades\Log;
 class PackinglistboxController extends BaseController
 {
     protected $searchableColumns = ['packing_list_id', 'box_no', 'net_weight', 'gross_weight', 'volume', 'number_of_products', 'additional_note'];
@@ -66,32 +67,37 @@ class PackinglistboxController extends BaseController
 
     public function store(Request $request)
     {
-        $validationRules = [
-          
-          "packing_list_id"=>"required|exists:packing_lists,id",
-          "box_no"=>"required|string|max:255",
-          "net_weight"=>"nullable|numeric",
-          "gross_weight"=>"nullable|numeric",
-          "volume"=>"nullable|numeric",
-          "number_of_products"=>"nullable|integer",
-          "additional_note"=>"nullable|string",
-          
+        try {
+            $validationRules = [
+              
+              "packing_list_id"=>"required|exists:packinglists,id",
+              "box_no"=>"required|string|max:255",
+              "net_weight"=>"nullable|numeric",
+              "gross_weight"=>"nullable|numeric",
+              "volume"=>"nullable|numeric",
+              "number_of_products"=>"nullable|integer",
+              "additional_note"=>"nullable|string",
+              
 
-        ];
+            ];
 
-        $validation = Validator::make($request->all() , $validationRules);
-        if($validation->fails()){
-            return $this->sendError("Invalid Values", ['errors' => $validation->errors()]);
+            $validation = Validator::make($request->all() , $validationRules);
+            if($validation->fails()){
+                return $this->sendError("Invalid Values", ['errors' => $validation->errors()]);
+            }
+            $validated=$validation->validated();
+
+
+
+            
+            //file uploads
+
+            $packinglistbox = Packinglistbox::create($validated);
+            return $this->sendResponse($packinglistbox, "packinglistbox created succesfully");
+        } catch (\Exception $e) {
+            Log::error('PackinglistboxController store error: ' . $e->getMessage());
+            return $this->sendError("Error creating packinglistbox", ['error' => $e->getMessage()]);
         }
-        $validated=$validation->validated();
-
-
-
-        
-        //file uploads
-
-        $packinglistbox = Packinglistbox::create($validated);
-        return $this->sendResponse($packinglistbox, "packinglistbox created succesfully");
     }
 
     public function show($id)
@@ -103,34 +109,39 @@ class PackinglistboxController extends BaseController
 
     public function update(Request $request, $id)
     {
-        $packinglistbox = Packinglistbox::findOrFail($id);
-         $validationRules = [
-            //for update
+        try {
+            $packinglistbox = Packinglistbox::findOrFail($id);
+             $validationRules = [
+                //for update
 
-          
-          "packing_list_id"=>"required|exists:packing_lists,id",
-          "box_no"=>"required|string|max:255",
-          "net_weight"=>"nullable|numeric",
-          "gross_weight"=>"nullable|numeric",
-          "volume"=>"nullable|numeric",
-          "number_of_products"=>"nullable|integer",
-          "additional_note"=>"nullable|string",
-          
-        ];
+              
+              "packing_list_id"=>"required|exists:packinglists,id",
+              "box_no"=>"required|string|max:255",
+              "net_weight"=>"nullable|numeric",
+              "gross_weight"=>"nullable|numeric",
+              "volume"=>"nullable|numeric",
+              "number_of_products"=>"nullable|integer",
+              "additional_note"=>"nullable|string",
+              
+            ];
 
-        $validation = Validator::make($request->all() , $validationRules);
-        if($validation->fails()){
-            return $this->sendError("Invalid Values", ['errors' => $validation->errors()]);
+            $validation = Validator::make($request->all() , $validationRules);
+            if($validation->fails()){
+                return $this->sendError("Invalid Values", ['errors' => $validation->errors()]);
+            }
+            $validated=$validation->validated();
+
+
+
+
+            //file uploads update
+
+            $packinglistbox->update($validated);
+            return $this->sendResponse($packinglistbox, "packinglistbox updated successfully");
+        } catch (\Exception $e) {
+            Log::error('PackinglistboxController update error: ' . $e->getMessage());
+            return $this->sendError("Error updating packinglistbox", ['error' => $e->getMessage()]);
         }
-        $validated=$validation->validated();
-
-
-
-
-        //file uploads update
-
-        $packinglistbox->update($validated);
-        return $this->sendResponse($packinglistbox, "packinglistbox updated successfully");
     }
 
     public function destroy($id)

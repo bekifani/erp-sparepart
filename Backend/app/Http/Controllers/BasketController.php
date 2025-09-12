@@ -7,6 +7,8 @@ use App\Models\Basket;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\DB;
 class BasketController extends BaseController
 {
     protected $searchableColumns = ['basket_number', 'customer_id', 'total_qty', 'total_weight', 'total_volume', 'total_amount', 'invoice_language', 'status', 'first_edit_date', 'last_edit_date', 'additional_note'];
@@ -66,36 +68,42 @@ class BasketController extends BaseController
 
     public function store(Request $request)
     {
-        $validationRules = [
-          
-          "basket_number"=>"required|string|unique:baskets,basket_number|max:255",
-          "customer_id"=>"required|exists:customers,id",
-          "total_qty"=>"nullable|integer",
-          "total_weight"=>"nullable|numeric",
-          "total_volume"=>"nullable|numeric",
-          "total_amount"=>"nullable|numeric",
-          "invoice_language"=>"nullable|string|default:en",
-          "status"=>"nullable|string|default:draft",
-          "first_edit_date"=>"nullable|date",
-          "last_edit_date"=>"nullable|date",
-          "additional_note"=>"nullable|string",
-          
+        try {
+            $validationRules = [
+              
+              "basket_number"=>"required|string|unique:baskets,basket_number|max:255",
+              "customer_id"=>"nullable|exists:customers,id",
+              "total_qty"=>"nullable|integer",
+              "total_weight"=>"nullable|numeric",
+              "total_volume"=>"nullable|numeric",
+              "total_amount"=>"nullable|numeric",
+              "invoice_language"=>"nullable|string",
+              "status"=>"nullable|string",
+              "first_edit_date"=>"nullable|date",
+              "last_edit_date"=>"nullable|date",
+              "additional_note"=>"nullable|string",
+              
 
-        ];
+            ];
 
-        $validation = Validator::make($request->all() , $validationRules);
-        if($validation->fails()){
-            return $this->sendError("Invalid Values", ['errors' => $validation->errors()]);
+            $validation = Validator::make($request->all() , $validationRules);
+            if($validation->fails()){
+                return $this->sendError("Invalid Values", ['errors' => $validation->errors()]);
+            }
+            $validated=$validation->validated();
+
+            // Set default values if not provided
+            $validated['invoice_language'] = $validated['invoice_language'] ?? 'en';
+            $validated['status'] = $validated['status'] ?? 'draft';
+            $validated['first_edit_date'] = $validated['first_edit_date'] ?? now();
+            $validated['last_edit_date'] = $validated['last_edit_date'] ?? now();
+
+            $basket = Basket::create($validated);
+            return $this->sendResponse($basket, "basket created succesfully");
+        } catch (\Throwable $e) {
+            Log::error('Basket@store failed: '.$e->getMessage(), ['trace' => $e->getTraceAsString()]);
+            return $this->sendError('Failed to create basket', ['message' => $e->getMessage()], 500);
         }
-        $validated=$validation->validated();
-
-
-
-        
-        //file uploads
-
-        $basket = Basket::create($validated);
-        return $this->sendResponse($basket, "basket created succesfully");
     }
 
     public function show($id)
@@ -107,51 +115,55 @@ class BasketController extends BaseController
 
     public function update(Request $request, $id)
     {
-        $basket = Basket::findOrFail($id);
-         $validationRules = [
-            //for update
+        try {
+            $basket = Basket::findOrFail($id);
+             $validationRules = [
+                //for update
 
-          
-          "basket_number"=>"required|string|unique:baskets,basket_number|max:255",
-          "customer_id"=>"required|exists:customers,id",
-          "total_qty"=>"nullable|integer",
-          "total_weight"=>"nullable|numeric",
-          "total_volume"=>"nullable|numeric",
-          "total_amount"=>"nullable|numeric",
-          "invoice_language"=>"nullable|string|default:en",
-          "status"=>"nullable|string|default:draft",
-          "first_edit_date"=>"nullable|date",
-          "last_edit_date"=>"nullable|date",
-          "additional_note"=>"nullable|string",
-          
-        ];
+              
+              "basket_number"=>"required|string|unique:baskets,basket_number," . $id . "|max:255",
+              "customer_id"=>"required|exists:customers,id",
+              "total_qty"=>"nullable|integer",
+              "total_weight"=>"nullable|numeric",
+              "total_volume"=>"nullable|numeric",
+              "total_amount"=>"nullable|numeric",
+              "invoice_language"=>"nullable|string",
+              "status"=>"nullable|string",
+              "first_edit_date"=>"nullable|date",
+              "last_edit_date"=>"nullable|date",
+              "additional_note"=>"nullable|string",
+              
+            ];
 
-        $validation = Validator::make($request->all() , $validationRules);
-        if($validation->fails()){
-            return $this->sendError("Invalid Values", ['errors' => $validation->errors()]);
+            $validation = Validator::make($request->all() , $validationRules);
+            if($validation->fails()){
+                return $this->sendError("Invalid Values", ['errors' => $validation->errors()]);
+            }
+            $validated=$validation->validated();
+
+            // Update last_edit_date
+            $validated['last_edit_date'] = now();
+
+            $basket->update($validated);
+            return $this->sendResponse($basket, "basket updated successfully");
+        } catch (\Throwable $e) {
+            Log::error('Basket@update failed: '.$e->getMessage(), ['trace' => $e->getTraceAsString()]);
+            return $this->sendError('Failed to update basket', ['message' => $e->getMessage()], 500);
         }
-        $validated=$validation->validated();
-
-
-
-
-        //file uploads update
-
-        $basket->update($validated);
-        return $this->sendResponse($basket, "basket updated successfully");
     }
 
     public function destroy($id)
     {
-        $basket = Basket::findOrFail($id);
-        $basket->delete();
+        try {
+            $basket = Basket::findOrFail($id);
+            $basket->delete();
 
-
-
-
-
-        //delete files uploaded
-        return $this->sendResponse(1, "basket deleted succesfully");
+            //delete files uploaded
+            return $this->sendResponse(1, "basket deleted succesfully");
+        } catch (\Throwable $e) {
+            Log::error('Basket@destroy failed: '.$e->getMessage(), ['trace' => $e->getTraceAsString()]);
+            return $this->sendError('Failed to delete basket', ['message' => $e->getMessage()], 500);
+        }
     }
 
     public function deleteFile($filePath) {

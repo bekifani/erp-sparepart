@@ -1,4 +1,5 @@
 
+
 import "@/assets/css/vendors/tabulator.css";
 import Lucide from "@/components/Base/Lucide";
 import ReactDOMServer from 'react-dom/server';
@@ -763,7 +764,15 @@ return (
       >
         {t("Problem Id")}
       </FormLabel>
-      <TomSelectSearch apiUrl={`${app_url}/api/search_problem`} setValue={setValue} variable="problem_id"/>
+      <TomSelectSearch 
+        apiUrl={`${app_url}/api/search_problem`} 
+        setValue={setValue} 
+        variable="problem_id"
+        customDataMapping={(item) => ({
+          value: item.id,
+          text: item.problem_number || item.problem_type || item.solution_type || String(item.id)
+        })}
+      />
       {errors.problem_id && (
         <div className="mt-2 text-danger">
           {typeof errors.problem_id.message === "string" &&
@@ -1126,7 +1135,15 @@ return (
       >
         {t("Problem Id")}
       </FormLabel>
-      <TomSelectSearch apiUrl={`${app_url}/api/search_problem`} setValue={setValue} variable="problem_id"/>
+      <TomSelectSearch 
+        apiUrl={`${app_url}/api/search_problem`} 
+        setValue={setValue} 
+        variable="problem_id"
+        customDataMapping={(item) => ({
+          value: item.id,
+          text: item.problem_number || item.problem_type || item.solution_type || String(item.id)
+        })}
+      />
       {errors.problem_id && (
         <div className="mt-2 text-danger">
           {typeof errors.problem_id.message === "string" &&

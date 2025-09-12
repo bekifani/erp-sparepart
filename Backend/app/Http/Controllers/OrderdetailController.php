@@ -74,7 +74,7 @@ class OrderdetailController extends BaseController
           "qty"=>"required|integer",
           "line_total"=>"nullable|numeric",
           "arrival_time"=>"required|date",
-          "status_id"=>"required|exists:product_statuses,id",
+          "status_id"=>"required|exists:productstatuses,id",
           "additional_note"=>"nullable|string",
           
 
@@ -115,7 +115,7 @@ class OrderdetailController extends BaseController
           "qty"=>"required|integer",
           "line_total"=>"nullable|numeric",
           "arrival_time"=>"required|date",
-          "status_id"=>"required|exists:product_statuses,id",
+          "status_id"=>"required|exists:productstatuses,id",
           "additional_note"=>"nullable|string",
           
         ];

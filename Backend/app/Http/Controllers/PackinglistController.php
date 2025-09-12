@@ -78,7 +78,7 @@ class PackinglistController extends BaseController
           "order_date"=>"required|date",
           "order_period"=>"required|date",
           "shipping_date"=>"required|date",
-          "status_id"=>"required|exists:product_statuses,id",
+          "status_id"=>"required|exists:productstatuses,id",
           "additional_note"=>"nullable|string",
           
 
@@ -123,7 +123,7 @@ class PackinglistController extends BaseController
           "order_date"=>"required|date",
           "order_period"=>"required|date",
           "shipping_date"=>"required|date",
-          "status_id"=>"required|exists:product_statuses,id",
+          "status_id"=>"required|exists:productstatuses,id",
           "additional_note"=>"nullable|string",
           
         ];

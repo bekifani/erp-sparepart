@@ -747,7 +747,15 @@ return (
       >
         {t("Basket Id")}
       </FormLabel>
-      <TomSelectSearch apiUrl={`${app_url}/api/search_basket`} setValue={setValue} variable="basket_id"/>
+      <TomSelectSearch 
+        apiUrl={`${app_url}/api/search_basket`} 
+        setValue={setValue} 
+        variable="basket_id"
+        customDataMapping={(item) => ({
+          value: item.id,
+          text: item.basket_number || item.customer_name || item.shipping_mark || String(item.id)
+        })}
+      />
       {errors.basket_id && (
         <div className="mt-2 text-danger">
           {typeof errors.basket_id.message === "string" &&
@@ -909,7 +917,15 @@ return (
       >
         {t("File Id")}
       </FormLabel>
-      <TomSelectSearch apiUrl={`${app_url}/api/search_file`} setValue={setValue} variable="file_id"/>
+      <TomSelectSearch 
+        apiUrl={`${app_url}/api/search_basketfile`} 
+        setValue={setValue} 
+        variable="file_id"
+        customDataMapping={(item) => ({
+          value: item.id,
+          text: item.file || item.name || item.filename || String(item.id)
+        })}
+      />
       {errors.file_id && (
         <div className="mt-2 text-danger">
           {typeof errors.file_id.message === "string" &&
@@ -1074,7 +1090,15 @@ return (
       >
         {t("Basket Id")}
       </FormLabel>
-      <TomSelectSearch apiUrl={`${app_url}/api/search_basket`} setValue={setValue} variable="basket_id"/>
+      <TomSelectSearch 
+        apiUrl={`${app_url}/api/search_basket`} 
+        setValue={setValue} 
+        variable="basket_id"
+        customDataMapping={(item) => ({
+          value: item.id,
+          text: item.basket_number || item.customer_name || item.shipping_mark || String(item.id)
+        })}
+      />
       {errors.basket_id && (
         <div className="mt-2 text-danger">
           {typeof errors.basket_id.message === "string" &&
@@ -1236,7 +1260,15 @@ return (
       >
         {t("File Id")}
       </FormLabel>
-      <TomSelectSearch apiUrl={`${app_url}/api/search_file`} setValue={setValue} variable="file_id"/>
+      <TomSelectSearch 
+        apiUrl={`${app_url}/api/search_basketfile`} 
+        setValue={setValue} 
+        variable="file_id"
+        customDataMapping={(item) => ({
+          value: item.id,
+          text: item.file || item.name || item.filename || String(item.id)
+        })}
+      />
       {errors.file_id && (
         <div className="mt-2 text-danger">
           {typeof errors.file_id.message === "string" &&

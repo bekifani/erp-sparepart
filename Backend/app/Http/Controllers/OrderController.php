@@ -7,6 +7,7 @@ use App\Models\Order;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Facades\Log;
 class OrderController extends BaseController
 {
     protected $searchableColumns = ['customer_id', 'invoice_no', 'total_qty', 'total_weight', 'total_volume', 'subtotal', 'discount', 'extra_expenses', 'total_amount', 'deposit', 'customer_debt', 'balance', 'order_date', 'expected_date', 'shipping_date', 'status_id', 'invoice_language', 'company_id', 'internal_note', 'customer_note'];
@@ -66,45 +67,48 @@ class OrderController extends BaseController
 
     public function store(Request $request)
     {
-        $validationRules = [
-          
-          "customer_id"=>"required|exists:customers,id",
-          "invoice_no"=>"required|string|unique:orders,invoice_no|max:255",
-          "total_qty"=>"nullable|integer",
-          "total_weight"=>"nullable|numeric",
-          "total_volume"=>"nullable|numeric",
-          "subtotal"=>"nullable|numeric",
-          "discount"=>"nullable|numeric|default:0",
-          "extra_expenses"=>"nullable|numeric|default:0",
-          "total_amount"=>"nullable|numeric",
-          "deposit"=>"nullable|numeric|default:0",
-          "customer_debt"=>"nullable|numeric",
-          "balance"=>"nullable|numeric",
-          "order_date"=>"required|date",
-          "expected_date"=>"nullable|date",
-          "shipping_date"=>"nullable|date",
-          "status_id"=>"required|exists:product_statuses,id",
-          "invoice_language"=>"nullable|string|default:en",
-          "company_id"=>"required|exists:compans,id",
-          "internal_note"=>"nullable|string",
-          "customer_note"=>"nullable|string",
-          
+        try {
+            $validationRules = [
+              "customer_id"=>"required|exists:customers,id",
+              "invoice_no"=>"required|string|unique:orders,invoice_no|max:255",
+              "total_qty"=>"nullable|integer",
+              "total_weight"=>"nullable|numeric",
+              "total_volume"=>"nullable|numeric",
+              "subtotal"=>"nullable|numeric",
+              "discount"=>"nullable|numeric",
+              "extra_expenses"=>"nullable|numeric",
+              "total_amount"=>"nullable|numeric",
+              "deposit"=>"nullable|numeric",
+              "customer_debt"=>"nullable|numeric",
+              "balance"=>"nullable|numeric",
+              "order_date"=>"required|date",
+              "expected_date"=>"nullable|date",
+              "shipping_date"=>"nullable|date",
+              "status_id"=>"required|exists:productstatuses,id",
+              "invoice_language"=>"nullable|string",
+              "company_id"=>"required|exists:compans,id",
+              "internal_note"=>"nullable|string",
+              "customer_note"=>"nullable|string",
+            ];
 
-        ];
+            $validation = Validator::make($request->all() , $validationRules);
+            if($validation->fails()){
+                return $this->sendError("Invalid Values", ['errors' => $validation->errors()]);
+            }
+            $validated = $validation->validated();
 
-        $validation = Validator::make($request->all() , $validationRules);
-        if($validation->fails()){
-            return $this->sendError("Invalid Values", ['errors' => $validation->errors()]);
+            // Set default values
+            $validated['discount'] = $validated['discount'] ?? 0;
+            $validated['extra_expenses'] = $validated['extra_expenses'] ?? 0;
+            $validated['deposit'] = $validated['deposit'] ?? 0;
+            $validated['invoice_language'] = $validated['invoice_language'] ?? 'en';
+
+            $order = Order::create($validated);
+            return $this->sendResponse($order, "order created successfully");
+        } catch (\Exception $e) {
+            Log::error('Error creating order: ' . $e->getMessage());
+            return $this->sendError("Error creating order", ['error' => $e->getMessage()]);
         }
-        $validated=$validation->validated();
-
-
-
-        
-        //file uploads
-
-        $order = Order::create($validated);
-        return $this->sendResponse($order, "order created succesfully");
     }
 
     public function show($id)
@@ -116,60 +120,55 @@ class OrderController extends BaseController
 
     public function update(Request $request, $id)
     {
-        $order = Order::findOrFail($id);
-         $validationRules = [
-            //for update
+        try {
+            $order = Order::findOrFail($id);
+            $validationRules = [
+              "customer_id"=>"required|exists:customers,id",
+              "invoice_no"=>"required|string|unique:orders,invoice_no," . $id . "|max:255",
+              "total_qty"=>"nullable|integer",
+              "total_weight"=>"nullable|numeric",
+              "total_volume"=>"nullable|numeric",
+              "subtotal"=>"nullable|numeric",
+              "discount"=>"nullable|numeric",
+              "extra_expenses"=>"nullable|numeric",
+              "total_amount"=>"nullable|numeric",
+              "deposit"=>"nullable|numeric",
+              "customer_debt"=>"nullable|numeric",
+              "balance"=>"nullable|numeric",
+              "order_date"=>"required|date",
+              "expected_date"=>"nullable|date",
+              "shipping_date"=>"nullable|date",
+              "status_id"=>"required|exists:productstatuses,id",
+              "invoice_language"=>"nullable|string",
+              "company_id"=>"required|exists:compans,id",
+              "internal_note"=>"nullable|string",
+              "customer_note"=>"nullable|string",
+            ];
 
-          
-          "customer_id"=>"required|exists:customers,id",
-          "invoice_no"=>"required|string|unique:orders,invoice_no|max:255",
-          "total_qty"=>"nullable|integer",
-          "total_weight"=>"nullable|numeric",
-          "total_volume"=>"nullable|numeric",
-          "subtotal"=>"nullable|numeric",
-          "discount"=>"nullable|numeric|default:0",
-          "extra_expenses"=>"nullable|numeric|default:0",
-          "total_amount"=>"nullable|numeric",
-          "deposit"=>"nullable|numeric|default:0",
-          "customer_debt"=>"nullable|numeric",
-          "balance"=>"nullable|numeric",
-          "order_date"=>"required|date",
-          "expected_date"=>"nullable|date",
-          "shipping_date"=>"nullable|date",
-          "status_id"=>"required|exists:product_statuses,id",
-          "invoice_language"=>"nullable|string|default:en",
-          "company_id"=>"required|exists:compans,id",
-          "internal_note"=>"nullable|string",
-          "customer_note"=>"nullable|string",
-          
-        ];
+            $validation = Validator::make($request->all() , $validationRules);
+            if($validation->fails()){
+                return $this->sendError("Invalid Values", ['errors' => $validation->errors()]);
+            }
+            $validated = $validation->validated();
 
-        $validation = Validator::make($request->all() , $validationRules);
-        if($validation->fails()){
-            return $this->sendError("Invalid Values", ['errors' => $validation->errors()]);
+            $order->update($validated);
+            return $this->sendResponse($order, "order updated successfully");
+        } catch (\Exception $e) {
+            Log::error('Error updating order: ' . $e->getMessage());
+            return $this->sendError("Error updating order", ['error' => $e->getMessage()]);
         }
-        $validated=$validation->validated();
-
-
-
-
-        //file uploads update
-
-        $order->update($validated);
-        return $this->sendResponse($order, "order updated successfully");
     }
 
     public function destroy($id)
     {
-        $order = Order::findOrFail($id);
-        $order->delete();
-
-
-
-
-
-        //delete files uploaded
-        return $this->sendResponse(1, "order deleted succesfully");
+        try {
+            $order = Order::findOrFail($id);
+            $order->delete();
+            return $this->sendResponse(1, "order deleted successfully");
+        } catch (\Exception $e) {
+            Log::error('Error deleting order: ' . $e->getMessage());
+            return $this->sendError("Error deleting order", ['error' => $e->getMessage()]);
+        }
     }
 
     public function deleteFile($filePath) {
