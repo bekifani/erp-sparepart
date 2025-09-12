@@ -6,6 +6,9 @@ use Illuminate\Database\Seeder;
 use App\Models\User;
 use Spatie\Permission\Models\Role;
 use Spatie\Permission\Models\Permission;
+use Spatie\Permission\Exceptions\PermissionAlreadyExists;
+use Spatie\Permission\Exceptions\RoleAlreadyExists;
+
 class PermissionSeeder extends Seeder
 {
     public function run()
@@ -99,9 +102,6 @@ class PermissionSeeder extends Seeder
 
            //Exchangerate Permissions list 
              'exchangerate-list', 'exchangerate-create', 'exchangerate-edit', 'exchangerate-delete', 
-
-           //Compan Permissions list 
-             'compan-list', 'compan-create', 'compan-edit', 'compan-delete', 
 
            //Basket Permissions list 
              'basket-list', 'basket-create', 'basket-edit', 'basket-delete', 
@@ -221,8 +221,10 @@ class PermissionSeeder extends Seeder
                     'guard_name' => 'api'
                 ]);
               }
+            } catch (PermissionAlreadyExists $e) {
+                // Permission already exists, continue
             } catch (Exception $e) {
-                
+                // Handle other exceptions
             }
         }
         foreach($roles as $role){
@@ -233,8 +235,10 @@ class PermissionSeeder extends Seeder
                     'guard_name' => 'api'
                 ]);
               }
+            } catch (RoleAlreadyExists $e) {
+                // Role already exists, continue
             } catch (Exception $e) {
-                
+                // Handle other exceptions
             }
         }
         $admin = Role::where('name', 'Admin')->first();
