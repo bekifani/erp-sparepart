@@ -27,6 +27,12 @@ function OtherImages() {
   const fetchOtherImages = async () => {
     try {
       setLoading(true);
+      console.log('🔄 Fetching other images from:', `${app_url}/api/images/other-images`);
+      console.log('📋 Request headers:', {
+        'Authorization': `Bearer ${localStorage.getItem('token') ? '***TOKEN***' : 'NO_TOKEN'}`,
+        'Content-Type': 'application/json',
+      });
+      
       const response = await fetch(`${app_url}/api/images/other-images`, {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`,
@@ -34,15 +40,30 @@ function OtherImages() {
         },
       });
       
+      console.log('📡 Response status:', response.status);
+      console.log('📡 Response headers:', Object.fromEntries(response.headers.entries()));
+      
       if (response.ok) {
         const data = await response.json();
+        console.log('✅ Other images data received:', data);
+        console.log('📊 Number of images:', data.length);
         setImages(data);
         setFilteredImages(data);
       } else {
-        console.error('Failed to fetch other images');
+        const errorText = await response.text();
+        console.error('❌ Failed to fetch other images');
+        console.error('📄 Response status:', response.status);
+        console.error('📄 Response text:', errorText);
+        try {
+          const errorJson = JSON.parse(errorText);
+          console.error('📄 Error JSON:', errorJson);
+        } catch (e) {
+          console.error('📄 Could not parse error as JSON');
+        }
       }
     } catch (error) {
-      console.error('Error fetching other images:', error);
+      console.error('💥 Network/JS Error fetching other images:', error);
+      console.error('💥 Error stack:', error.stack);
     } finally {
       setLoading(false);
     }

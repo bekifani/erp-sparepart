@@ -201,6 +201,8 @@ class ImageController extends Controller
     {
         try {
             $images = collect();
+            
+            Log::info('Starting to fetch other images');
 
             // Get images from customers table
             try {
@@ -208,8 +210,11 @@ class ImageController extends Controller
                     ->select('id', 'name_surname as name', 'email', 'image', 'created_at')
                     ->whereNotNull('image')
                     ->where('image', '!=', '')
-                    ->get()
-                    ->map(function ($item) {
+                    ->get();
+                    
+                Log::info('Customer images found: ' . $customerImages->count());
+                
+                $customerImages = $customerImages->map(function ($item) {
                         return [
                             'id' => $item->id,
                             'name' => $item->name ?? 'N/A',
@@ -222,15 +227,15 @@ class ImageController extends Controller
                     });
                 $images = $images->merge($customerImages);
             } catch (\Exception $e) {
-                Log::warning('Could not fetch customer images: ' . $e->getMessage());
+                Log::error('Could not fetch customer images: ' . $e->getMessage());
             }
 
             // Get images from suppliers table
             try {
                 $supplierImages = DB::table('suppliers')
-                    ->select('id', 'company_name as name', 'email', 'images as image', 'created_at')
-                    ->whereNotNull('images')
-                    ->where('images', '!=', '')
+                    ->select('id', 'name_surname as name', 'email', 'image', 'created_at')
+                    ->whereNotNull('image')
+                    ->where('image', '!=', '')
                     ->get()
                     ->map(function ($item) {
                         return [
@@ -248,12 +253,13 @@ class ImageController extends Controller
                 Log::warning('Could not fetch supplier images: ' . $e->getMessage());
             }
 
-            // Get images from employees table
+            // Get images from supplier_images table
             try {
-                $employeeImages = DB::table('employees')
-                    ->select('id', 'name_surname as name', 'email', 'image', 'created_at')
-                    ->whereNotNull('image')
-                    ->where('image', '!=', '')
+                $supplierImageFiles = DB::table('supplier_images')
+                    ->join('suppliers', 'supplier_images.supplier_id', '=', 'suppliers.id')
+                    ->select('supplier_images.id', 'suppliers.company_name as name', 'suppliers.email', 'supplier_images.image', 'supplier_images.created_at')
+                    ->whereNotNull('supplier_images.image')
+                    ->where('supplier_images.image', '!=', '')
                     ->get()
                     ->map(function ($item) {
                         return [
@@ -261,7 +267,30 @@ class ImageController extends Controller
                             'name' => $item->name ?? 'N/A',
                             'email' => $item->email ?? 'N/A',
                             'image' => $item->image,
-                            'image_type' => 'Employee Image',
+                            'image_type' => 'Supplier Gallery Image',
+                            'source_table' => 'supplier_images',
+                            'created_at' => $item->created_at
+                        ];
+                    });
+                $images = $images->merge($supplierImageFiles);
+            } catch (\Exception $e) {
+                Log::warning('Could not fetch supplier gallery images: ' . $e->getMessage());
+            }
+
+            // Get images from employees table
+            try {
+                $employeeImages = DB::table('employees')
+                    ->select('id', 'first_name', 'last_name', 'email', 'photo as image', 'created_at')
+                    ->whereNotNull('photo')
+                    ->where('photo', '!=', '')
+                    ->get()
+                    ->map(function ($item) {
+                        return [
+                            'id' => $item->id,
+                            'name' => trim($item->first_name . ' ' . $item->last_name),
+                            'email' => $item->email ?? 'N/A',
+                            'image' => $item->image,
+                            'image_type' => 'Employee Photo',
                             'source_table' => 'employees',
                             'created_at' => $item->created_at
                         ];
@@ -273,7 +302,7 @@ class ImageController extends Controller
 
             // Get images from compans table
             try {
-                $companImages = DB::table('compans')
+                $companyLogos = DB::table('compans')
                     ->select('id', 'company_name as name', 'email', 'logo as image', 'created_at')
                     ->whereNotNull('logo')
                     ->where('logo', '!=', '')
@@ -289,13 +318,117 @@ class ImageController extends Controller
                             'created_at' => $item->created_at
                         ];
                     });
-                $images = $images->merge($companImages);
+                $images = $images->merge($companyLogos);
             } catch (\Exception $e) {
-                Log::warning('Could not fetch company images: ' . $e->getMessage());
+                Log::warning('Could not fetch company logos: ' . $e->getMessage());
+            }
+
+            // Get images from sectors table
+            try {
+                $sectorPhotos = DB::table('sectors')
+                    ->select('id', 'sector_name as name', 'photo as image', 'created_at')
+                    ->whereNotNull('photo')
+                    ->where('photo', '!=', '')
+                    ->get()
+                    ->map(function ($item) {
+                        return [
+                            'id' => $item->id,
+                            'name' => $item->name ?? 'N/A',
+                            'email' => 'N/A',
+                            'image' => $item->image,
+                            'image_type' => 'Sector Photo',
+                            'source_table' => 'sectors',
+                            'created_at' => $item->created_at
+                        ];
+                    });
+                $images = $images->merge($sectorPhotos);
+            } catch (\Exception $e) {
+                Log::warning('Could not fetch sector photos: ' . $e->getMessage());
+            }
+
+            // Get images from productimages table
+            try {
+                $productImageFiles = DB::table('productimages')
+                    ->join('product_information', 'productimages.product_information_id', '=', 'product_information.id')
+                    ->select('productimages.id', 'product_information.product_code as name', 'productimages.image_url as image', 'productimages.created_at')
+                    ->whereNotNull('productimages.image_url')
+                    ->where('productimages.image_url', '!=', '')
+                    ->get()
+                    ->map(function ($item) {
+                        return [
+                            'id' => $item->id,
+                            'name' => $item->name ?? 'N/A',
+                            'email' => 'N/A',
+                            'image' => $item->image,
+                            'image_type' => 'Product Gallery Image',
+                            'source_table' => 'productimages',
+                            'created_at' => $item->created_at
+                        ];
+                    });
+                $images = $images->merge($productImageFiles);
+            } catch (\Exception $e) {
+                Log::warning('Could not fetch product gallery images: ' . $e->getMessage());
+            }
+
+            // Get images from account tables (customer, supplier, company, warehouse accounts)
+            $accountTables = [
+                'customeraccounts' => 'Customer Account',
+                'supplieraccounts' => 'Supplier Account', 
+                'companyaccounts' => 'Company Account',
+                'warehouseaccounts' => 'Warehouse Account'
+            ];
+
+            foreach ($accountTables as $table => $type) {
+                try {
+                    $accountImages = DB::table($table)
+                        ->select('id', 'account_name as name', 'picture_url as image', 'created_at')
+                        ->whereNotNull('picture_url')
+                        ->where('picture_url', '!=', '')
+                        ->get()
+                        ->map(function ($item) use ($type, $table) {
+                            return [
+                                'id' => $item->id,
+                                'name' => $item->name ?? 'N/A',
+                                'email' => 'N/A',
+                                'image' => $item->image,
+                                'image_type' => $type . ' Picture',
+                                'source_table' => $table,
+                                'created_at' => $item->created_at
+                            ];
+                        });
+                    $images = $images->merge($accountImages);
+                } catch (\Exception $e) {
+                    Log::warning("Could not fetch {$type} images: " . $e->getMessage());
+                }
+            }
+
+            // Get images from supplierorderdetails table
+            try {
+                $orderDetailImages = DB::table('supplierorderdetails')
+                    ->select('id', 'additional_note as name', 'image_url as image', 'created_at')
+                    ->whereNotNull('image_url')
+                    ->where('image_url', '!=', '')
+                    ->get()
+                    ->map(function ($item) {
+                        return [
+                            'id' => $item->id,
+                            'name' => $item->name ?? 'Order Detail',
+                            'email' => 'N/A',
+                            'image' => $item->image,
+                            'image_type' => 'Order Detail Image',
+                            'source_table' => 'supplierorderdetails',
+                            'created_at' => $item->created_at
+                        ];
+                    });
+                $images = $images->merge($orderDetailImages);
+            } catch (\Exception $e) {
+                Log::warning('Could not fetch order detail images: ' . $e->getMessage());
             }
 
             // Sort by created_at desc
             $images = $images->sortByDesc('created_at')->values();
+            
+            Log::info('Total other images found: ' . $images->count());
 
             return response()->json($images);
         } catch (\Exception $e) {
