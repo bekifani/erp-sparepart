@@ -323,7 +323,66 @@ value : yup.string().required(t('The Value field is required')),
     basicStickyNotification.current?.showToast();
   };    
 
-return (
+  // Pivot response so that each unique headname becomes a column
+  const transformPivot = (url, params, response) => {
+    const rows = response?.data?.data || [];
+    // Collect unique headnames (preserve order as encountered)
+    const uniqueHeadnames = [];
+    const headnameToField = {};
+    const sanitize = (s) => `spec_${String(s || '')}`
+      .toLowerCase()
+      .replace(/[^a-z0-9_]+/g, '_')
+      .replace(/^_+|_+$/g, '');
+    rows.forEach(r => {
+      const hn = r?.headname ?? '';
+      if (!uniqueHeadnames.includes(hn)) {
+        uniqueHeadnames.push(hn);
+        headnameToField[hn] = sanitize(hn);
+      }
+    });
+
+    // Group by product (use product_id as key)
+    const byProduct = new Map();
+    rows.forEach(r => {
+      const pid = r?.product_id ?? `p_${r?.id}`; // fallback
+      if (!byProduct.has(pid)) {
+        byProduct.set(pid, {
+          __pid: pid,
+          brand_name: r?.brand_name ?? '',
+          brand_code_name: r?.brand_code_name ?? '',
+          oe_code: r?.oe_code ?? '',
+          product_description: r?.product_description ?? ''
+        });
+      }
+      const obj = byProduct.get(pid);
+      const field = headnameToField[r?.headname ?? ''];
+      if (field) obj[field] = r?.value ?? '';
+    });
+
+    // Build columns: static product columns + dynamic headname columns
+    const columns = [
+      { title: t("Brand Name"), field: 'brand_name', hozAlign: 'center', headerHozAlign: 'center', minWidth: 200, vertAlign: 'middle', print: true, download: true },
+      { title: t("Brand Code"), field: 'brand_code_name', hozAlign: 'center', headerHozAlign: 'center', minWidth: 180, vertAlign: 'middle', print: true, download: true },
+      { title: t("OE Code"), field: 'oe_code', hozAlign: 'center', headerHozAlign: 'center', minWidth: 160, vertAlign: 'middle', print: true, download: true },
+      { title: t("Description"), field: 'product_description', hozAlign: 'center', headerHozAlign: 'center', minWidth: 220, vertAlign: 'middle', print: true, download: true },
+      // dynamic spec columns
+      ...uniqueHeadnames.map(hn => ({
+        title: hn || t('Headname'),
+        field: headnameToField[hn],
+        hozAlign: 'center',
+        headerHozAlign: 'center',
+        minWidth: 150,
+        vertAlign: 'middle',
+        print: true,
+        download: true
+      }))
+    ];
+
+    const data = Array.from(byProduct.values());
+    return { data, columns, last_page: response?.total_pages };
+  };
+
+  return (
     <div>
       <Slideover
         open={showDeleteModal}
@@ -623,6 +682,7 @@ return (
           refetch={refetch}
           setRefetch={setRefetch}
           permission={"Productspecification"}
+          transformResponse={transformPivot}
         />
       </Can>
     </div>

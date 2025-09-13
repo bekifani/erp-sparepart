@@ -9,6 +9,7 @@ use Spatie\Activitylog\Traits\LogsActivity;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Notifications\Notifiable;
+use App\Models\Categor;
 
 class Productname extends Model
 {
@@ -31,4 +32,9 @@ class Productname extends Model
             ->useLogName("Productname");
     }
 
+    // Each productname belongs to a category
+    public function category()
+    {
+        return $this->belongsTo(Categor::class, 'category_id');
+    }
 }

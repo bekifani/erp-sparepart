@@ -135,6 +135,16 @@ function index_main() {
       
     },
     
+    {
+      title: t("Product Qty"),
+      minWidth: 120,
+      field: "products_count",
+      hozAlign: "center",
+      headerHozAlign: "center",
+      vertAlign: "middle",
+      print: true,
+      download: true,
+    },
 
     {
       title: t("Actions"),
@@ -189,13 +199,19 @@ function index_main() {
   const [searchColumns, setSearchColumns] = useState(['category_en', 'category_ru', 'category_cn', 'category_az', 'category_code', ]);
 
   // schema
+  const allowedCategoryCode = /^[0-9SPEBNMCFGHRTZXDYKLVJUAW]$/i;
   const schema = yup
     .object({
      category_en : yup.string().required(t('The Category En field is required')), 
 category_ru : yup.string().required(t('The Category Ru field is required')), 
 category_cn : yup.string().required(t('The Category Cn field is required')), 
 category_az : yup.string().required(t('The Category Az field is required')), 
-category_code : yup.string().required(t('The Category Code field is required')), 
+category_code : yup
+      .string()
+      .transform((v) => (v ? v.toString().trim().toUpperCase().slice(0,1) : v))
+      .required(t('The Category Code field is required'))
+      .length(1, t('Category Code must be exactly 1 character'))
+      .matches(allowedCategoryCode, t('Allowed: digits 0-9 or one of S P E B N M C F G H R T Z X D Y K L V J U A W')), 
 
     })
     .required();
@@ -493,7 +509,15 @@ return (
                         {t("Category Code")}
                       </FormLabel>
                       <FormInput
-                        {...register("category_code")}
+                        {...register("category_code", { onChange: (e) => {
+                          const raw = e.target.value || '';
+                          // allow only allowed set, uppercase, and max 1 char
+                          const up = raw.toUpperCase();
+                          const allowed = '0123456789SPEBNMCFGHRTZXDYKLVJUAW';
+                          const filtered = up.split('').filter(ch => allowed.includes(ch)).join('');
+                          const val = filtered.slice(0,1);
+                          setValue('category_code', val, { shouldDirty: true, shouldValidate: true });
+                        }})}
                         id="validation-form-1"
                         type="text"
                         name="category_code"
@@ -669,7 +693,14 @@ return (
                         {t("Category Code")}
                       </FormLabel>
                       <FormInput
-                        {...register("category_code")}
+                        {...register("category_code", { onChange: (e) => {
+                          const raw = e.target.value || '';
+                          const up = raw.toUpperCase();
+                          const allowed = '0123456789SPEBNMCFGHRTZXDYKLVJUAW';
+                          const filtered = up.split('').filter(ch => allowed.includes(ch)).join('');
+                          const val = filtered.slice(0,1);
+                          setValue('category_code', val, { shouldDirty: true, shouldValidate: true });
+                        }})}
                         id="validation-form-1"
                         type="text"
                         name="category_code"
@@ -713,6 +744,7 @@ return (
         getRef={(el) => {
           basicStickyNotification.current = el;
         }}
+        options={{ duration: 3000, close: true }}
         className="flex flex-col sm:flex-row"
       >
         <div className="font-medium">{toastMessage}</div>

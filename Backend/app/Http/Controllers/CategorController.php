@@ -7,6 +7,7 @@ use App\Models\Categor;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Facades\DB;
 
 class CategorController extends BaseController
 {
@@ -22,7 +23,11 @@ class CategorController extends BaseController
         }
         $perPage = $request->query('size', 10); 
         $filters = $request['filter'];
-        $query = Categor::orderBy($sortBy, $sortDir);
+        // include related products count aliased as products_count
+        $query = Categor::withCount(['productnames as products_count']);
+
+        // apply sorting (supports sorting by products_count as well)
+        $query->orderBy($sortBy, $sortDir);
         if($filters){
             foreach ($filters as $filter) {
                 $field = $filter['field'];
@@ -83,7 +88,6 @@ class CategorController extends BaseController
         return $this->sendResponse($results, 'search results for categor');
     }
 
-
     public function store(Request $request)
     {
 
@@ -93,7 +97,15 @@ class CategorController extends BaseController
           "category_ru"=>"required|string|max:255",
           "category_cn"=>"required|string|max:255",
           "category_az"=>"required|string|max:255",
-          "category_code"=>"required|string|unique:categors,category_code|max:255",
+          // 1 character only, must be in the allowed set (0-9 and SPEBNMCFGHRTZXDYKLVJUAW), unique across categories
+          // We validate strictly here; we will also normalize to uppercase server-side
+          "category_code"=>[
+            'required',
+            'string',
+            'size:1',
+            'regex:/^[0-9SPEBNMCFGHRTZXDYKLVJUAW]$/i',
+            'unique:categors,category_code',
+          ],
           
 
         ];
@@ -104,7 +116,8 @@ class CategorController extends BaseController
             return $this->sendError($validation->errors()->first(), ['errors' => $validation->errors()], 422);
         }
         $validated=$validation->validated();
-
+        // Normalize code: uppercase and strip any accidental whitespace
+        $validated['category_code'] = strtoupper(trim($validated['category_code']));
 
 
         
@@ -133,8 +146,14 @@ class CategorController extends BaseController
           "category_ru"=>"required|string|max:255",
           "category_cn"=>"required|string|max:255",
           "category_az"=>"required|string|max:255",
-          // ignore current record's id for unique check
-          "category_code"=>"required|string|unique:categors,category_code,".$id."|max:255",
+          // same strict rule as store, with unique ignoring current id
+          "category_code"=>[
+            'required',
+            'string',
+            'size:1',
+            'regex:/^[0-9SPEBNMCFGHRTZXDYKLVJUAW]$/i',
+            'unique:categors,category_code,' . $id,
+          ],
           
         ];
 
@@ -144,6 +163,7 @@ class CategorController extends BaseController
             return $this->sendError($validation->errors()->first(), ['errors' => $validation->errors()], 422);
         }
         $validated=$validation->validated();
+        $validated['category_code'] = strtoupper(trim($validated['category_code']));
 
 
 
@@ -157,6 +177,13 @@ class CategorController extends BaseController
     public function destroy($id)
     {
         $categor = Categor::findOrFail($id);
+        // Prevent deletion if any product names or products reference this category
+        $hasProductNames = DB::table('productnames')->where('category_id', $id)->exists();
+        if ($hasProductNames) {
+            return $this->sendError('Cannot delete category: it is referenced by existing product names/products.', [
+                'errors' => ['category' => ['Category has related product names/products and cannot be deleted']]
+            ], 422);
+        }
         $categor->delete();
 
 

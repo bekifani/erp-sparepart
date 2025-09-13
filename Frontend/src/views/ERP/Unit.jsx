@@ -1,4 +1,3 @@
-
 import "@/assets/css/vendors/tabulator.css";
 import Lucide from "@/components/Base/Lucide";
 import ReactDOMServer from 'react-dom/server';
@@ -27,12 +26,15 @@ import TomSelectSearch from "@/helpers/ui/Tomselect.jsx";
 import { useSelector } from "react-redux";
 import { ClassicEditor } from "@/components/Base/Ckeditor";
 
+// New: seed defaults helper uses auth headers
 
 function index_main() {
   const { t, i18n } = useTranslation();
   const app_url = useSelector((state) => state.auth.app_url)
   const upload_url = useSelector((state)=> state.auth.upload_url)
   const media_url = useSelector((state)=>state.auth.media_url)
+  const token = useSelector((state) => state.auth.token)
+  const tenant = useSelector((state) => state.auth.tenant)
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showUpdateModal, setShowUpdateModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
@@ -244,17 +246,45 @@ base_unit : yup.string().required(t('The Base Unit field is required')),
     let id = getValues("id");
     setShowDeleteModal(false)
     try {
-        const response = deleteUnit(id);
-        setToastMessage(t("Unit deleted successfully."));
-        setRefetch(true);
+        const response = await deleteUnit(id);
+        if (response && response.success !== false && !response.error) {
+          setToastMessage(t("Unit deleted successfully."));
+          setRefetch(true);
+        } else {
+          const msg = response?.data?.message || response?.error?.data?.message || response?.message || t('Cannot delete unit: it may be assigned to products.');
+          throw new Error(msg);
+        }
+      } catch (error) {
+        const msg = (error?.message) || t("Error deleting Unit.");
+        setToastMessage(msg);
       }
-    catch (error) {
-      setToastMessage(t("Error deleting Unit."));
-    }
     basicStickyNotification.current?.showToast();
   };    
 
-return (
+  // New: Seed Default Units
+  const onSeedDefaults = async () => {
+    try {
+      const res = await fetch(`${app_url}/api/unit/seed-defaults`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+          'X-Tenant': `${tenant}`,
+        },
+      });
+      const data = await res.json();
+      if (!res.ok || data?.success === false) {
+        throw new Error(data?.message || t('Failed to seed default units'));
+      }
+      setToastMessage(t('Default units seeded successfully'));
+      setRefetch(true);
+    } catch (e) {
+      setToastMessage(e?.message || t('Failed to seed default units'));
+    }
+    basicStickyNotification.current?.showToast();
+  };
+
+ return (
     <div>
       <Slideover
         open={showDeleteModal}
@@ -553,14 +583,21 @@ return (
         <div className="font-medium">{toastMessage}</div>
       </Notification>
       <Can permission="unit-list">
-        <TableComponent
-          setShowCreateModal={setShowCreateModal}
-          endpoint={app_url + "/api/unit"}
-          data={data}
-          searchColumns={searchColumns}
-          refetch={refetch}
-          setRefetch={setRefetch}
-          permission={"Unit"}
+        <div className="flex flex-wrap gap-2 mb-3">
+          <Button variant="outline-primary" onClick={onSeedDefaults}>
+            <Lucide icon="Database" className="w-4 h-4 mr-2" /> {t('Seed Default Units')}
+          </Button>
+        </div>
+         <TableComponent
+           setShowCreateModal={setShowCreateModal}
+           endpoint={app_url + "/api/unit"}
+           data={data}
+           searchColumns={searchColumns}
+           refetch={refetch}
+           setRefetch={setRefetch}
+           permission={"Unit"}
+           page_name={"Unit"}
+           enableColumnControls={true}
         />
       </Can>
     </div>

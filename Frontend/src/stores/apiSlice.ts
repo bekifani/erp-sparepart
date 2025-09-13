@@ -255,6 +255,7 @@ export const {
     useLazyGetSpecificationheadnameDetailQuery,
     useDeleteSpecificationheadnameMutation,
     useGetSpecificationheadnamesQuery,
+    useMergeSpecificationheadnamesMutation,
 
 
     useCreateBoxeMutation,

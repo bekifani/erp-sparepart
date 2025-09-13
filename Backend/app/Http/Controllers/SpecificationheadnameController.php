@@ -7,6 +7,7 @@ use App\Models\Specificationheadname;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Facades\DB;
 
 class SpecificationheadnameController extends BaseController
 {
@@ -123,12 +124,76 @@ class SpecificationheadnameController extends BaseController
         }
     }
 
+    public function merge(Request $request)
+    {
+        $data = $request->all();
+        $validator = Validator::make($data, [
+            'source_ids' => 'required|array|min:1',
+            'source_ids.*' => 'integer|exists:specificationheadnames,id',
+            'target_id' => 'nullable|integer|exists:specificationheadnames,id',
+            'target_name' => 'nullable|string|max:255',
+        ]);
+        if ($validator->fails()) {
+            return $this->sendError('Invalid merge parameters', ['errors' => $validator->errors()]);
+        }
+
+        $sourceIds = array_values(array_unique($data['source_ids']));
+        $targetId = $data['target_id'] ?? null;
+        $targetName = trim((string)($data['target_name'] ?? ''));
+
+        if (empty($targetId) && $targetName === '') {
+            return $this->sendError('Missing target', ['errors' => ['target' => ['Provide target_id or target_name']]]);
+        }
+
+        try {
+            return DB::transaction(function () use ($sourceIds, $targetId, $targetName) {
+                // Resolve or create target
+                if (!$targetId) {
+                    $existing = Specificationheadname::where('headname', $targetName)->first();
+                    if ($existing) {
+                        $targetId = $existing->id;
+                    } else {
+                        $created = Specificationheadname::create(['headname' => $targetName]);
+                        $targetId = $created->id;
+                    }
+                }
+
+                // Remove target from source list if accidentally included
+                $sources = array_values(array_diff($sourceIds, [$targetId]));
+                if (empty($sources)) {
+                    return $this->sendResponse(['updated' => 0, 'deleted' => 0, 'target_id' => $targetId], 'Nothing to merge');
+                }
+
+                // Repoint all product specs from sources -> target
+                $updated = DB::table('productspecifications')
+                    ->whereIn('headname_id', $sources)
+                    ->update(['headname_id' => $targetId]);
+
+                // Delete merged headnames
+                $deleted = Specificationheadname::whereIn('id', $sources)->delete();
+
+                return $this->sendResponse([
+                    'updated' => $updated,
+                    'deleted' => $deleted,
+                    'target_id' => $targetId,
+                ], 'Specification headnames merged successfully');
+            });
+        } catch (\Throwable $e) {
+            return $this->sendError('Failed to merge headnames', ['message' => $e->getMessage()]);
+        }
+    }
+
     public function destroy($id)
     {
         $specificationheadname = Specificationheadname::findOrFail($id);
+        // Protect if used by any product specification
+        $inUse = DB::table('productspecifications')->where('headname_id', $id)->exists();
+        if ($inUse) {
+            return $this->sendError('Cannot delete: Header Name is in use by product specifications. Use Merge instead.', [
+                'errors' => ['headname' => ['Header Name in use']]
+            ]);
+        }
         $specificationheadname->delete();
-
-        //delete files uploaded
         return $this->sendResponse(1, "specificationheadname deleted succesfully");
     }
 

@@ -9,6 +9,7 @@ use Spatie\Activitylog\Traits\LogsActivity;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Notifications\Notifiable;
+use App\Models\Productname;
 
 class Categor extends Model
 {
@@ -31,4 +32,9 @@ class Categor extends Model
             ->useLogName("Categor");
     }
 
+    // Relationship to count related products
+    public function productnames()
+    {
+        return $this->hasMany(Productname::class, 'category_id');
+    }
 }

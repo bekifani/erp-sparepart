@@ -5,6 +5,8 @@ namespace App\Http\Controllers;
 use App\Http\Controllers\BaseController;
 use App\Models\Product;
 use App\Models\Brandname;
+use App\Models\Productname;
+use App\Models\Categor;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
@@ -61,6 +63,43 @@ class ProductController extends BaseController
         return $map[$field] ?? $field;
     }
 
+    private function generateProductCode3(int $k): string
+    {
+        // k is 1-based count within same (category, product_name)
+        if ($k <= 999) {
+            return str_pad((string)$k, 3, '0', STR_PAD_LEFT);
+        }
+        if ($k > 3299) {
+            throw new \RuntimeException('Capacity reached for product code within this category and name (max 3299).');
+        }
+        // 1000..3299 -> letter + last two digits
+        $letters = ["S","P","E","B","N","M","C","F","G","H","R","T","Z","X","D","Y","K","L","V","J","U","A","W"]; // 23 letters
+        $idx = intdiv($k - 1000, 100); // 0..22
+        $prefix = $letters[$idx] ?? 'X';
+        $lastTwo = str_pad((string)($k % 100), 2, '0', STR_PAD_LEFT);
+        return $prefix . $lastTwo;
+    }
+
+    private function buildBrandCodeFromNameAndCategory(int $productNameId): string
+    {
+        $productName = Productname::findOrFail($productNameId);
+        $category = Categor::findOrFail($productName->category_id);
+        $categoryCode = (string)($category->category_code ?? '');
+        $nameCode = (string)($productName->product_name_code ?? '');
+        if ($categoryCode === '' || $nameCode === '') {
+            throw new \RuntimeException('Missing category_code or product_name_code for brand code generation.');
+        }
+
+        // Count existing products for the same product_name_id (implicitly the same category)
+        $existingCount = DB::table('products')
+            ->where('products.product_name_id', $productName->id)
+            ->count();
+
+        $k = $existingCount + 1; // 1-based next index
+        $code3 = $this->generateProductCode3($k);
+        return $categoryCode . $nameCode . $code3; // total 6 chars
+    }
+
     public function index(Request $request)
     {
         $sortBy = 'products.id';
@@ -75,7 +114,7 @@ class ProductController extends BaseController
 
         $query = Product::with(['ProductInformation'])
             ->leftJoin('product_information', 'product_information.product_id', '=', 'products.id')
-            ->leftJoin('productnames', 'product_information.product_name_id', '=', 'productnames.id')
+            ->leftJoin('productnames', 'products.product_name_id', '=', 'productnames.id')
             ->leftJoin('brandnames', 'products.brand_id', '=', 'brandnames.id')
             ->leftJoin('boxes', 'product_information.box_id', '=', 'boxes.id')
             ->leftJoin('labels', 'product_information.label_id', '=', 'labels.id')
@@ -146,7 +185,7 @@ class ProductController extends BaseController
 
         $query = Product::with(['ProductInformation'])
             ->leftJoin('product_information', 'product_information.product_id', '=', 'products.id')
-            ->leftJoin('productnames', 'product_information.product_name_id', '=', 'productnames.id')
+            ->leftJoin('productnames', 'products.product_name_id', '=', 'productnames.id')
             ->leftJoin('brandnames', 'products.brand_id', '=', 'brandnames.id')
             ->leftJoin('boxes', 'product_information.box_id', '=', 'boxes.id')
             ->leftJoin('labels', 'product_information.label_id', '=', 'labels.id')
@@ -226,6 +265,9 @@ class ProductController extends BaseController
             "description" => "nullable|string|max:255",
             // virtual field from frontend to support find-or-create brand
             "brand_name" => "nullable|string|max:255",
+            // auto brand code support
+            "auto_brand_code" => "nullable|boolean",
+            "product_name_id" => "required|exists:productnames,id",
         ];
 
         $validation = Validator::make($request->all(), $validationRules);
@@ -248,6 +290,26 @@ class ProductController extends BaseController
             $validated['brand_id'] = $brand->id;
             // do not persist brand_name on products
             unset($validated['brand_name']);
+        }
+
+        // Auto-generate brand_code if requested
+        if (!empty($validated['auto_brand_code']) && empty($validated['brand_code'])) {
+            try {
+                $validated['brand_code'] = $this->buildBrandCodeFromNameAndCategory((int)$validated['product_name_id']);
+            } catch (\Throwable $e) {
+                return $this->sendError('Failed to generate brand code', ['errors' => ['brand_code' => [$e->getMessage()]]]);
+            }
+        }
+
+        // Manual entry normalization and validation: enforce 6-character alphanumeric (uppercase)
+        if (empty($validated['auto_brand_code']) && !empty($validated['brand_code'])) {
+            $normalized = strtoupper(preg_replace('/[^A-Za-z0-9]/', '', (string)$validated['brand_code']));
+            if (strlen($normalized) !== 6) {
+                return $this->sendError('Invalid brand code length (expected 6 characters: 1 category + 2 name + 3 sequence)', [
+                    'errors' => ['brand_code' => ['brand_code must be exactly 6 alphanumeric characters']]
+                ]);
+            }
+            $validated['brand_code'] = $normalized;
         }
 
         try {
@@ -284,6 +346,9 @@ class ProductController extends BaseController
             "description" => "nullable|string|max:255",
             // virtual field from frontend to support find-or-create brand
             "brand_name" => "nullable|string|max:255",
+            // auto brand code support
+            "auto_brand_code" => "nullable|boolean",
+            "product_name_id" => "required|exists:productnames,id",
         ];
 
         $validation = Validator::make($request->all(), $validationRules);
@@ -304,6 +369,26 @@ class ProductController extends BaseController
             );
             $validated['brand_id'] = $brand->id;
             unset($validated['brand_name']);
+        }
+
+        // Auto-generate brand_code on update if requested and brand_code not provided
+        if (!empty($validated['auto_brand_code']) && empty($validated['brand_code'])) {
+            try {
+                $validated['brand_code'] = $this->buildBrandCodeFromNameAndCategory((int)$validated['product_name_id']);
+            } catch (\Throwable $e) {
+                return $this->sendError('Failed to generate brand code', ['errors' => ['brand_code' => [$e->getMessage()]]]);
+            }
+        }
+
+        // Manual entry normalization and validation on update when auto is OFF
+        if (empty($validated['auto_brand_code']) && !empty($validated['brand_code'])) {
+            $normalized = strtoupper(preg_replace('/[^A-Za-z0-9]/', '', (string)$validated['brand_code']));
+            if (strlen($normalized) !== 6) {
+                return $this->sendError('Invalid brand code length (expected 6 characters: 1 category + 2 name + 3 sequence)', [
+                    'errors' => ['brand_code' => ['brand_code must be exactly 6 alphanumeric characters']]
+                ]);
+            }
+            $validated['brand_code'] = $normalized;
         }
 
         try {

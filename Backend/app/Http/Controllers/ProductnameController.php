@@ -9,10 +9,12 @@ use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Validation\Rule;
 
 class ProductnameController extends BaseController
 {
-    protected $searchableColumns = ['hs_code', 'name_az', 'description_en', 'name_ru', 'name_cn', 'category_id', 'product_name_code', 'additional_note', 'product_qty'];
+    // Include both description_en and description (if the latter exists in some tenants)
+    protected $searchableColumns = ['hs_code', 'name_az', 'description_en', 'description', 'name_ru', 'name_cn', 'category_id', 'product_name_code', 'additional_note', 'product_qty'];
 
     public function index(Request $request)
     {
@@ -24,7 +26,7 @@ class ProductnameController extends BaseController
         }
         $perPage = $request->query('size', 10); 
         $filters = $request['filter'];
-        $query = Productname::orderBy($sortBy, $sortDir);
+        $query = Productname::with('category')->orderBy($sortBy, $sortDir);
         if($filters){
             foreach ($filters as $filter) {
                 $field = $filter['field'];
@@ -70,7 +72,7 @@ class ProductnameController extends BaseController
         $existingColumns = Schema::hasTable($table) ? Schema::getColumnListing($table) : [];
         $allowedSearchColumns = array_values(array_intersect($this->searchableColumns, $existingColumns));
         $selectColumns = array_values(array_intersect([
-            'id', 'hs_code', 'name_az', 'description_en', 'name_ru', 'name_cn', 'category_id', 'product_name_code', 'additional_note', 'product_qty'
+            'id', 'hs_code', 'name_az', 'description_en', 'description', 'name_ru', 'name_cn', 'category_id', 'product_name_code', 'additional_note', 'product_qty'
         ], $existingColumns));
 
         Log::info('ProductnameController@search columns', [
@@ -109,8 +111,7 @@ class ProductnameController extends BaseController
           "name_ru"=>"required|string|max:255",
           "name_cn"=>"required|string|max:255",
           "category_id"=>"required|integer|exists:categors,id",
-          // product_name_code is now optional; if not provided we will auto-generate
-          "product_name_code"=>"nullable|string|unique:productnames,product_name_code|max:255",
+          "product_name_code"=>"prohibited",
           "additional_note"=>"nullable|string",
           "product_qty"=>"nullable|numeric",
         ];
@@ -128,13 +129,17 @@ class ProductnameController extends BaseController
             'validated_data' => $validated
         ]);
 
-        // Auto-generate product_name_code if not provided: MAX(product_name_code as number)+1
-        if (!array_key_exists('product_name_code', $validated) || $validated['product_name_code'] === null || $validated['product_name_code'] === '') {
-            $next = \DB::table('productnames')
-                ->select(\DB::raw('COALESCE(MAX(CAST(product_name_code AS UNSIGNED)),0)+1 AS next'))
-                ->value('next');
-            $validated['product_name_code'] = (string)($next ?? 1);
+        // Generate 2-character code per category (33x33 = 1089 combinations)
+        $alphabet = '0123456789SPEBNMCFGHRTZXDYKLVJUAW'; // length = 33
+        $len = strlen($alphabet);
+        $existingCount = Productname::where('category_id', $validated['category_id'])->count();
+        $n = $existingCount + 1; // 1-based position within category
+        if ($n > ($len * $len)) {
+            return $this->sendError("Category capacity reached for product name codes (max 1089).", ['errors' => ['product_name_code' => ['Capacity exceeded']]]);
         }
+        $firstIndex = intdiv($n - 1, $len); // 0..32
+        $secondIndex = ($n - 1) % $len;     // 0..32
+        $validated['product_name_code'] = $alphabet[$firstIndex] . $alphabet[$secondIndex];
 
         try {
             $productname = Productname::create($validated);
@@ -167,8 +172,7 @@ class ProductnameController extends BaseController
           "name_ru"=>"required|string|max:255",
           "name_cn"=>"required|string|max:255",
           "category_id"=>"required|integer|exists:categors,id",
-          // allow nullable on update; keep uniqueness if provided
-          "product_name_code"=>"nullable|string|unique:productnames,product_name_code,".$id."|max:255",
+          "product_name_code"=>"prohibited",
           "additional_note"=>"nullable|string",
           "product_qty"=>"nullable|numeric",
         ];

@@ -360,6 +360,8 @@ function index_main() {
      oe_code: yup.string().nullable(),
      description: yup.string().nullable(),
      supplier_code: yup.string().nullable(),
+     auto_brand_code: yup.boolean().nullable(),
+     product_name_id: yup.string().nullable(),
     })
     .required();
 
@@ -370,9 +372,13 @@ function index_main() {
     setValue,
     handleSubmit,
     formState: { errors },
+    watch,
   } = useForm({
     mode: "onChange",
     resolver: yupResolver(schema),
+    defaultValues: {
+      auto_brand_code: false,
+    },
   });
 
    
@@ -415,23 +421,27 @@ function index_main() {
       return;
     }
     try {
-      const payload = {
-        ...data,
-        // ensure numeric fields are numbers (react-hook-form returns strings)
-        qty: data.qty !== undefined && data.qty !== null && data.qty !== '' ? Number(data.qty) : undefined,
-        min_qty: data.min_qty !== undefined && data.min_qty !== null && data.min_qty !== '' ? Number(data.min_qty) : undefined,
-        purchase_price: data.purchase_price !== undefined && data.purchase_price !== null && data.purchase_price !== '' ? Number(data.purchase_price) : undefined,
-        extra_cost: data.extra_cost !== undefined && data.extra_cost !== null && data.extra_cost !== '' ? Number(data.extra_cost) : undefined,
-        cost_basis: data.cost_basis !== undefined && data.cost_basis !== null && data.cost_basis !== '' ? Number(data.cost_basis) : undefined,
-        selling_price: data.selling_price !== undefined && data.selling_price !== null && data.selling_price !== '' ? Number(data.selling_price) : undefined,
-      };
-      const result = await createProduct(payload).unwrap();
-      if (result?.success) {
+      const clean = { ...data };
+      // When auto is selected, do not send brand_code; instead send auto flag and product_name_id
+      if (clean.auto_brand_code) {
+        delete clean.brand_code;
+        if (!clean.product_name_id) {
+          setToastMessage(t('Please select a Product Name for auto brand code generation.'));
+          basicStickyNotification.current?.showToast();
+          return;
+        }
+      } else {
+        // Manual: do not send helper fields
+        delete clean.product_name_id;
+        delete clean.auto_brand_code;
+      }
+      const response = await createProduct(clean).unwrap();
+      if (response?.success) {
         setToastMessage(t("Product created successfully."));
         setRefetch(true);
         setShowCreateModal(false);
       } else {
-        const msg = result?.message || t('Creation failed');
+        const msg = response?.message || t('Creation failed');
         throw new Error(msg);
       }
     } catch (error) {
@@ -450,21 +460,25 @@ function index_main() {
     }
     setShowUpdateModal(false)
     try {
-      const payload = {
-        ...data,
-        qty: data.qty !== undefined && data.qty !== null && data.qty !== '' ? Number(data.qty) : undefined,
-        min_qty: data.min_qty !== undefined && data.min_qty !== null && data.min_qty !== '' ? Number(data.min_qty) : undefined,
-        purchase_price: data.purchase_price !== undefined && data.purchase_price !== null && data.purchase_price !== '' ? Number(data.purchase_price) : undefined,
-        extra_cost: data.extra_cost !== undefined && data.extra_cost !== null && data.extra_cost !== '' ? Number(data.extra_cost) : undefined,
-        cost_basis: data.cost_basis !== undefined && data.cost_basis !== null && data.cost_basis !== '' ? Number(data.cost_basis) : undefined,
-        selling_price: data.selling_price !== undefined && data.selling_price !== null && data.selling_price !== '' ? Number(data.selling_price) : undefined,
-      };
-      const result = await updateProduct(payload).unwrap();
-      if (result?.success) {
+      const clean = { ...data };
+      if (clean.auto_brand_code) {
+        delete clean.brand_code;
+        if (!clean.product_name_id) {
+          setToastMessage(t('Please select a Product Name for auto brand code generation.'));
+          basicStickyNotification.current?.showToast();
+          setShowUpdateModal(true);
+          return;
+        }
+      } else {
+        delete clean.product_name_id;
+        delete clean.auto_brand_code;
+      }
+      const response = await updateProduct(clean).unwrap();
+      if (response?.success) {
         setToastMessage(t('Product updated successfully'));
         setRefetch(true)
       } else {
-        const msg = result?.message || t('Update failed');
+        const msg = response?.message || t('Update failed');
         throw new Error(msg);
       }
     } catch (error) {
@@ -796,53 +810,93 @@ function index_main() {
     </div>
 
 <div className="mt-3 input-form">
-      <FormLabel htmlFor="brand_code" className="flex justify-start items-start flex-col w-full sm:flex-row">
+      <FormLabel className="flex justify-start items-start flex-col w-full sm:flex-row">
         {t("Brand Code")}
       </FormLabel>
-      <FormInput
-        {...register("brand_code")}
-        id="brand_code"
-        type="text"
-        name="brand_code"
-        className={clsx({ "border-danger": errors.brand_code })}
-        placeholder={t("Enter brand code")}
-      />
-      {errors.brand_code && (
-        <div className="mt-2 text-danger">{typeof errors.brand_code.message === "string" && errors.brand_code.message}</div>
+      <div className="flex items-center gap-4 mb-2">
+        <label className="flex items-center gap-2">
+          <input
+            type="checkbox"
+            className="form-check-input"
+            checked={!!watch('auto_brand_code')}
+            onChange={(e) => setValue('auto_brand_code', e.target.checked, { shouldDirty: true, shouldValidate: true })}
+          />
+          <span>{t('Auto-create Code')}</span>
+        </label>
+      </div>
+      {!watch('auto_brand_code') && (
+        <>
+          <FormInput
+            {...register("brand_code")}
+            id="brand_code"
+            type="text"
+            name="brand_code"
+            className={clsx({ "border-danger": errors.brand_code })}
+            placeholder={t("Enter brand code")}
+          />
+          {errors.brand_code && (
+            <div className="mt-2 text-danger">{typeof errors.brand_code.message === "string" && errors.brand_code.message}</div>
+          )}
+        </>
+      )}
+      {watch('auto_brand_code') && (
+        <div className="mt-2 text-slate-600 text-xs">
+          {t('Auto mode: Use the Description field (Product Name selector) above to choose the Product Name. The selected Product Name will be used for brand code generation.')}
+          <div className="mt-1">
+            {t('Brand code will be generated as: 1 char Category Code + 2 chars Product Name Code + 3 chars Product Code (capacity 3299 per category+name).')}
+          </div>
+        </div>
       )}
     </div>
 
 <div className="mt-3 input-form">
-      <FormLabel htmlFor="oe_code" className="flex justify-start items-start flex-col w-full sm:flex-row">
-        {t("OE Code")}
+      <FormLabel className="flex justify-start items-start flex-col w-full sm:flex-row">
+        {t("Description (Select Product Name)")}
       </FormLabel>
+      <TomSelectSearch
+        apiUrl={`${app_url}/api/search_productname`}
+        setValue={(field, value, options) => {
+          if (typeof field === 'string') {
+            setValue(field, value, options);
+          } else {
+            setValue('description', field, value);
+          }
+        }}
+        variable="product_name_id"
+        onSelectionChange={(item) => {
+          setValue('product_name_id', item?.value, { shouldDirty: true, shouldValidate: true });
+          const label = item?.text || '';
+          setValue('description', label, { shouldDirty: true, shouldValidate: true });
+        }}
+        customDataMapping={(item) => {
+          const name = item.name_az || '';
+          const desc = item.description_en || item.description || '';
+          const hs = item.hs_code || '';
+          const label = [name, desc || hs].filter(Boolean).join(' — ');
+          return { value: item.id, text: label || name || desc || hs };
+        }}
+        placeholder={t('Search by name or description and select')}
+      />
+      <div className="mt-2 text-slate-600 text-sm">
+        <strong>{t('Selected Description')}:</strong> {getValues('description') || t('None')}
+      </div>
+      {errors.description && (
+        <div className="mt-2 text-danger">{typeof errors.description.message === "string" && errors.description.message}</div>
+      )}
+    </div>
+
+    {/* OE Code */}
+    <div className="mt-3 input-form">
+      <FormLabel className="flex justify-start items-start flex-col w-full sm:flex-row">{t("OE Code")}</FormLabel>
       <FormInput
         {...register("oe_code")}
-        id="oe_code"
         type="text"
         name="oe_code"
         className={clsx({ "border-danger": errors.oe_code })}
-        placeholder={t("Enter OE code")}
+        placeholder={t("Enter OE Code")}
       />
       {errors.oe_code && (
         <div className="mt-2 text-danger">{typeof errors.oe_code.message === "string" && errors.oe_code.message}</div>
-      )}
-    </div>
-
-<div className="mt-3 input-form">
-      <FormLabel htmlFor="description" className="flex justify-start items-start flex-col w-full sm:flex-row">
-        {t("Description")}
-      </FormLabel>
-      <FormInput
-        {...register("description")}
-        id="description"
-        type="text"
-        name="description"
-        className={clsx({ "border-danger": errors.description })}
-        placeholder={t("Enter description")}
-      />
-      {errors.description && (
-        <div className="mt-2 text-danger">{typeof errors.description.message === "string" && errors.description.message}</div>
       )}
     </div>
 
@@ -1158,53 +1212,93 @@ function index_main() {
     </div>
 
 <div className="mt-3 input-form">
-      <FormLabel htmlFor="brand_code" className="flex justify-start items-start flex-col w-full sm:flex-row">
+      <FormLabel className="flex justify-start items-start flex-col w-full sm:flex-row">
         {t("Brand Code")}
       </FormLabel>
-      <FormInput
-        {...register("brand_code")}
-        id="brand_code"
-        type="text"
-        name="brand_code"
-        className={clsx({ "border-danger": errors.brand_code })}
-        placeholder={t("Enter brand code")}
-      />
-      {errors.brand_code && (
-        <div className="mt-2 text-danger">{typeof errors.brand_code.message === "string" && errors.brand_code.message}</div>
+      <div className="flex items-center gap-4 mb-2">
+        <label className="flex items-center gap-2">
+          <input
+            type="checkbox"
+            className="form-check-input"
+            checked={!!watch('auto_brand_code')}
+            onChange={(e) => setValue('auto_brand_code', e.target.checked, { shouldDirty: true, shouldValidate: true })}
+          />
+          <span>{t('Auto-create Code')}</span>
+        </label>
+      </div>
+      {!watch('auto_brand_code') && (
+        <>
+          <FormInput
+            {...register("brand_code")}
+            id="brand_code"
+            type="text"
+            name="brand_code"
+            className={clsx({ "border-danger": errors.brand_code })}
+            placeholder={t("Enter brand code")}
+          />
+          {errors.brand_code && (
+            <div className="mt-2 text-danger">{typeof errors.brand_code.message === "string" && errors.brand_code.message}</div>
+          )}
+        </>
+      )}
+      {watch('auto_brand_code') && (
+        <div className="mt-2 text-slate-600 text-xs">
+          {t('Auto mode: Use the Description field (Product Name selector) above to choose the Product Name. The selected Product Name will be used for brand code generation.')}
+          <div className="mt-1">
+            {t('Brand code will be generated as: 1 char Category Code + 2 chars Product Name Code + 3 chars Product Code (capacity 3299 per category+name).')}
+          </div>
+        </div>
       )}
     </div>
 
 <div className="mt-3 input-form">
-      <FormLabel htmlFor="oe_code" className="flex justify-start items-start flex-col w-full sm:flex-row">
-        {t("OE Code")}
+      <FormLabel className="flex justify-start items-start flex-col w-full sm:flex-row">
+        {t("Description (Select Product Name)")}
       </FormLabel>
+      <TomSelectSearch
+        apiUrl={`${app_url}/api/search_productname`}
+        setValue={(field, value, options) => {
+          if (typeof field === 'string') {
+            setValue(field, value, options);
+          } else {
+            setValue('description', field, value);
+          }
+        }}
+        variable="product_name_id"
+        onSelectionChange={(item) => {
+          setValue('product_name_id', item?.value, { shouldDirty: true, shouldValidate: true });
+          const label = item?.text || '';
+          setValue('description', label, { shouldDirty: true, shouldValidate: true });
+        }}
+        customDataMapping={(item) => {
+          const name = item.name_az || '';
+          const desc = item.description_en || item.description || '';
+          const hs = item.hs_code || '';
+          const label = [name, desc || hs].filter(Boolean).join(' — ');
+          return { value: item.id, text: label || name || desc || hs };
+        }}
+        placeholder={t('Search by name or description and select')}
+      />
+      <div className="mt-2 text-slate-600 text-sm">
+        <strong>{t('Selected Description')}:</strong> {getValues('description') || t('None')}
+      </div>
+      {errors.description && (
+        <div className="mt-2 text-danger">{typeof errors.description.message === "string" && errors.description.message}</div>
+      )}
+    </div>
+
+    {/* OE Code */}
+    <div className="mt-3 input-form">
+      <FormLabel className="flex justify-start items-start flex-col w-full sm:flex-row">{t("OE Code")}</FormLabel>
       <FormInput
         {...register("oe_code")}
-        id="oe_code"
         type="text"
         name="oe_code"
         className={clsx({ "border-danger": errors.oe_code })}
-        placeholder={t("Enter OE code")}
+        placeholder={t("Enter OE Code")}
       />
       {errors.oe_code && (
         <div className="mt-2 text-danger">{typeof errors.oe_code.message === "string" && errors.oe_code.message}</div>
-      )}
-    </div>
-
-<div className="mt-3 input-form">
-      <FormLabel htmlFor="description" className="flex justify-start items-start flex-col w-full sm:flex-row">
-        {t("Description")}
-      </FormLabel>
-      <FormInput
-        {...register("description")}
-        id="description"
-        type="text"
-        name="description"
-        className={clsx({ "border-danger": errors.description })}
-        placeholder={t("Enter description")}
-      />
-      {errors.description && (
-        <div className="mt-2 text-danger">{typeof errors.description.message === "string" && errors.description.message}</div>
       )}
     </div>
 
