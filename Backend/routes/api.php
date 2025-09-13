@@ -535,6 +535,13 @@ Route::put('/producthistor/{id}', [App\Http\Controllers\ProducthistorController:
 Route::delete('/producthistor/{id}', [App\Http\Controllers\ProducthistorController::class, 'destroy'])->middleware('permission:producthistor-delete');
 Route::get('/all_producthistors', [App\Http\Controllers\ProducthistorController::class,'all_producthistors']);
 
+// Catalog routes
+Route::get('/catalog/products', [App\Http\Controllers\CatalogController::class, 'getCatalogProducts']);
+Route::get('/catalog/export-pdf', [App\Http\Controllers\CatalogController::class, 'exportPdf']);
+Route::get('/catalog/product/{id}', [App\Http\Controllers\CatalogController::class, 'getProduct']);
+
+//add here
+
     Route::post('notifications/mark-as-read', [App\Http\Controllers\NotificationController::class, 'markAsRead']);
     // API END
 });

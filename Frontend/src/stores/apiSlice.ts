@@ -61,6 +61,7 @@ import { companyaccountEndpoints } from "./endpoints/companyaccountEndpoints"
 import { warehouseaccountEndpoints } from "./endpoints/warehouseaccountEndpoints"
 import { supplieraccountEndpoints } from "./endpoints/supplieraccountEndpoints"
 import { producthistorEndpoints } from "./endpoints/producthistorEndpoints"
+import { catalogEndpoints } from "./endpoints/catalogEndpoints"
 //import here
 export const apiSlice = createApi({
     reducerPath: "user",
@@ -143,6 +144,7 @@ export const apiSlice = createApi({
 ...warehouseaccountEndpoints(builder),
 ...supplieraccountEndpoints(builder),
 ...producthistorEndpoints(builder),
+...catalogEndpoints(builder),
         //disperse here
     }),
 });
@@ -634,6 +636,11 @@ export const {
     useLazyGetProducthistorDetailQuery,
     useDeleteProducthistorMutation,
     useGetProducthistorsQuery,
+
+    // Catalog endpoints
+    useGetCatalogProductsQuery,
+    useGetProductDetailsQuery,
+    useExportCatalogPdfMutation,
 
     //add here
 } = apiSlice

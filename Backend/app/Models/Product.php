@@ -42,4 +42,34 @@ class Product extends Model
     public function supplier() { 
         return $this->belongsTo(Supplier::class, 'supplier_id', 'id');
     }
+
+    public function brand()
+    {
+        return $this->belongsTo(Brandname::class, 'brand_id', 'id');
+    }
+
+    public function categor()
+    {
+        return $this->belongsTo(Categor::class, 'category_id', 'id');
+    }
+
+    // public function productinformation()
+    // {
+    //     return $this->hasOne(ProductInformation::class, 'product_id', 'id');
+    // }
+
+    public function productspecifications()
+    {
+        return $this->hasMany(Productspecification::class, 'product_id', 'id');
+    }
+
+    public function crosscars()
+    {
+        return $this->hasMany(Crosscar::class, 'product_id', 'id');
+    }
+
+    public function crosscodes()
+    {
+        return $this->hasMany(Crosscode::class, 'product_id', 'id');
+    }
 }

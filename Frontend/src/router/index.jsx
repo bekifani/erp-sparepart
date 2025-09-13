@@ -65,6 +65,7 @@ import Companyaccount  from '@/views/ERP/Companyaccount'
 import Warehouseaccount  from '@/views/ERP/Warehouseaccount'
 import Supplieraccount  from '@/views/ERP/Supplieraccount'
 import Producthistor  from '@/views/ERP/Producthistor'
+import Catalog  from '@/views/ERP/Catalog'
 //add file here 
 
 function Router() {
@@ -311,6 +312,10 @@ function Router() {
   {
     path: "producthistor",
     element: <Producthistor />,
+  }, 
+  {
+    path: "catalog",
+    element: <Catalog />,
   }, 
        // add routes here
       {
