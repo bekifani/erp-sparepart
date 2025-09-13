@@ -296,10 +296,16 @@ function index_main() {
   const buildPrintHtml = (item) => {
     const logoUrl = `${media_url || ''}`; // customize if you have a logo path
     const safe = (v) => (v === null || v === undefined ? '' : String(v));
-    const imgTag = (url) => {
+    const imgTag = (url, isQrCode = false) => {
       if (!url) return '<span style="color:#999;">-</span>';
-      // Check if it's a QR code (filename only) or regular image (path)
-      const imgSrc = url.includes('/') ? `${media_url}${url}` : `${app_url}storage/qr_codes/${url}`;
+      let imgSrc;
+      if (isQrCode) {
+        // QR code files are stored in storage/qr_codes/
+        imgSrc = `${app_url}/storage/qr_codes/${url}`;
+      } else {
+        // Technical images and other files use media_url
+        imgSrc = url.startsWith('http') ? url : `${media_url}${url}`;
+      }
       return `<img src="${imgSrc}" style="max-width:100%;border:1px solid #eee;border-radius:6px;padding:6px;"/>`;
     };
     return `
@@ -321,6 +327,8 @@ function index_main() {
     .label { width: 160px; color:#374151; font-weight:600; }
     .value { flex:1; color:#111827; }
     .images { display:grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 8px; }
+    .pictures-grid { display:grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 8px; margin-top: 8px; }
+    .picture-item { width: 100%; height: 80px; object-fit: cover; border: 1px solid #eee; border-radius: 6px; padding: 4px; }
     .footer { margin-top: 24px; font-size: 12px; color:#6b7280; text-align:center; }
     hr { border: none; height: 1px; background: #e5e7eb; margin: 12px 0; }
   </style>
@@ -367,17 +375,23 @@ function index_main() {
     <div class="images">
       <div>
         <div class="label" style="margin-bottom:6px;">Technical Image</div>
-        ${imgTag(item.technical_image)}
-      </div>
-      <div>
-        <div class="label" style="margin-bottom:6px;">Image</div>
-        ${imgTag(item.image)}
+        ${imgTag(item.technical_image, false)}
       </div>
       <div>
         <div class="label" style="margin-bottom:6px;">QR Code</div>
-        ${imgTag(item.qr_code)}
+        ${imgTag(item.qr_code, true)}
       </div>
     </div>
+    ${item.pictures && Array.isArray(item.pictures) && item.pictures.length > 0 ? `
+    <div style="margin-top:16px;">
+      <div class="label" style="margin-bottom:8px;">Pictures (${item.pictures.length})</div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:8px;">
+        ${item.pictures.map((picture, index) => {
+          const imgSrc = picture.startsWith('data:') ? picture : `${media_url}${picture}`;
+          return `<img src="${imgSrc}" alt="Picture ${index + 1}" style="width:100%;height:80px;object-fit:cover;border:1px solid #eee;border-radius:6px;padding:4px;"/>`;
+        }).join('')}
+      </div>
+    </div>` : ''}
   </div>
   <hr />
   <div class="footer">ERP Spare Part • Product Information Sheet</div>
