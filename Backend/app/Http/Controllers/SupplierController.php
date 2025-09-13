@@ -470,6 +470,35 @@ class SupplierController extends BaseController
     }
 
     /**
+     * Check for existing main suppliers before updating
+     */
+    public function checkExistingMainSuppliers(Request $request)
+    {
+        $productIds = $request->input('product_ids', []);
+        $currentSupplierId = $request->input('supplier_id');
+        
+        $conflicts = [];
+        
+        foreach ($productIds as $productId) {
+            $existingMainSupplier = Supplierproduct::where('product_id', $productId)
+                ->where('is_primary', true)
+                ->where('supplier_id', '!=', $currentSupplierId)
+                ->with('supplier')
+                ->first();
+                
+            if ($existingMainSupplier) {
+                $conflicts[] = [
+                    'product_id' => $productId,
+                    'current_main_supplier' => $existingMainSupplier->supplier->supplier ?? 'Unknown',
+                    'current_supplier_id' => $existingMainSupplier->supplier_id
+                ];
+            }
+        }
+        
+        return $this->sendResponse($conflicts, 'Existing main suppliers check completed');
+    }
+
+    /**
      * Handle main supplier associations - ensure only one primary supplier per product
      */
     private function handleMainSupplierAssociations($supplierId, $productIds, $isMainSupplier = true)

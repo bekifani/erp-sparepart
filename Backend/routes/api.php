@@ -65,6 +65,7 @@ Route::post('/supplier', [App\Http\Controllers\SupplierController::class, 'store
 Route::put('/supplier/{id}', [App\Http\Controllers\SupplierController::class, 'update'])->middleware('permission:supplier-edit');
 Route::delete('/supplier/{id}', [App\Http\Controllers\SupplierController::class, 'destroy'])->middleware('permission:supplier-delete');
 Route::get('/all_suppliers', [App\Http\Controllers\SupplierController::class,'all_suppliers']);
+Route::post('/check_existing_main_suppliers', [App\Http\Controllers\SupplierController::class, 'checkExistingMainSuppliers'])->middleware('permission:supplier-edit');
 
 
 Route::get('/categor', [App\Http\Controllers\CategorController::class, 'index'])->middleware('permission:categor-list|categor-create|categor-edit|categor-delete');

@@ -33,6 +33,8 @@ function index_main() {
   const app_url = useSelector((state) => state.auth.app_url)
   const upload_url = useSelector((state)=> state.auth.upload_url)
   const media_url = useSelector((state)=>state.auth.media_url)
+  const token = useSelector((state) => state.auth.token)
+  const tenant = useSelector((state) => state.auth.tenant)
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showUpdateModal, setShowUpdateModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
@@ -648,6 +650,18 @@ function index_main() {
         ...data,
         is_main_supplier: data.is_main_supplier || false
       };
+      
+      // Check for existing main suppliers if checkbox is checked and products are selected
+      if (formData.is_main_supplier && formData.selected_products && formData.selected_products.length > 0) {
+        try {
+          await checkForMainSupplierConflicts(formData);
+          return; // Will continue in confirmation handler
+        } catch (error) {
+          console.error('Error checking main supplier conflicts:', error);
+          // If check fails, proceed without confirmation
+        }
+      }
+      
       console.log('Supplier update payload:', formData);
       const response = await updateSupplier(formData);
       console.log('Supplier update response:', response);
@@ -778,6 +792,118 @@ function index_main() {
   // Main supplier functionality
   const [currentSupplierMainProducts, setCurrentSupplierMainProducts] = useState([]);
   
+  // Confirmation dialog for main supplier conflicts
+  const [showMainSupplierConfirmDialog, setShowMainSupplierConfirmDialog] = useState(false);
+  const [mainSupplierConflicts, setMainSupplierConflicts] = useState([]);
+  const [pendingUpdateData, setPendingUpdateData] = useState(null);
+
+  // Check for main supplier conflicts before updating
+  const checkForMainSupplierConflicts = async (formData) => {
+    try {
+      const response = await fetch(`${app_url}/api/check_existing_main_suppliers`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+          'X-Tenant': tenant
+        },
+        body: JSON.stringify({
+          product_ids: formData.selected_products,
+          supplier_id: formData.id
+        })
+      });
+      
+      const result = await response.json();
+      
+      if (result.success && result.data && result.data.length > 0) {
+        // There are conflicts - show confirmation dialog
+        setMainSupplierConflicts(result.data);
+        setPendingUpdateData(formData);
+        setShowMainSupplierConfirmDialog(true);
+      } else {
+        // No conflicts - proceed with update
+        await proceedWithUpdate(formData);
+      }
+    } catch (error) {
+      console.error('Error checking main supplier conflicts:', error);
+      // Don't proceed automatically if check fails - throw error to be handled by caller
+      throw error;
+    }
+  };
+
+  // Proceed with the actual update
+  const proceedWithUpdate = async (formData) => {
+    console.log('Supplier update payload:', formData);
+    const response = await updateSupplier(formData);
+    console.log('Supplier update response:', response);
+    
+    if (response?.error) {
+      console.error('🔴 Supplier update failed:', response.error);
+      let errorMessage = t("Error updating Supplier");
+      
+      // Check multiple possible error structures
+      const errorSources = [
+        response?.error?.data?.data?.errors,
+        response?.error?.data?.errors,
+        response?.error?.data?.message,
+        response?.error?.message
+      ];
+      
+      let validationErrors = null;
+      for (const errorSource of errorSources) {
+        if (errorSource && typeof errorSource === 'object') {
+          validationErrors = errorSource;
+          break;
+        } else if (typeof errorSource === 'string') {
+          errorMessage = errorSource;
+          break;
+        }
+      }
+      
+      if (validationErrors) {
+        const friendlyErrors = [];
+        for (const [field, errors] of Object.entries(validationErrors)) {
+          const errorList = Array.isArray(errors) ? errors : [errors];
+          for (const error of errorList) {
+            if (typeof error === 'string') {
+              if (error.includes('email has already been taken')) {
+                friendlyErrors.push('This email address is already registered with another supplier.');
+              } else if (error.includes('phone number has already been taken')) {
+                friendlyErrors.push('This phone number is already registered with another supplier.');
+              } else if (error.includes('whatsapp has already been taken')) {
+                friendlyErrors.push('This WhatsApp number is already registered with another supplier.');
+              } else if (error.includes('wechat id has already been taken')) {
+                friendlyErrors.push('This WeChat ID is already registered with another supplier.');
+              } else {
+                friendlyErrors.push(error);
+              }
+            }
+          }
+        }
+        errorMessage = friendlyErrors.length > 0 ? friendlyErrors.join(' ') : errorMessage;
+      }
+      
+      setToastMessage(errorMessage);
+    } else {
+      setShowUpdateModal(false);
+      setRefetch(!refetch);
+      setToastMessage(t("Supplier updated successfully."));
+    }
+    basicStickyNotification.current?.showToast();
+  };
+
+  // Handle confirmation of main supplier reassignment
+  const handleMainSupplierConfirmation = async (confirmed) => {
+    setShowMainSupplierConfirmDialog(false);
+    
+    if (confirmed && pendingUpdateData) {
+      await proceedWithUpdate(pendingUpdateData);
+    }
+    
+    setPendingUpdateData(null);
+    setMainSupplierConflicts([]);
+  };
+
   // Handle product selection change for auto-checking checkbox
   const handleProductSelectionChange = (selectedItems) => {
     if (!Array.isArray(selectedItems)) return;
@@ -1926,6 +2052,61 @@ function index_main() {
             </div>
             <div className="mt-5 text-right">
               <Button variant="primary" onClick={() => setShowMainSupplierDialog(false)}>{t('Close')}</Button>
+            </div>
+          </div>
+        </Slideover.Panel>
+      </Slideover>
+
+      {/* Main Supplier Conflict Confirmation Dialog */}
+      <Slideover
+        open={showMainSupplierConfirmDialog}
+        onClose={() => handleMainSupplierConfirmation(false)}
+        size="lg"
+      >
+        <Slideover.Panel>
+          <div className="p-5">
+            <div className="text-center">
+              <Lucide
+                icon="AlertTriangle"
+                className="w-16 h-16 mx-auto mt-3 text-warning"
+              />
+              <div className="mt-5 text-2xl font-medium">{t("Main Supplier Reassignment")}</div>
+              <div className="mt-2 text-slate-500">
+                {t("The following products already have main suppliers assigned:")}
+              </div>
+            </div>
+            
+            <div className="mt-5 space-y-3">
+              {mainSupplierConflicts.map((conflict, idx) => (
+                <div key={idx} className="p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+                  <div className="text-sm">
+                    <span className="font-medium">{t("Product ID")}:</span> {conflict.product_id}
+                  </div>
+                  <div className="text-sm mt-1">
+                    <span className="font-medium">{t("Current Main Supplier")}:</span> 
+                    <span className="text-warning font-medium ml-1">{conflict.current_main_supplier}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+            
+            <div className="mt-5 text-center text-sm text-slate-600">
+              {t("Do you want to reassign these products to the current supplier? This will remove the main supplier designation from the previous suppliers.")}
+            </div>
+            
+            <div className="mt-6 flex justify-center gap-3">
+              <Button 
+                variant="outline-secondary" 
+                onClick={() => handleMainSupplierConfirmation(false)}
+              >
+                {t('Cancel')}
+              </Button>
+              <Button 
+                variant="warning" 
+                onClick={() => handleMainSupplierConfirmation(true)}
+              >
+                {t('Yes, Reassign')}
+              </Button>
             </div>
           </div>
         </Slideover.Panel>
