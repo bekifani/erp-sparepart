@@ -11,6 +11,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Notifications\Notifiable;
 use App\Models\Product;
 use App\Models\SupplierImage;
+use App\Models\Supplierproduct;
 
 class Supplier extends Model
 {
@@ -38,6 +39,13 @@ class Supplier extends Model
     {
         return $this->hasMany(Product::class, 'supplier_id', 'id');
     }
+    
+    // A supplier has many supplier-product relationships
+    public function supplierProducts()
+    {
+        return $this->hasMany(Supplierproduct::class, 'supplier_id', 'id');
+    }
+    
     public function images()
 {
     return $this->hasMany(SupplierImage::class, 'supplier_id', 'id');

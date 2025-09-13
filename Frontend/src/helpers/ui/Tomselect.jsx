@@ -4,7 +4,7 @@ import axios from "axios";
 import { useSelector } from "react-redux";
 import { useTranslation } from "react-i18next";
 
-const TomSelectSearch = ({ apiUrl, setValue , variable, defaultValue, customDataMapping, onSelectionChange, minQueryLength = 1, defaultLabel }) => {
+const TomSelectSearch = ({ apiUrl, setValue , variable, defaultValue, customDataMapping, onSelectionChange, minQueryLength = 1, defaultLabel, multiple = false, options = {} }) => {
   const {t,i18n} = useTranslation()
   const tomSelectRef = useRef(null);
   const token = useSelector((state)=> state.auth.token)
@@ -13,7 +13,9 @@ const TomSelectSearch = ({ apiUrl, setValue , variable, defaultValue, customData
   useEffect(() => {
     // Initialize Tom Select with configuration
     const tomSelectInstance = new TomSelect(tomSelectRef.current, {
-      placeholder: t("Search") + "...",
+      placeholder: options.placeholder || t("Search") + "...",
+      plugins: multiple ? ['remove_button'] : [],
+      ...options,
       load: async (query, callback) => {
         try {
           if (!query.trim() || query.length < minQueryLength) return callback();
@@ -81,11 +83,18 @@ const TomSelectSearch = ({ apiUrl, setValue , variable, defaultValue, customData
         }
       },
       onChange: (value) => {
+        // Handle both single and multiple selections
+        const finalValue = multiple ? (Array.isArray(value) ? value : [value].filter(Boolean)) : value;
         // Mark as dirty/validated so RHF sees it as filled
-        setValue(variable, value, { shouldDirty: true, shouldValidate: true });
+        setValue(variable, finalValue, { shouldDirty: true, shouldValidate: true });
         if (onSelectionChange && tomSelectInstance.itemsData) {
-          const selectedItem = tomSelectInstance.itemsData.find(item => (item.value) == value);
-          if (selectedItem) onSelectionChange(selectedItem);
+          if (multiple) {
+            const selectedItems = finalValue.map(v => tomSelectInstance.itemsData.find(item => (item.value) == v)).filter(Boolean);
+            onSelectionChange(selectedItems);
+          } else {
+            const selectedItem = tomSelectInstance.itemsData.find(item => (item.value) == value);
+            if (selectedItem) onSelectionChange(selectedItem);
+          }
         }
       },
       create: false,
@@ -103,7 +112,7 @@ const TomSelectSearch = ({ apiUrl, setValue , variable, defaultValue, customData
 
   return (
     <div>
-      <select ref={tomSelectRef}>
+      <select ref={tomSelectRef} multiple={multiple}>
         <option value="">Select an option</option>
       </select>
     </div>

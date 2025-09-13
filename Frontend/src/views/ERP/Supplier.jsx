@@ -305,6 +305,44 @@ function index_main() {
       download: true,
       
     },
+
+    {
+      title: t("Main Supplier"),
+      minWidth: 200,
+      field: "main_supplier_products",
+      hozAlign: "center",
+      headerHozAlign: "center",
+      vertAlign: "middle",
+      print: true,
+      download: true,
+      formatter: (cell) => {
+        const container = stringToHTML('<div class="flex items-center justify-center flex-wrap gap-1"></div>');
+        const value = cell.getValue() || '';
+        const list = value.split(',').map(v => v.trim()).filter(Boolean);
+        
+        if (list.length === 0) {
+          const noBadge = stringToHTML(`<span class="px-2 py-0.5 rounded-full bg-slate/10 text-slate text-xs">${t('No')}</span>`);
+          container.append(noBadge);
+          return container;
+        }
+        
+        const preview = list.slice(0, 2);
+        preview.forEach(item => {
+          const badge = stringToHTML(`<span class="px-2 py-0.5 rounded-full bg-primary/10 text-primary text-xs">${item}</span>`);
+          container.append(badge);
+        });
+        if (list.length > 2) {
+          const moreBtn = stringToHTML(`<a href="javascript:;" class="text-primary text-xs">+${list.length - 2} ${t('more')}</a>`);
+          moreBtn.addEventListener('click', () => {
+            setMainSupplierDialogContent(list);
+            setShowMainSupplierDialog(true);
+          });
+          container.append(moreBtn);
+        }
+        container.setAttribute('title', list.join(', '));
+        return container;
+      }
+    },
     
 
     {
@@ -396,6 +434,8 @@ function index_main() {
         .nullable()
         .min(0, t('Percent cannot be negative'))
         .max(100, t('Percent cannot exceed 100')),
+      is_main_supplier: yup.boolean().nullable(),
+      selected_products: yup.array().of(yup.number()).nullable(),
     })
     .required();
 
@@ -603,8 +643,13 @@ function index_main() {
 
   const onUpdate = async (data) => {
     try {
-      console.log('Supplier update payload:', data);
-      const response = await updateSupplier(data);
+      // Ensure checkbox value is always included (React Hook Form doesn't include unchecked values)
+      const formData = {
+        ...data,
+        is_main_supplier: data.is_main_supplier || false
+      };
+      console.log('Supplier update payload:', formData);
+      const response = await updateSupplier(formData);
       console.log('Supplier update response:', response);
       
       if (response?.error) {
@@ -727,6 +772,43 @@ function index_main() {
   const [categoriesDialogContent, setCategoriesDialogContent] = useState([]);
   const [showNamesDialog, setShowNamesDialog] = useState(false);
   const [namesDialogContent, setNamesDialogContent] = useState([]);
+  const [showMainSupplierDialog, setShowMainSupplierDialog] = useState(false);
+  const [mainSupplierDialogContent, setMainSupplierDialogContent] = useState([]);
+  
+  // Main supplier functionality
+  const [currentSupplierMainProducts, setCurrentSupplierMainProducts] = useState([]);
+  
+  // Handle product selection change for auto-checking checkbox
+  const handleProductSelectionChange = (selectedItems) => {
+    if (!Array.isArray(selectedItems)) return;
+    
+    const selectedProductIds = selectedItems.map(item => parseInt(item.value));
+    const mainProductIds = currentSupplierMainProducts || [];
+    
+    // Check if all selected products are already main supplier products
+    const allAreMainSupplier = selectedProductIds.length > 0 && 
+      selectedProductIds.every(id => mainProductIds.includes(id));
+    
+    // Check if some are main supplier and some are not
+    const someAreMainSupplier = selectedProductIds.some(id => mainProductIds.includes(id));
+    const someAreNotMainSupplier = selectedProductIds.some(id => !mainProductIds.includes(id));
+    
+    if (allAreMainSupplier) {
+      // All selected products are already main supplier - check the box
+      setValue('is_main_supplier', true);
+    } else if (someAreMainSupplier && someAreNotMainSupplier) {
+      // Mixed selection - show notification and uncheck box
+      setValue('is_main_supplier', false);
+      const mainProducts = selectedProductIds.filter(id => mainProductIds.includes(id));
+      const nonMainProducts = selectedProductIds.filter(id => !mainProductIds.includes(id));
+      
+      setToastMessage(`Mixed selection: ${mainProducts.length} product(s) already marked as main supplier, ${nonMainProducts.length} product(s) not marked.`);
+      basicStickyNotification.current?.showToast();
+    } else {
+      // None are main supplier or no products selected - uncheck box
+      setValue('is_main_supplier', false);
+    }
+  };
 
   useEffect(() => {
     if (showCreateModal) {
@@ -738,13 +820,17 @@ function index_main() {
   }, [showCreateModal]);
 
   useEffect(() => {
-    if (showUpdateModal) {
+    if (showUpdateModal && editorData) {
       // When editing, load existing images
       const currentImages = getValues('images') || [];
       setUploadedImages(currentImages);
       setCapturedImages([]);
+      
+      // Load main supplier product IDs for auto-checking
+      const mainProductIds = editorData.main_supplier_product_ids || [];
+      setCurrentSupplierMainProducts(mainProductIds);
     }
-  }, [showUpdateModal]);
+  }, [showUpdateModal, editorData]);
 
   return (
     <div>
@@ -948,6 +1034,7 @@ function index_main() {
                   </div>
                 ) : (
                   <div className="w-full grid grid-cols-1 md:grid-cols-2 gap-4 gap-y-3">
+                    
                     
 <div className="mt-3 input-form">
                       <FormLabel
@@ -1311,6 +1398,7 @@ function index_main() {
                 ) : (
                   <div className="w-full grid grid-cols-1 md:grid-cols-2 gap-4 gap-y-3">
                     
+                    
 <div className="mt-3 input-form">
                       <FormLabel
                         htmlFor="validation-form-1"
@@ -1360,6 +1448,57 @@ function index_main() {
                             errors.name_surname.message}
                         </div>
                       )}
+                    </div>
+
+                    {/* Main Supplier Section - Only in Edit Form */}
+                    <div className="col-span-2 mt-6 border-t pt-4">
+                      <h3 className="text-lg font-medium text-gray-900 mb-4">{t("Designate as Main Supplier")}</h3>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {/* Product Search */}
+                        <div className="input-form">
+                          <FormLabel className="flex justify-start items-start flex-col w-full sm:flex-row">
+                            {t("Select Products for Main Supplier")}
+                          </FormLabel>
+                          <TomSelectSearch
+                            apiUrl={`${app_url}/api/search_product`}
+                            setValue={setValue}
+                            variable="selected_products"
+                            multiple={true}
+                            customDataMapping={(item) => ({
+                              value: item.value || item.id,
+                              text: item.text || item.product_name || item.product_code || item.name || String(item.id)
+                            })}
+                            onSelectionChange={(selectedItems) => {
+                              handleProductSelectionChange(selectedItems);
+                            }}
+                            options={{
+                              placeholder: t("Search and select products..."),
+                              persist: false,
+                              createOnBlur: false,
+                              create: false,
+                            }}
+                          />
+                        </div>
+                        
+                        {/* Main Supplier Checkbox */}
+                        <div className="input-form flex items-end">
+                          <FormCheck className="mt-6">
+                            <FormCheck.Input
+                              {...register("is_main_supplier")}
+                              id="is_main_supplier_update"
+                              type="checkbox"
+                              className="mr-2"
+                              value="true"
+                              onChange={(e) => {
+                                setValue("is_main_supplier", e.target.checked);
+                              }}
+                            />
+                            <FormCheck.Label htmlFor="is_main_supplier_update" className="cursor-pointer">
+                              {t("Mark as Main Supplier")}
+                            </FormCheck.Label>
+                          </FormCheck>
+                        </div>
+                      </div>
                     </div>
 
 
@@ -1626,6 +1765,7 @@ function index_main() {
                       )}
                     </div>
 
+
                     {/* Price Adjustment Section - Only in Edit Form */}
                     <div className="col-span-2 mt-6 border-t pt-4">
                       <h3 className="text-lg font-medium text-gray-900 mb-4">{t("Global Price Adjustment")}</h3>
@@ -1765,6 +1905,27 @@ function index_main() {
             </div>
             <div className="mt-5 text-right">
               <Button variant="primary" onClick={() => setShowNamesDialog(false)}>{t('Close')}</Button>
+            </div>
+          </div>
+        </Slideover.Panel>
+      </Slideover>
+
+      {/* Main Supplier Products viewer */}
+      <Slideover
+        open={showMainSupplierDialog}
+        onClose={() => setShowMainSupplierDialog(false)}
+        size="md"
+      >
+        <Slideover.Panel>
+          <div className="p-5">
+            <h2 className="text-base font-medium mb-3">{t('Main Supplier Products')}</h2>
+            <div className="flex flex-wrap gap-2">
+              {mainSupplierDialogContent.map((p, idx) => (
+                <span key={idx} className="px-2 py-0.5 rounded-full bg-primary/10 text-primary text-xs">{p}</span>
+              ))}
+            </div>
+            <div className="mt-5 text-right">
+              <Button variant="primary" onClick={() => setShowMainSupplierDialog(false)}>{t('Close')}</Button>
             </div>
           </div>
         </Slideover.Panel>
