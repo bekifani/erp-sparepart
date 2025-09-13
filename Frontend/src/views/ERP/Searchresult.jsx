@@ -669,7 +669,15 @@ return (
       >
         {t("Customer Id")}
       </FormLabel>
-      <TomSelectSearch apiUrl={`${app_url}/api/search_customer`} setValue={setValue} variable="customer_id"/>
+      <TomSelectSearch 
+        apiUrl={`${app_url}/api/search_customer`} 
+        setValue={setValue} 
+        variable="customer_id"
+        customDataMapping={(item) => ({
+          value: item.id,
+          text: item.name_surname || item.shipping_mark || item.email || String(item.id)
+        })}
+      />
       {errors.customer_id && (
         <div className="mt-2 text-danger">
           {typeof errors.customer_id.message === "string" &&
@@ -824,7 +832,15 @@ return (
       >
         {t("Customer Id")}
       </FormLabel>
-      <TomSelectSearch apiUrl={`${app_url}/api/search_customer`} setValue={setValue} variable="customer_id"/>
+      <TomSelectSearch 
+        apiUrl={`${app_url}/api/search_customer`} 
+        setValue={setValue} 
+        variable="customer_id"
+        customDataMapping={(item) => ({
+          value: item.id,
+          text: item.name_surname || item.shipping_mark || item.email || String(item.id)
+        })}
+      />
       {errors.customer_id && (
         <div className="mt-2 text-danger">
           {typeof errors.customer_id.message === "string" &&

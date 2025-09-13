@@ -65,6 +65,7 @@ Route::post('/supplier', [App\Http\Controllers\SupplierController::class, 'store
 Route::put('/supplier/{id}', [App\Http\Controllers\SupplierController::class, 'update'])->middleware('permission:supplier-edit');
 Route::delete('/supplier/{id}', [App\Http\Controllers\SupplierController::class, 'destroy'])->middleware('permission:supplier-delete');
 Route::get('/all_suppliers', [App\Http\Controllers\SupplierController::class,'all_suppliers']);
+Route::post('/check_existing_main_suppliers', [App\Http\Controllers\SupplierController::class, 'checkExistingMainSuppliers'])->middleware('permission:supplier-edit');
 
 
 Route::get('/categor', [App\Http\Controllers\CategorController::class, 'index'])->middleware('permission:categor-list|categor-create|categor-edit|categor-delete');
@@ -543,5 +544,13 @@ Route::get('/catalog/product/{id}', [App\Http\Controllers\CatalogController::cla
 //add here
 
     Route::post('notifications/mark-as-read', [App\Http\Controllers\NotificationController::class, 'markAsRead']);
+    
+    // Image endpoints
+    Route::get('/images/product-pictures', [App\Http\Controllers\ImageController::class, 'getProductPictures'])->middleware('permission:productinformation-list');
+    Route::get('/images/technical-images', [App\Http\Controllers\ImageController::class, 'getTechnicalImages'])->middleware('permission:productinformation-list');
+    Route::get('/images/box-images', [App\Http\Controllers\ImageController::class, 'getBoxImages'])->middleware('permission:boxe-list');
+    Route::get('/images/label-images', [App\Http\Controllers\ImageController::class, 'getLabelImages'])->middleware('permission:label-list');
+    Route::get('/images/other-images', [App\Http\Controllers\ImageController::class, 'getOtherImages'])->middleware('permission:view-hr-menu');
+    
     // API END
 });

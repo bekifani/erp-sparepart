@@ -28,11 +28,10 @@ class CrosscodeController extends BaseController
         $perPage = $request->query('size', 10); 
         $filters = $request['filter'];
         $query = Crosscode::leftJoin('products', 'crosscodes.product_id', '=', 'products.id')
-            ->leftJoin('product_information', 'products.product_information_id', '=', 'product_information.id')
-            ->leftJoin('brandnames', 'product_information.brand_code', '=', 'brandnames.id')
+            ->leftJoin('brandnames', 'products.brand_id', '=', 'brandnames.id')
             ->select(
                 'brandnames.brand_name',
-                'brandnames.brand_code',
+                'products.brand_code',
                 'crosscodes.cross_band',
                 'crosscodes.cross_code',
                 'crosscodes.show'
@@ -62,11 +61,10 @@ class CrosscodeController extends BaseController
 
     public function all_crosscodes(){
         $data = Crosscode::leftJoin('products', 'crosscodes.product_id', '=', 'products.id')
-            ->leftJoin('product_information', 'products.product_information_id', '=', 'product_information.id')
-            ->leftJoin('brandnames', 'product_information.brand_code', '=', 'brandnames.id')
+            ->leftJoin('brandnames', 'products.brand_id', '=', 'brandnames.id')
             ->select(
                 'brandnames.brand_name',
-                'brandnames.brand_code',
+                'products.brand_code',
                 'crosscodes.cross_band',
                 'crosscodes.cross_code',
                 'crosscodes.show'
@@ -84,11 +82,10 @@ class CrosscodeController extends BaseController
             ], 400);
         }
         $results = Crosscode::leftJoin('products', 'crosscodes.product_id', '=', 'products.id')
-            ->leftJoin('product_information', 'products.product_information_id', '=', 'product_information.id')
-            ->leftJoin('brandnames', 'product_information.brand_code', '=', 'brandnames.id')
+            ->leftJoin('brandnames', 'products.brand_id', '=', 'brandnames.id')
             ->select(
                 'brandnames.brand_name',
-                'brandnames.brand_code',
+                'products.brand_code',
                 'crosscodes.cross_band',
                 'crosscodes.cross_code',
                 'crosscodes.show'
@@ -130,12 +127,11 @@ class CrosscodeController extends BaseController
     public function show($id)
     {
         $crosscode = Crosscode::leftJoin('products', 'crosscodes.product_id', '=', 'products.id')
-            ->leftJoin('product_information', 'products.product_information_id', '=', 'product_information.id')
-            ->leftJoin('brandnames', 'product_information.brand_code', '=', 'brandnames.id')
+            ->leftJoin('brandnames', 'products.brand_id', '=', 'brandnames.id')
             ->select(
                 'crosscodes.*',
                 'brandnames.brand_name',
-                'brandnames.brand_code'
+                'products.brand_code'
             )
             ->where('crosscodes.id', $id)
             ->first();

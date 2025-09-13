@@ -7,6 +7,7 @@ use App\Models\Fileoperation;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Facades\Log;
 class FileoperationController extends BaseController
 {
     protected $searchableColumns = ['user_id', 'product_id', 'file_path', 'operation_type', 'status'];
@@ -66,30 +67,36 @@ class FileoperationController extends BaseController
 
     public function store(Request $request)
     {
-        $validationRules = [
-          
-          "user_id"=>"required|exists:users,id",
-          "product_id"=>"required|exists:products,id",
-          "_path"=>"required|string|max:255",
-          "operation_type"=>"required|string|max:255",
-          "status"=>"nullable|string|default:success",
-          
+        try {
+            $validationRules = [
+              "user_id"=>"required|exists:users,id",
+              "product_id"=>"required|exists:products,id",
+              "file_path"=>"required|string|max:255",
+              "operation_type"=>"required|string|max:255",
+              "status"=>"nullable|string",
+            ];
 
-        ];
+            $validation = Validator::make($request->all() , $validationRules);
+            if($validation->fails()){
+                return $this->sendError("Invalid Values", ['errors' => $validation->errors()]);
+            }
+            $validated=$validation->validated();
 
-        $validation = Validator::make($request->all() , $validationRules);
-        if($validation->fails()){
-            return $this->sendError("Invalid Values", ['errors' => $validation->errors()]);
+            // Set default values programmatically
+            if (!isset($validated['status'])) {
+                $validated['status'] = 'success';
+            }
+
+            $fileoperation = Fileoperation::create($validated);
+            return $this->sendResponse($fileoperation, "fileoperation created succesfully");
+        } catch (\Exception $e) {
+            Log::error('Error creating fileoperation: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'An error occurred while creating the fileoperation.',
+                'error' => $e->getMessage()
+            ], 500);
         }
-        $validated=$validation->validated();
-
-
-
-        
-        //file uploads
-
-        $fileoperation = Fileoperation::create($validated);
-        return $this->sendResponse($fileoperation, "fileoperation created succesfully");
     }
 
     public function show($id)
@@ -101,45 +108,55 @@ class FileoperationController extends BaseController
 
     public function update(Request $request, $id)
     {
-        $fileoperation = Fileoperation::findOrFail($id);
-         $validationRules = [
-            //for update
+        try {
+            $fileoperation = Fileoperation::findOrFail($id);
+            $validationRules = [
+              "user_id"=>"required|exists:users,id",
+              "product_id"=>"required|exists:products,id",
+              "file_path"=>"required|string|max:255",
+              "operation_type"=>"required|string|max:255",
+              "status"=>"nullable|string",
+            ];
 
-          
-          "user_id"=>"required|exists:users,id",
-          "product_id"=>"required|exists:products,id",
-          "_path"=>"required|string|max:255",
-          "operation_type"=>"required|string|max:255",
-          "status"=>"nullable|string|default:success",
-          
-        ];
+            $validation = Validator::make($request->all() , $validationRules);
+            if($validation->fails()){
+                return $this->sendError("Invalid Values", ['errors' => $validation->errors()]);
+            }
+            $validated=$validation->validated();
 
-        $validation = Validator::make($request->all() , $validationRules);
-        if($validation->fails()){
-            return $this->sendError("Invalid Values", ['errors' => $validation->errors()]);
+            // Set default values programmatically
+            if (!isset($validated['status'])) {
+                $validated['status'] = 'success';
+            }
+
+            $fileoperation->update($validated);
+            return $this->sendResponse($fileoperation, "fileoperation updated successfully");
+        } catch (\Exception $e) {
+            Log::error('Error updating fileoperation: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'An error occurred while updating the fileoperation.',
+                'error' => $e->getMessage()
+            ], 500);
         }
-        $validated=$validation->validated();
-
-
-
-
-        //file uploads update
-
-        $fileoperation->update($validated);
-        return $this->sendResponse($fileoperation, "fileoperation updated successfully");
     }
 
     public function destroy($id)
     {
-        $fileoperation = Fileoperation::findOrFail($id);
-        $fileoperation->delete();
+        try {
+            $fileoperation = Fileoperation::findOrFail($id);
+            $fileoperation->delete();
 
-
-
-
-
-        //delete files uploaded
-        return $this->sendResponse(1, "fileoperation deleted succesfully");
+            //delete files uploaded
+            return $this->sendResponse(1, "fileoperation deleted succesfully");
+        } catch (\Exception $e) {
+            Log::error('Error deleting fileoperation: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'An error occurred while deleting the fileoperation.',
+                'error' => $e->getMessage()
+            ], 500);
+        }
     }
 
     public function deleteFile($filePath) {
