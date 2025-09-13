@@ -1,4 +1,3 @@
-
 import "@/assets/css/vendors/tabulator.css";
 import Lucide from "@/components/Base/Lucide";
 import ReactDOMServer from 'react-dom/server';
@@ -1632,7 +1631,8 @@ return (
           refetch={refetch}
           setRefetch={setRefetch}
           permission={"Employee"}
-          page_name={"Employee"}
+          page_name={t('Employee')}
+          enableColumnControls={true}
         />
       </Can>
     </div>

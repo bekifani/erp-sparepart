@@ -4,9 +4,12 @@ namespace App\Http\Controllers;
 
 use App\Http\Controllers\BaseController;
 use App\Models\Unit;
+use App\Models\ProductInformation;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Facades\DB;
+
 class UnitController extends BaseController
 {
     protected $searchableColumns = ['name', 'base_unit', 'base_value'];
@@ -68,12 +71,9 @@ class UnitController extends BaseController
     public function store(Request $request)
     {
         $validationRules = [
-          
           "name"=>"required|string|max:255",
           "base_unit"=>"required|string|max:255",
           "base_value"=>"required|numeric",
-          
-
         ];
 
         $validation = Validator::make($request->all() , $validationRules);
@@ -82,10 +82,11 @@ class UnitController extends BaseController
         }
         $validated=$validation->validated();
 
-
-
-        
-        //file uploads
+        // Prevent duplicate unit names on create
+        $exists = Unit::where('name', $validated['name'])->first();
+        if ($exists) {
+            return $this->sendError("Unit name already exists", ['errors' => ['name' => ['The unit name has already been taken.']]]);
+        }
 
         $unit = Unit::create($validated);
         return $this->sendResponse($unit, "unit created succesfully");
@@ -102,13 +103,9 @@ class UnitController extends BaseController
     {
         $unit = Unit::findOrFail($id);
          $validationRules = [
-            //for update
-
-          
           "name"=>"required|string|max:255",
           "base_unit"=>"required|string|max:255",
           "base_value"=>"required|numeric",
-          
         ];
 
         $validation = Validator::make($request->all() , $validationRules);
@@ -117,11 +114,19 @@ class UnitController extends BaseController
         }
         $validated=$validation->validated();
 
+        // Merge-on-rename: if new name matches another existing unit, reassign usages and delete this unit
+        $target = Unit::where('name', $validated['name'])->where('id', '!=', $unit->id)->first();
+        if ($target) {
+            DB::transaction(function () use ($unit, $target) {
+                // Reassign all product informations to target unit
+                ProductInformation::where('unit_id', $unit->id)->update(['unit_id' => $target->id]);
+                // Delete current unit
+                $unit->delete();
+            });
+            return $this->sendResponse($target, "unit merged into existing '{$target->name}' and deleted old entry");
+        }
 
-
-
-        //file uploads update
-
+        // Normal update
         $unit->update($validated);
         return $this->sendResponse($unit, "unit updated successfully");
     }
@@ -129,14 +134,42 @@ class UnitController extends BaseController
     public function destroy($id)
     {
         $unit = Unit::findOrFail($id);
+        // Deletion Rule: prevent delete if referenced by any product information
+        $references = ProductInformation::where('unit_id', $unit->id)->count();
+        if ($references > 0) {
+            return $this->sendError("Cannot delete unit: it is assigned to products.", ['errors' => ['unit' => ["Referenced by {$references} product(s)"]]]);
+        }
         $unit->delete();
-
-
-
-
 
         //delete files uploaded
         return $this->sendResponse(1, "unit deleted succesfully");
+    }
+
+    // Seed default units if they don't already exist
+    public function seedDefaults()
+    {
+        $defaults = [
+            // Quantity
+            ['name' => 'Pcs', 'base_unit' => 'Quantity', 'base_value' => 1],
+            ['name' => 'Set', 'base_unit' => 'Quantity', 'base_value' => 1],
+            // Length
+            ['name' => 'Meter', 'base_unit' => 'Length', 'base_value' => 1],
+            ['name' => 'Centimeter (cm)', 'base_unit' => 'Length', 'base_value' => 0.01],
+            ['name' => 'Millimeter (mm)', 'base_unit' => 'Length', 'base_value' => 0.001],
+            // Weight
+            ['name' => 'Kilogram (kg)', 'base_unit' => 'Weight', 'base_value' => 1],
+            ['name' => 'Gram (g)', 'base_unit' => 'Weight', 'base_value' => 0.001],
+        ];
+
+        $created = [];
+        foreach ($defaults as $row) {
+            $existing = Unit::where('name', $row['name'])->first();
+            if (!$existing) {
+                $created[] = Unit::create($row);
+            }
+        }
+
+        return $this->sendResponse(['created' => count($created)], 'Default units seeded');
     }
 
     public function deleteFile($filePath) {

@@ -157,6 +157,13 @@ function index_main() {
       vertAlign: "middle",
       print: true,
       download: true,
+      formatter(cell) {
+        const row = cell.getData();
+        // Prefer the related category's English name if present; fallback to ID
+        return (row && row.category && (row.category.category_en || row.category.category_az || row.category.category_ru || row.category.category_cn))
+          ? (row.category.category_en || row.category.category_az || row.category.category_ru || row.category.category_cn)
+          : (row && row.category_id ? String(row.category_id) : "-");
+      },
       
     },
     
@@ -336,7 +343,6 @@ additional_note : yup.string().required(t('The Additional Note field is required
       name_ru: data.name_ru,
       name_cn: data.name_cn,
       category_id: data.category_id,
-      ...(data.product_name_code ? { product_name_code: data.product_name_code } : {}),
       additional_note: data.additional_note,
       product_qty: data.product_qty,
     };
@@ -376,7 +382,6 @@ additional_note : yup.string().required(t('The Additional Note field is required
       name_ru: data.name_ru,
       name_cn: data.name_cn,
       category_id: data.category_id,
-      ...(data.product_name_code ? { product_name_code: data.product_name_code } : {}),
       additional_note: data.additional_note,
       product_qty: data.product_qty,
     };
@@ -671,32 +676,15 @@ additional_note : yup.string().required(t('The Additional Note field is required
                       )}
                     </div>
 
-
-<div className="mt-3 input-form">
-                      <FormLabel
-                        htmlFor="validation-form-1"
-                        className="flex justify-start items-start flex-col w-full sm:flex-row"
-                      >
+                    {/* Product Name Code is auto-generated on create; hide input in create form */}
+                    <div className="mt-3 input-form">
+                      <FormLabel className="flex justify-start items-start flex-col w-full sm:flex-row">
                         {t("Product Name Code")}
                       </FormLabel>
-                      <FormInput
-                        {...register("product_name_code")}
-                        id="validation-form-1"
-                        type="text"
-                        name="product_name_code"
-                        className={clsx({
-                          "border-danger": errors.product_name_code,
-                        })}
-                        placeholder={t("Enter product_name_code (leave blank to auto-generate)")}
-                      />
-                      {errors.product_name_code && (
-                        <div className="mt-2 text-danger">
-                          {typeof errors.product_name_code.message === "string" &&
-                            errors.product_name_code.message}
-                        </div>
-                      )}
+                      <div className="text-left text-slate-500 text-sm">
+                        {t("This code will be generated automatically after saving and cannot be changed.")}
+                      </div>
                     </div>
-
 
 <div className="mt-3 input-form">
                       <FormLabel
@@ -980,7 +968,6 @@ additional_note : yup.string().required(t('The Additional Note field is required
                       )}
                     </div>
 
-
 <div className="mt-3 input-form">
                       <FormLabel
                         htmlFor="validation-form-1"
@@ -996,7 +983,9 @@ additional_note : yup.string().required(t('The Additional Note field is required
                         className={clsx({
                           "border-danger": errors.product_name_code,
                         })}
-                        placeholder={t("Enter product_name_code (leave blank to auto-generate)")}
+                        placeholder={t("Auto-generated and immutable")}
+                        readOnly
+                        disabled
                       />
                       {errors.product_name_code && (
                         <div className="mt-2 text-danger">
@@ -1005,7 +994,6 @@ additional_note : yup.string().required(t('The Additional Note field is required
                         </div>
                       )}
                     </div>
-
 
 <div className="mt-3 input-form">
                       <FormLabel

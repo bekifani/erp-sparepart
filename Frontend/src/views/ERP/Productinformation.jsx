@@ -3,7 +3,7 @@ import Lucide from "@/components/Base/Lucide";
 import ReactDOMServer from 'react-dom/server';
 import { Slideover } from "@/components/Base/Headless";
 import Button from "@/components/Base/Button";
-import React, { useRef, useState } from "react";
+import React, { useRef, useState, useEffect, useMemo } from "react";
 import { yupResolver } from "@hookform/resolvers/yup";
 import Notification from "@/components/Base/Notification";
 import TableComponent from "@/helpers/ui/TableComponent.jsx";
@@ -157,6 +157,12 @@ function index_main() {
           Object.keys(data).forEach((key) => {
             setValue(key, data[key]);
           });
+          // populate read-only meta for edit view
+          setSelectedProductMeta({
+            brand_name: data.brand_name || '',
+            brand_code_name: data.brand_code_name || '',
+            description: data.description || ''
+          });
           setShowUpdateModal(true);
         });
         b.addEventListener("click", function () {
@@ -206,6 +212,7 @@ function index_main() {
     setValue,
     reset,
     handleSubmit,
+    watch,
     formState: { errors },
   } = useForm({
     mode: "onChange",
@@ -213,6 +220,27 @@ function index_main() {
   });
 
   const [refetch, setRefetch] = useState(false);
+
+  // Recalculate volume when sizes change; assume sizes in cm -> convert to m^3
+  const sizeA = watch('product_size_a');
+  const sizeB = watch('product_size_b');
+  const sizeC = watch('product_size_c');
+  useEffect(() => {
+    const a = parseFloat(sizeA) || 0;
+    const b = parseFloat(sizeB) || 0;
+    const c = parseFloat(sizeC) || 0;
+    if (a > 0 && b > 0 && c > 0) {
+      // Convert cm^3 to m^3
+      const vol = (a * b * c) / 1_000_000;
+      const rounded = Number.isFinite(vol) ? Number(vol.toFixed(6)) : null;
+      if (rounded !== null) setValue('volume', rounded, { shouldValidate: true, shouldDirty: true });
+    } else {
+      // clear when incomplete
+      setValue('volume', null, { shouldValidate: true, shouldDirty: true });
+    }
+  }, [sizeA, sizeB, sizeC]);
+
+  const [selectedProductMeta, setSelectedProductMeta] = useState({ brand_name: '', brand_code_name: '', description: '' });
 
   const getMiniDisplay = (url) => {
     let data = app_url + '/api/file/' + url;
@@ -499,12 +527,20 @@ function index_main() {
                         customDataMapping={(item) => ({
                           value: item.value,
                           text: `${item.brand_name || ''} | ${item.brand_code_name || ''} | ${item.oe_code || ''} | ${item.description || ''}`,
-                          oe_code: item.oe_code || ''
+                          oe_code: item.oe_code || '',
+                          brand_name: item.brand_name || '',
+                          brand_code_name: item.brand_code_name || '',
+                          description: item.description || '',
                         })}
                         onSelectionChange={(item) => {
                           if (item) {
                             setValue('product_id', item.value, { shouldValidate: true });
                             if (item.oe_code) setValue('oe_code', item.oe_code);
+                            setSelectedProductMeta({
+                              brand_name: item.brand_name || '',
+                              brand_code_name: item.brand_code_name || '',
+                              description: item.description || '',
+                            });
                           }
                         }}
                       />
@@ -555,6 +591,8 @@ function index_main() {
                         apiUrl={`${app_url}/api/search_unit`}
                         setValue={setValue}
                         variable="unit_id"
+                        // If supported by your component, allow 1-char search:
+                        minQueryLength={1}
                         customDataMapping={(item) => ({ value: item.id, text: item.unit_name })}
                       />
                       {errors.unit_id && <div className="mt-2 text-danger">{errors.unit_id.message}</div>}
@@ -567,7 +605,21 @@ function index_main() {
                         apiUrl={`${app_url}/api/search_boxe`}
                         setValue={setValue}
                         variable="box_id"
-                        customDataMapping={(item) => ({ value: item.id, text: item.box_name })}
+                        customDataMapping={(item) => ({
+                          value: item.id,
+                          text: item.box_name,
+                          size_a: item.size_a,
+                          size_b: item.size_b,
+                          size_c: item.size_c,
+                        })}
+                        onSelectionChange={(item) => {
+                          if (item) {
+                            setValue('box_id', item.value, { shouldValidate: true });
+                            if (item.size_a) setValue('product_size_a', item.size_a, { shouldDirty: true, shouldValidate: true });
+                            if (item.size_b) setValue('product_size_b', item.size_b, { shouldDirty: true, shouldValidate: true });
+                            if (item.size_c) setValue('product_size_c', item.size_c, { shouldDirty: true, shouldValidate: true });
+                          }
+                        }}
                       />
                       {errors.box_id && <div className="mt-2 text-danger">{errors.box_id.message}</div>}
                     </div>
@@ -611,13 +663,15 @@ function index_main() {
 
                     {/* Row 6 */}
                     <div className="col-span-12 sm:col-span-6 input-form">
-                      <FormLabel className="flex justify-start items-start flex-col w-full sm:flex-row">{t("Volume")}</FormLabel>
+                      <FormLabel className="flex justify-start items-start flex-col w-full sm:flex-row">{t("Volume (m³)")}</FormLabel>
                       <FormInput
                         {...register("volume")}
                         type="number"
+                        step="0.000001"
                         name="volume"
                         className={clsx({ "border-danger": errors.volume })}
-                        placeholder={t("Enter volume")}
+                        placeholder={t("Auto-calculated from sizes")}
+                        readOnly
                       />
                       {errors.volume && <div className="mt-2 text-danger">{errors.volume.message}</div>}
                     </div>
@@ -634,8 +688,6 @@ function index_main() {
                     </div>
 
                     {/* Row 7 */}
-                
-
                     <div className="col-span-12 sm:col-span-6 input-form">
                       <FormLabel className="flex justify-start items-start flex-col w-full sm:flex-row">{t("Properties")}</FormLabel>
                       <FormInput
@@ -647,6 +699,7 @@ function index_main() {
                       />
                       {errors.properties && <div className="mt-2 text-danger">{errors.properties.message}</div>}
                     </div>
+
                     <div className="col-span-12 sm:col-span-12 input-form">
                       <FormLabel className="flex justify-start items-start flex-col w-full sm:flex-row">{t("QR Code (Image)")}</FormLabel>
                       <FileUpload
@@ -699,6 +752,20 @@ function index_main() {
                         placeholder={t("Enter additional_note")}
                       />
                       {errors.additional_note && <div className="mt-2 text-danger">{errors.additional_note.message}</div>}
+                    </div>
+
+                    {/* Read-only display from Products */}
+                    <div className="col-span-12 sm:col-span-6 input-form">
+                      <FormLabel className="flex flex-col w-full sm:flex-row">{t("Brand")}</FormLabel>
+                      <FormInput value={selectedProductMeta.brand_name} disabled readOnly />
+                    </div>
+                    <div className="col-span-12 sm:col-span-6 input-form">
+                      <FormLabel className="flex flex-col w-full sm:flex-row">{t("Brand Code")}</FormLabel>
+                      <FormInput value={selectedProductMeta.brand_code_name} disabled readOnly />
+                    </div>
+                    <div className="col-span-12 input-form">
+                      <FormLabel className="flex flex-col w-full sm:flex-row">{t("Description")}</FormLabel>
+                      <FormInput value={selectedProductMeta.description} disabled readOnly />
                     </div>
 
                   </div>
@@ -756,12 +823,20 @@ function index_main() {
                         customDataMapping={(item) => ({
                           value: item.value,
                           text: `${item.brand_name || ''} | ${item.brand_code_name || ''} | ${item.oe_code || ''} | ${item.description || ''}`,
-                          oe_code: item.oe_code || ''
+                          oe_code: item.oe_code || '',
+                          brand_name: item.brand_name || '',
+                          brand_code_name: item.brand_code_name || '',
+                          description: item.description || '',
                         })}
                         onSelectionChange={(item) => {
                           if (item) {
                             setValue('product_id', item.value, { shouldValidate: true });
                             if (item.oe_code) setValue('oe_code', item.oe_code);
+                            setSelectedProductMeta({
+                              brand_name: item.brand_name || '',
+                              brand_code_name: item.brand_code_name || '',
+                              description: item.description || '',
+                            });
                           }
                         }}
                       />
@@ -824,7 +899,21 @@ function index_main() {
                         apiUrl={`${app_url}/api/search_boxe`}
                         setValue={setValue}
                         variable="box_id"
-                        customDataMapping={(item) => ({ value: item.id, text: item.box_name })}
+                        customDataMapping={(item) => ({
+                          value: item.id,
+                          text: item.box_name,
+                          size_a: item.size_a,
+                          size_b: item.size_b,
+                          size_c: item.size_c,
+                        })}
+                        onSelectionChange={(item) => {
+                          if (item) {
+                            setValue('box_id', item.value, { shouldValidate: true });
+                            if (item.size_a) setValue('product_size_a', item.size_a, { shouldDirty: true, shouldValidate: true });
+                            if (item.size_b) setValue('product_size_b', item.size_b, { shouldDirty: true, shouldValidate: true });
+                            if (item.size_c) setValue('product_size_c', item.size_c, { shouldDirty: true, shouldValidate: true });
+                          }
+                        }}
                       />
                       {errors.box_id && <div className="mt-2 text-danger">{errors.box_id.message}</div>}
                     </div>
@@ -868,13 +957,15 @@ function index_main() {
 
                     {/* Row 6 */}
                     <div className="col-span-12 sm:col-span-6 input-form">
-                      <FormLabel className="flex justify-start items-start flex-col w-full sm:flex-row">{t("Volume")}</FormLabel>
+                      <FormLabel className="flex justify-start items-start flex-col w-full sm:flex-row">{t("Volume (m³)")}</FormLabel>
                       <FormInput
                         {...register("volume")}
                         type="number"
+                        step="0.000001"
                         name="volume"
                         className={clsx({ "border-danger": errors.volume })}
-                        placeholder={t("Enter volume")}
+                        placeholder={t("Auto-calculated from sizes")}
+                        readOnly
                       />
                       {errors.volume && <div className="mt-2 text-danger">{errors.volume.message}</div>}
                     </div>
@@ -892,6 +983,18 @@ function index_main() {
 
                     {/* Row 7 */}
                     <div className="col-span-12 sm:col-span-6 input-form">
+                      <FormLabel className="flex justify-start items-start flex-col w-full sm:flex-row">{t("Properties")}</FormLabel>
+                      <FormInput
+                        {...register("properties")}
+                        type="text"
+                        name="properties"
+                        className={clsx({ "border-danger": errors.properties })}
+                        placeholder={t("Enter properties")}
+                      />
+                      {errors.properties && <div className="mt-2 text-danger">{errors.properties.message}</div>}
+                    </div>
+
+                    <div className="col-span-12 sm:col-span-12 input-form">
                       <FormLabel className="flex justify-start items-start flex-col w-full sm:flex-row">{t("QR Code (Image)")}</FormLabel>
                       <FileUpload
                         endpoint={upload_url}
@@ -903,18 +1006,6 @@ function index_main() {
                         <img src={`${media_url}${getValues('qr_code')}`} alt="QR Code" className="mt-2 w-24 h-24 object-contain border rounded p-1" />
                       ) : null}
                       {errors.qr_code && <div className="mt-2 text-danger">{errors.qr_code.message}</div>}
-                    </div>
-
-                    <div className="col-span-12 sm:col-span-6 input-form">
-                      <FormLabel className="flex justify-start items-start flex-col w-full sm:flex-row">{t("Properties")}</FormLabel>
-                      <FormInput
-                        {...register("properties")}
-                        type="text"
-                        name="properties"
-                        className={clsx({ "border-danger": errors.properties })}
-                        placeholder={t("Enter properties")}
-                      />
-                      {errors.properties && <div className="mt-2 text-danger">{errors.properties.message}</div>}
                     </div>
 
                     {/* Row 8 */}
@@ -955,6 +1046,20 @@ function index_main() {
                         placeholder={t("Enter additional_note")}
                       />
                       {errors.additional_note && <div className="mt-2 text-danger">{errors.additional_note.message}</div>}
+                    </div>
+
+                    {/* Read-only display from Products */}
+                    <div className="col-span-12 sm:col-span-6 input-form">
+                      <FormLabel className="flex flex-col w-full sm:flex-row">{t("Brand")}</FormLabel>
+                      <FormInput value={selectedProductMeta.brand_name} disabled readOnly />
+                    </div>
+                    <div className="col-span-12 sm:col-span-6 input-form">
+                      <FormLabel className="flex flex-col w-full sm:flex-row">{t("Brand Code")}</FormLabel>
+                      <FormInput value={selectedProductMeta.brand_code_name} disabled readOnly />
+                    </div>
+                    <div className="col-span-12 input-form">
+                      <FormLabel className="flex flex-col w-full sm:flex-row">{t("Description")}</FormLabel>
+                      <FormInput value={selectedProductMeta.description} disabled readOnly />
                     </div>
 
                   </div>
@@ -1118,6 +1223,27 @@ function index_main() {
               )}
             </div>
           </Slideover.Description>
+          <div className="px-5 pb-5 flex items-center gap-3">
+            <label className="text-sm">{t('Label Template')}:</label>
+            <select id="label_tmpl" className="form-select w-40">
+              <option value="basic">{t('Basic')}</option>
+              <option value="compact">{t('Compact')}</option>
+              <option value="detailed">{t('Detailed')}</option>
+            </select>
+            <Button type="button" onClick={() => {
+              const sel = document.getElementById('label_tmpl');
+              const tmpl = sel ? sel.value : 'basic';
+              const html = buildLabelHtml(viewData, tmpl);
+              const w = window.open('', '_blank');
+              if (!w) return;
+              w.document.open();
+              w.document.write(html);
+              w.document.close();
+              const onLoad = () => { w.focus(); w.print(); w.close(); };
+              w.onload = onLoad;
+              setTimeout(onLoad, 600);
+            }}>{t('Print Label')}</Button>
+          </div>
           <Slideover.Footer>
             <Button type="button" variant="outline-secondary" onClick={() => setShowViewModal(false)} className="w-24 mr-2">
               {t('Close')}
@@ -1150,6 +1276,37 @@ function index_main() {
       </Can>
     </div>
   );
+}
+
+// Build printable LABEL HTML
+function buildLabelHtml(item, template = 'basic') {
+  const safe = (v) => (v === null || v === undefined ? '' : String(v));
+  const css = `
+    <style>
+      @page { size: A6; margin: 6mm; }
+      body { font-family: Arial, Helvetica, sans-serif; color: #111827; }
+      .lbl { border:1px solid #e5e7eb; border-radius:8px; padding:10px; }
+      .row { display:flex; justify-content:space-between; font-size:12px; margin-bottom:4px; }
+      .title { font-weight:700; font-size:14px; margin-bottom:6px; }
+      .qr { width:90px; height:90px; border:1px solid #ddd; display:flex; align-items:center; justify-content:center; color:#888; font-size:10px; }
+    </style>
+  `;
+  const header = `<div class="title">${safe(item.brand_code_name || item.brand_code || '')}</div>`;
+  const desc = `<div class="row"><div>${safe(item.description || '')}</div></div>`;
+  const oe = `<div class="row"><div>OE:</div><div>${safe(item.oe_code || '')}</div></div>`;
+  const qty = `<div class="row"><div>Qty:</div><div>${safe(item.quantity || item.qty || 1)}</div></div>`;
+  const qr = `<div class="qr">QR</div>`; // placeholder; replace with actual QR rendering if needed
+
+  let body = '';
+  if (template === 'compact') {
+    body = `${header}${desc}${oe}${qty}`;
+  } else if (template === 'detailed') {
+    body = `${header}${desc}${oe}${qty}<div class="row"><div>Code:</div><div>${safe(item.product_code || '')}</div></div>`;
+  } else {
+    body = `${header}${desc}${oe}${qty}`;
+  }
+
+  return `<!DOCTYPE html><html><head><meta charset="utf-8"/>${css}</head><body><div class="lbl">${body}</div></body></html>`;
 }
 
 export default index_main;

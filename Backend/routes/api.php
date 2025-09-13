@@ -109,6 +109,7 @@ Route::get('/search_specificationheadname/{search_term}', [App\Http\Controllers\
 Route::post('/specificationheadname', [App\Http\Controllers\SpecificationheadnameController::class, 'store'])->middleware('permission:specificationheadname-create');
 Route::put('/specificationheadname/{id}', [App\Http\Controllers\SpecificationheadnameController::class, 'update'])->middleware('permission:specificationheadname-edit');
 Route::delete('/specificationheadname/{id}', [App\Http\Controllers\SpecificationheadnameController::class, 'destroy'])->middleware('permission:specificationheadname-delete');
+Route::post('/specificationheadname/merge', [App\Http\Controllers\SpecificationheadnameController::class, 'merge'])->middleware('permission:specificationheadname-edit');
 Route::get('/all_specificationheadnames', [App\Http\Controllers\SpecificationheadnameController::class,'all_specificationheadnames']);
 
 
@@ -137,7 +138,7 @@ Route::post('/unit', [App\Http\Controllers\UnitController::class, 'store'])->mid
 Route::put('/unit/{id}', [App\Http\Controllers\UnitController::class, 'update'])->middleware('permission:unit-edit');
 Route::delete('/unit/{id}', [App\Http\Controllers\UnitController::class, 'destroy'])->middleware('permission:unit-delete');
 Route::get('/all_units', [App\Http\Controllers\UnitController::class,'all_units']);
-
+Route::post('/unit/seed-defaults', [App\Http\Controllers\UnitController::class, 'seedDefaults']);
 
 Route::get('/ProductInformation', [App\Http\Controllers\ProductInformationController::class, 'index'])->middleware('permission:productinformation-list|productinformation-create|productinformation-edit|productinformation-delete');
 Route::get('/ProductInformation/{id}', [App\Http\Controllers\ProductInformationController::class, 'show'])->middleware('permission:productinformation-list|productinformation-create|productinformation-edit|productinformation-delete');

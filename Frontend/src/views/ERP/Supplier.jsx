@@ -1714,6 +1714,8 @@ function index_main() {
           refetch={refetch}
           setRefetch={setRefetch}
           permission={"Supplier"}
+          page_name={t('Supplier')}
+          enableColumnControls={true}
         />
       </Can>
 

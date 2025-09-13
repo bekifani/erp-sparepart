@@ -20,7 +20,7 @@ import { useSelector } from "react-redux";
 import { useTranslation } from "react-i18next";
 
 
-function Main({setShowCreateModal, show_create=true, endpoint, data, searchColumns, refetch, setRefetch, permission, page_name}) {
+function Main({setShowCreateModal, show_create=true, endpoint, data, searchColumns, refetch, setRefetch, permission, page_name, transformResponse, enableColumnControls=true}) {
   const token = useSelector((state) => state.auth.token)
   const tenant = useSelector((state) => state.auth.tenant)
   const { t, i18n } = useTranslation();
@@ -77,6 +77,27 @@ function Main({setShowCreateModal, show_create=true, endpoint, data, searchColum
           }
         },
         ajaxResponse: function(url, params, response) {
+          // Allow consumer to transform response and dynamically set columns
+          if (typeof transformResponse === 'function') {
+            try {
+              const result = transformResponse(url, params, response, tabulator.current);
+              if (result && Array.isArray(result.columns) && tabulator.current) {
+                tabulator.current.setColumns(result.columns);
+              }
+              return {
+                data: result?.data ?? [],
+                last_page: result?.last_page ?? response?.total_pages
+              };
+            } catch (e) {
+              console.error('transformResponse error:', e);
+              // Fallback to default mapping
+              return {
+                data: response?.data?.data,
+                last_page: response?.total_pages
+              };
+            }
+          }
+          // Default mapping
           return {
             data: response.data.data,
             last_page:response.total_pages
@@ -94,6 +115,7 @@ function Main({setShowCreateModal, show_create=true, endpoint, data, searchColum
         layout: "fitColumns",
         // responsiveLayout: "collapse",
         placeholder: t("No matching records found"),
+        movableColumns: true,
         columns: window.innerWidth < 768 ? [ {
           title: "",
           formatter: "responsiveCollapse",
@@ -197,13 +219,20 @@ function Main({setShowCreateModal, show_create=true, endpoint, data, searchColum
     }
   };
 
+  const toggleColumnVisibility = (field) => {
+    if (!tabulator.current) return;
+    const col = tabulator.current.getColumn(field);
+    if (!col) return;
+    const vis = col.isVisible();
+    col[vis ? 'hide' : 'show']();
+  };
+
   useEffect(() => {
     initTabulator();
     reInitOnResizeWindow();
   }, []);
 
   const [basicSlideoverPreview, setBasicSlideoverPreview] = useState(false);
-
 
 
 
@@ -312,6 +341,22 @@ function Main({setShowCreateModal, show_create=true, endpoint, data, searchColum
                  </Button>}
                 
                </Can>
+              {enableColumnControls && (
+                <Menu>
+                  <Menu.Button as={Button} variant="outline-secondary" className="w-full sm:w-auto">
+                    <Lucide icon="Columns3" className="stroke-[1.3] w-4 h-4 mr-2" />
+                    {t("Columns")}
+                    <Lucide icon="ChevronDown" className="stroke-[1.3] w-4 h-4 ml-2" />
+                  </Menu.Button>
+                  <Menu.Items className="w-56 max-h-64 overflow-y-auto">
+                    {data.filter(col => col.field).map((col) => (
+                      <Menu.Item key={`col-toggle-${col.field}`} onClick={() => toggleColumnVisibility(col.field)}>
+                        <Lucide icon="Eye" className="w-4 h-4 mr-2" /> {t(col.title)}
+                      </Menu.Item>
+                    ))}
+                  </Menu.Items>
+                </Menu>
+              )}
              </div>
            </div>
          <div className="flex flex-col gap-8 mt-3.5">

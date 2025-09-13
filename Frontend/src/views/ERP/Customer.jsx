@@ -1715,6 +1715,7 @@ return (
                 setRefetch={setRulesTableRefetch}
                 permission={'customerproductvisibilit'}
                 show_create={false}
+                enableColumnControls={true}
               />
               
               {/* Add New Rule Form */}
@@ -1759,6 +1760,7 @@ return (
                 setRefetch={setRulesTableRefetch}
                 permission={'customerbrandvisibilit'}
                 show_create={false}
+                enableColumnControls={true}
               />
               
               {/* Add New Rule Form */}
@@ -1831,7 +1833,8 @@ return (
           refetch={refetch}
           setRefetch={setRefetch}
           permission={"Customer"}
-          page_name={"Customer"}
+          page_name={t('Customer')}
+          enableColumnControls={true}
         />
       </Can>
      </div>

@@ -15,6 +15,7 @@ import {
   useCreateSpecificationheadnameMutation,
   useDeleteSpecificationheadnameMutation,
   useEditSpecificationheadnameMutation,
+  useMergeSpecificationheadnamesMutation,
 } from "@/stores/apiSlice";
 import clsx from "clsx";
 import { Dialog } from "@/components/Base/Headless";
@@ -25,7 +26,6 @@ import FileUpload from "@/helpers/ui/FileUpload.jsx";
 import TomSelectSearch from "@/helpers/ui/Tomselect.jsx";
 import { useSelector } from "react-redux";
 import { ClassicEditor } from "@/components/Base/Ckeditor";
-
 
 function index_main() {
   const { t, i18n } = useTranslation();
@@ -52,14 +52,20 @@ function index_main() {
     deleteSpecificationheadname,
     { isLoading: deleting, isSuccess: deleted, error: deleteError },
   ] = useDeleteSpecificationheadnameMutation()
-
-
+  const [mergeSpecificationheadnames, { isLoading: merging }] = useMergeSpecificationheadnamesMutation();
   const [toastMessage, setToastMessage] = useState("");
   const basicStickyNotification = useRef();
   const user = useSelector((state)=> state.auth.user)
   const hasPermission = (permission) => {
     return user.permissions.includes(permission)
   }
+  // Merge state variables
+  const [mergeSources, setMergeSources] = useState([]); // [{id, headname}]
+  const [mergeTargetMode, setMergeTargetMode] = useState('existing'); // 'existing' | 'new'
+  const [mergeTargetId, setMergeTargetId] = useState(null);
+  const [mergeTargetName, setMergeTargetName] = useState('');
+  const [showMergeModal, setShowMergeModal] = useState(false);
+
   const [data, setData] = useState([
     {
       title: t("Id"),
@@ -155,7 +161,7 @@ function index_main() {
           });
           setShowUpdateModal(true);
         });
-        b.addEventListener("click", function () {
+        b.addEventListener("click", async function () {
           const data = cell.getData();
           Object.keys(data).forEach((key) => {
             setValue(key, data[key]);
@@ -172,7 +178,7 @@ function index_main() {
         return element;
       },
     },
-]);
+  ]);
   const [searchColumns, setSearchColumns] = useState(['headname', 'translate_az', 'translate_ru', 'translate_ch', ]);
 
   // schema
@@ -341,9 +347,176 @@ translate_ch : yup.string().required(t('The Translate Ch field is required')),
     basicStickyNotification.current?.showToast();
   };    
 
-return (
+  const addMergeSource = (item) => {
+    if (!item) return;
+    setMergeSources((prev) => {
+      const exists = prev.some((x) => x.id === item.value);
+      if (exists) return prev;
+      return [...prev, { id: item.value, headname: item.text }];
+    });
+  };
+  const removeMergeSource = (id) => setMergeSources((prev) => prev.filter(x => x.id !== id));
+  const clearMerge = () => { setMergeSources([]); setMergeTargetId(null); setMergeTargetName(''); };
+  const commitMerge = async () => {
+    if (mergeSources.length < 1) {
+      setToastMessage(t('Select at least one source header to merge.'));
+      return basicStickyNotification.current?.showToast();
+    }
+    if (mergeTargetMode === 'existing' && !mergeTargetId) {
+      setToastMessage(t('Select a target header name.'));
+      return basicStickyNotification.current?.showToast();
+    }
+    if (mergeTargetMode === 'new' && !mergeTargetName.trim()) {
+      setToastMessage(t('Enter a new canonical header name.'));
+      return basicStickyNotification.current?.showToast();
+    }
+    try {
+      const payload = {
+        source_ids: mergeSources.map(s => s.id),
+        target_id: mergeTargetMode === 'existing' ? mergeTargetId : undefined,
+        target_name: mergeTargetMode === 'new' ? mergeTargetName.trim() : undefined,
+      };
+      const res = await mergeSpecificationheadnames(payload).unwrap();
+      setToastMessage(t('Headers merged successfully'));
+      clearMerge();
+      setRefetch(true);
+    } catch (err) {
+      const msg = err?.data?.message || err?.message || t('Failed to merge headers');
+      setToastMessage(msg);
+    }
+    basicStickyNotification.current?.showToast();
+  };
+
+  return (
     <div>
+      {/* Merge Headers Slideover */}
       <Slideover
+        open={showMergeModal}
+        onClose={() => {
+          setShowMergeModal(false);
+          clearMerge();
+        }}
+        size="xl"
+      >
+        <Slideover.Panel>
+          <Slideover.Title>
+            <h2 className="mr-auto text-base font-medium">
+              {t('Merge Header Names')}
+            </h2>
+          </Slideover.Title>
+          <Slideover.Description>
+            <div className="grid grid-cols-12 gap-4 gap-y-3">
+              <div className="col-span-12">
+                <FormLabel className="flex flex-col w-full sm:flex-row">
+                  {t('Add Source Headers')}
+                </FormLabel>
+                <TomSelectSearch
+                  apiUrl={`${app_url}/api/search_specificationheadname`}
+                  setValue={() => {}}
+                  variable="headname_id"
+                  minQueryLength={1}
+                  customDataMapping={(item) => ({ value: item.id, text: item.headname })}
+                  onSelectionChange={(item) => addMergeSource(item)}
+                  placeholder={t('Search and add a header to merge')}
+                />
+                <div className="mt-2 flex flex-wrap gap-2">
+                  {mergeSources.map((s) => (
+                    <span key={s.id} className="px-2 py-1 bg-slate-100 rounded flex items-center gap-2">
+                      {s.headname}
+                      <button type="button" className="text-danger" onClick={() => removeMergeSource(s.id)}>×</button>
+                    </span>
+                  ))}
+                </div>
+              </div>
+              
+              <div className="col-span-12">
+                <FormLabel className="flex flex-col w-full sm:flex-row">
+                  {t('Target Header')}
+                </FormLabel>
+                <div className="flex items-center gap-4 mb-2">
+                  <label className="flex items-center gap-2">
+                    <input type="radio" checked={mergeTargetMode==='existing'} onChange={()=>setMergeTargetMode('existing')} />
+                    <span>{t('Existing')}</span>
+                  </label>
+                  <label className="flex items-center gap-2">
+                    <input type="radio" checked={mergeTargetMode==='new'} onChange={()=>setMergeTargetMode('new')} />
+                    <span>{t('New Name')}</span>
+                  </label>
+                </div>
+                {mergeTargetMode==='existing' ? (
+                  <TomSelectSearch
+                    apiUrl={`${app_url}/api/search_specificationheadname`}
+                    setValue={() => {}}
+                    variable="target_headname_id"
+                    minQueryLength={1}
+                    customDataMapping={(item) => ({ value: item.id, text: item.headname })}
+                    onSelectionChange={(item) => setMergeTargetId(item?.value || null)}
+                    placeholder={t('Search and select canonical header')}
+                  />
+                ) : (
+                  <FormInput 
+                    value={mergeTargetName} 
+                    onChange={(e)=>setMergeTargetName(e.target.value)} 
+                    placeholder={t('Enter new canonical name')} 
+                  />
+                )}
+              </div>
+            </div>
+          </Slideover.Description>
+          <Slideover.Footer>
+            <Button
+              type="button"
+              variant="outline-secondary"
+              onClick={() => {
+                setShowMergeModal(false);
+                clearMerge();
+              }}
+              className="w-20 mr-1"
+            >
+              {t("Cancel")}
+            </Button>
+            <Button 
+              type="button" 
+              variant="secondary" 
+              onClick={clearMerge}
+              className="w-20 mr-1"
+            >
+              {t('Clear')}
+            </Button>
+            <Button 
+              type="button" 
+              variant="primary" 
+              disabled={merging} 
+              onClick={async () => {
+                await commitMerge();
+                if (!merging) {
+                  setShowMergeModal(false);
+                }
+              }}
+              className="w-20"
+            >
+              {merging ? t('Merging...') : t('Merge')}
+            </Button>
+          </Slideover.Footer>
+        </Slideover.Panel>
+      </Slideover>
++
+      <div className="mb-5">
+        <Can permission="specificationheadname-edit">
+          <Button
+            type="button"
+            variant="primary"
+            onClick={() => setShowMergeModal(true)}
+            className="mb-3"
+          >
+            <Lucide icon="GitMerge" className="w-4 h-4 mr-2" />
+            {t('Merge Headers')}
+          </Button>
+        </Can>
+      </div>
+      
+      <Slideover
+       
         open={showDeleteModal}
         onClose={() => {
           setShowDeleteModal(false);
@@ -351,7 +524,7 @@ return (
         size="xl"
       >
         <Slideover.Panel>
-          <div className="p-5  text-center overflow-y-auto max-h-[110vh]">
+          <div className="p-5 text-center overflow-y-auto max-h-[110vh]">
             <Lucide
               icon="XCircle"
               className="w-16 h-16 mx-auto mt-3 text-danger"
@@ -374,7 +547,11 @@ return (
               type="button"
               variant="danger"
               className="w-24"
-              onClick={() => onDelete()}
+              onClick={async () => {
+                try {
+                  await onDelete();
+                } catch (e) {}
+              }}
             >
               {t("Delete")}
             </Button>
