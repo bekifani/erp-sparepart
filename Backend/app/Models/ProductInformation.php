@@ -35,7 +35,7 @@ class ProductInformation extends Model
  return $this->belongsTo(Productname::class, 'product_name_id', 'id');
  }
  public function brandname() { 
- return $this->belongsTo(Brandname::class, 'brand_code', 'id');
+ return $this->belongsTo(Brandname::class, 'brand_code', 'brand_code');
  }
  public function unit() { 
  return $this->belongsTo(Unit::class, 'unit_id', 'id');

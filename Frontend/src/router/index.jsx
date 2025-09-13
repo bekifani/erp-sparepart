@@ -65,6 +65,11 @@ import Companyaccount  from '@/views/ERP/Companyaccount'
 import Warehouseaccount  from '@/views/ERP/Warehouseaccount'
 import Supplieraccount  from '@/views/ERP/Supplieraccount'
 import Producthistor  from '@/views/ERP/Producthistor'
+import ProductPictures  from '@/views/ERP/ProductPictures'
+import TechnicalImages  from '@/views/ERP/TechnicalImages'
+import BoxImages  from '@/views/ERP/BoxImages'
+import LabelImages  from '@/views/ERP/LabelImages'
+import OtherImages  from '@/views/ERP/OtherImages'
 //add file here 
 
 function Router() {
@@ -311,6 +316,26 @@ function Router() {
   {
     path: "producthistor",
     element: <Producthistor />,
+  }, 
+  {
+    path: "productpictures",
+    element: <ProductPictures />,
+  }, 
+  {
+    path: "technicalimages",
+    element: <TechnicalImages />,
+  }, 
+  {
+    path: "boximages",
+    element: <BoxImages />,
+  }, 
+  {
+    path: "labelimages",
+    element: <LabelImages />,
+  }, 
+  {
+    path: "otherimages",
+    element: <OtherImages />,
   }, 
        // add routes here
       {

@@ -536,5 +536,13 @@ Route::delete('/producthistor/{id}', [App\Http\Controllers\ProducthistorControll
 Route::get('/all_producthistors', [App\Http\Controllers\ProducthistorController::class,'all_producthistors']);
 
     Route::post('notifications/mark-as-read', [App\Http\Controllers\NotificationController::class, 'markAsRead']);
+    
+    // Image endpoints
+    Route::get('/images/product-pictures', [App\Http\Controllers\ImageController::class, 'getProductPictures'])->middleware('permission:productinformation-list');
+    Route::get('/images/technical-images', [App\Http\Controllers\ImageController::class, 'getTechnicalImages'])->middleware('permission:productinformation-list');
+    Route::get('/images/box-images', [App\Http\Controllers\ImageController::class, 'getBoxImages'])->middleware('permission:boxe-list');
+    Route::get('/images/label-images', [App\Http\Controllers\ImageController::class, 'getLabelImages'])->middleware('permission:label-list');
+    Route::get('/images/other-images', [App\Http\Controllers\ImageController::class, 'getOtherImages'])->middleware('permission:view-hr-menu');
+    
     // API END
 });
