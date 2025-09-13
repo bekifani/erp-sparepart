@@ -381,6 +381,12 @@ const initialState: SideMenuState = {
       permission: "brandname-list"
     },
     
+    {
+      icon: "Warehouse",
+      pathname: "/menu/catalog",
+      title: "Product Catalog",
+      permission: "brandname-list"
+    },
      
       ],
     },

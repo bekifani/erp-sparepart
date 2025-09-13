@@ -65,6 +65,7 @@ import Companyaccount  from '@/views/ERP/Companyaccount'
 import Warehouseaccount  from '@/views/ERP/Warehouseaccount'
 import Supplieraccount  from '@/views/ERP/Supplieraccount'
 import Producthistor  from '@/views/ERP/Producthistor'
+
 import ProductPictures  from '@/views/ERP/ProductPictures'
 import TechnicalImages  from '@/views/ERP/TechnicalImages'
 import BoxImages  from '@/views/ERP/BoxImages'
@@ -318,6 +319,9 @@ function Router() {
     element: <Producthistor />,
   }, 
   {
+    path: "catalog",
+    element: <Catalog />,
+
     path: "productpictures",
     element: <ProductPictures />,
   }, 
