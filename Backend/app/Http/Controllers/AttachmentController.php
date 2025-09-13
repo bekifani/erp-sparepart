@@ -7,6 +7,7 @@ use App\Models\Attachment;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Facades\Log;
 class AttachmentController extends BaseController
 {
     protected $searchableColumns = ['entity_type', 'entity_id', 'file_path', 'file_type', 'original_filename', 'uploaded_by'];
@@ -66,31 +67,32 @@ class AttachmentController extends BaseController
 
     public function store(Request $request)
     {
-        $validationRules = [
-          
-          "entity_type"=>"required|string|max:255",
-          "entity_id"=>"required|integer",
-          "_path"=>"required|string|max:255",
-          "_type"=>"required|string|max:255",
-          "original_name"=>"nullable|string|max:255",
-          "uploaded_by"=>"required|exists:users,id",
-          
+        try {
+            $validationRules = [
+              "entity_type"=>"required|string|max:255",
+              "entity_id"=>"required|integer",
+              "file_path"=>"required|string|max:255",
+              "file_type"=>"required|string|max:255",
+              "original_filename"=>"nullable|string|max:255",
+              "uploaded_by"=>"required|exists:users,id",
+            ];
 
-        ];
+            $validation = Validator::make($request->all() , $validationRules);
+            if($validation->fails()){
+                return $this->sendError("Invalid Values", ['errors' => $validation->errors()]);
+            }
+            $validated=$validation->validated();
 
-        $validation = Validator::make($request->all() , $validationRules);
-        if($validation->fails()){
-            return $this->sendError("Invalid Values", ['errors' => $validation->errors()]);
+            $attachment = Attachment::create($validated);
+            return $this->sendResponse($attachment, "attachment created succesfully");
+        } catch (\Exception $e) {
+            Log::error('Error creating attachment: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'An error occurred while creating the attachment.',
+                'error' => $e->getMessage()
+            ], 500);
         }
-        $validated=$validation->validated();
-
-
-
-        
-        //file uploads
-
-        $attachment = Attachment::create($validated);
-        return $this->sendResponse($attachment, "attachment created succesfully");
     }
 
     public function show($id)
@@ -102,46 +104,51 @@ class AttachmentController extends BaseController
 
     public function update(Request $request, $id)
     {
-        $attachment = Attachment::findOrFail($id);
-         $validationRules = [
-            //for update
+        try {
+            $attachment = Attachment::findOrFail($id);
+            $validationRules = [
+              "entity_type"=>"required|string|max:255",
+              "entity_id"=>"required|integer",
+              "file_path"=>"required|string|max:255",
+              "file_type"=>"required|string|max:255",
+              "original_filename"=>"nullable|string|max:255",
+              "uploaded_by"=>"required|exists:users,id",
+            ];
 
-          
-          "entity_type"=>"required|string|max:255",
-          "entity_id"=>"required|integer",
-          "_path"=>"required|string|max:255",
-          "_type"=>"required|string|max:255",
-          "original_name"=>"nullable|string|max:255",
-          "uploaded_by"=>"required|exists:users,id",
-          
-        ];
+            $validation = Validator::make($request->all() , $validationRules);
+            if($validation->fails()){
+                return $this->sendError("Invalid Values", ['errors' => $validation->errors()]);
+            }
+            $validated=$validation->validated();
 
-        $validation = Validator::make($request->all() , $validationRules);
-        if($validation->fails()){
-            return $this->sendError("Invalid Values", ['errors' => $validation->errors()]);
+            $attachment->update($validated);
+            return $this->sendResponse($attachment, "attachment updated successfully");
+        } catch (\Exception $e) {
+            Log::error('Error updating attachment: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'An error occurred while updating the attachment.',
+                'error' => $e->getMessage()
+            ], 500);
         }
-        $validated=$validation->validated();
-
-
-
-
-        //file uploads update
-
-        $attachment->update($validated);
-        return $this->sendResponse($attachment, "attachment updated successfully");
     }
 
     public function destroy($id)
     {
-        $attachment = Attachment::findOrFail($id);
-        $attachment->delete();
+        try {
+            $attachment = Attachment::findOrFail($id);
+            $attachment->delete();
 
-
-
-
-
-        //delete files uploaded
-        return $this->sendResponse(1, "attachment deleted succesfully");
+            //delete files uploaded
+            return $this->sendResponse(1, "attachment deleted succesfully");
+        } catch (\Exception $e) {
+            Log::error('Error deleting attachment: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'An error occurred while deleting the attachment.',
+                'error' => $e->getMessage()
+            ], 500);
+        }
     }
 
     public function deleteFile($filePath) {

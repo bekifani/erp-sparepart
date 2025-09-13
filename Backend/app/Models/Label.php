@@ -13,7 +13,7 @@ use Illuminate\Notifications\Notifiable;
 class Label extends Model
 {
     use HasFactory, LogsActivity, Notifiable;
-    public $fillable = ['brand', 'label_name', 'price', 'stock_qty', 'order_qty', 'labels_size_a', 'labels_size_b', 'image', 'design_file', 'additional_note', 'operation_mode', 'is_factory_supplied'];
+    public $fillable = ['brand', 'label_name', 'price', 'stock_qty', 'order_qty', 'labels_size_a', 'labels_size_b', 'image', 'design_file', 'additional_note', 'operation_mode'];
     protected static $logAttributes = ['*'];
     public $guarded = [];
 
@@ -21,6 +21,12 @@ class Label extends Model
     public function boxes()
     {
         return $this->hasMany(Boxe::class, 'label', 'label_name');
+    }
+
+    // Relationship with brandnames
+    public function brandname()
+    {
+        return $this->belongsTo(Brandname::class, 'brand', 'id');
     }
 
     public function getDescriptionForEvent(string $eventName): string

@@ -9,19 +9,26 @@ use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
 class LabelController extends BaseController
 {
-    protected $searchableColumns = ['brand', 'label_name', 'price', 'stock_qty', 'order_qty', 'labels_size_a', 'labels_size_b', 'image', 'design_file', 'additional_note', 'operation_mode', 'is_factory_supplied'];
+    protected $searchableColumns = ['brand', 'label_name', 'price', 'stock_qty', 'order_qty', 'labels_size_a', 'labels_size_b', 'image', 'design_file', 'additional_note', 'operation_mode'];
 
     public function index(Request $request)
     {
-        $sortBy = 'id';
+        $sortBy = 'labels.id';
         $sortDir = 'desc';
         if($request['sort']){
             $sortBy = $request['sort'][0]['field'];
             $sortDir = $request['sort'][0]['dir'];
+            if($sortBy === 'brand') {
+                $sortBy = 'brandnames.brand_name';
+            } else {
+                $sortBy = 'labels.' . $sortBy;
+            }
         }
         $perPage = $request->query('size', 10); 
         $filters = $request['filter'];
-        $query = Label::orderBy($sortBy, $sortDir);
+        $query = Label::leftJoin('brandnames', 'labels.brand', '=', 'brandnames.id')
+            ->select('labels.*', 'brandnames.brand_name as brand_name')
+            ->orderBy($sortBy, $sortDir);
         if($filters){
             foreach ($filters as $filter) {
                 $field = $filter['field'];
@@ -30,12 +37,24 @@ class LabelController extends BaseController
                 if ($operator == 'like') {
                     $searchTerm = '%' . $searchTerm . '%';
                 }
-                $query->where($field, $operator, $searchTerm);
+                if($field === 'brand') {
+                    $query->where('brandnames.brand_name', $operator, $searchTerm);
+                } else {
+                    $query->where('labels.' . $field, $operator, $searchTerm);
+                }
             }
         }
-        $label = $query->paginate($perPage); 
+        $label = $query->paginate($perPage);
+        
+        // Transform the data to replace brand ID with brand name
+        $transformedData = $label->toArray();
+        foreach($transformedData['data'] as &$item) {
+            $item['brand'] = $item['brand_name'] ?? $item['brand'];
+            unset($item['brand_name']);
+        }
+        
         $data = [
-            "data" => $label->toArray(), 
+            "data" => $transformedData, 
             'current_page' => $label->currentPage(),
             'total_pages' => $label->lastPage(),
             'per_page' => $perPage
@@ -44,7 +63,14 @@ class LabelController extends BaseController
     }
 
     public function all_labels(){
-        $data = Label::all();
+        $data = Label::leftJoin('brandnames', 'labels.brand', '=', 'brandnames.id')
+            ->select('labels.*', 'brandnames.brand_name as brand_name')
+            ->get()
+            ->map(function($item) {
+                $item->brand = $item->brand_name ?? $item->brand;
+                unset($item->brand_name);
+                return $item;
+            });
         return $this->sendResponse($data, 1);
     }
 
@@ -55,12 +81,27 @@ class LabelController extends BaseController
                 'message' => 'Please enter a search term.'
             ], 400);
         }
-        $results = Label::where(function ($query) use ($searchTerm) {
-            foreach ($this->searchableColumns as $column) {
-                $query->orWhere($column, 'like', "%$searchTerm%");
-            }
-        })->select('id', 'brand', 'label_name', 'price', 'stock_qty', 'order_qty', 'labels_size_a', 'labels_size_b', 'image', 'design_file', 'additional_note', 'operation_mode', 'is_factory_supplied')
-        ->paginate(20);
+        $results = Label::leftJoin('brandnames', 'labels.brand', '=', 'brandnames.id')
+            ->select('labels.*', 'brandnames.brand_name as brand_name')
+            ->where(function ($query) use ($searchTerm) {
+                foreach ($this->searchableColumns as $column) {
+                    if($column === 'brand') {
+                        $query->orWhere('brandnames.brand_name', 'like', "%$searchTerm%");
+                    } else {
+                        $query->orWhere('labels.' . $column, 'like', "%$searchTerm%");
+                    }
+                }
+            })
+            ->paginate(20);
+            
+        // Transform the data to replace brand ID with brand name
+        $transformedResults = $results->toArray();
+        foreach($transformedResults['data'] as &$item) {
+            $item['brand'] = $item['brand_name'] ?? $item['brand'];
+            unset($item['brand_name']);
+        }
+        $results->setCollection(collect($transformedResults['data']));
+        
         return $this->sendResponse($results , 'search results for label');
     }
 
@@ -69,18 +110,17 @@ class LabelController extends BaseController
     {
         $validationRules = [
           
-          "brand"=>"required|string|max:255",
+          "brand"=>"required|exists:brandnames,brand_name",
           "label_name"=>"required|string|max:255",
           "price"=>"required|numeric",
           "stock_qty"=>"required|numeric",
           "order_qty"=>"nullable|numeric",
           "labels_size_a"=>"nullable|numeric",
           "labels_size_b"=>"nullable|numeric",
-          "image"=>"nullable|",
-          "design_"=>"nullable|",
+          "image"=>"nullable|string",
+          "design_file"=>"nullable|string",
           "additional_note"=>"nullable|string",
           "operation_mode"=>"nullable|string|max:255",
-          "is_factory_supplied"=>"required|boolean",
           
 
         ];
@@ -91,9 +131,12 @@ class LabelController extends BaseController
         }
         $validated=$validation->validated();
 
+        // Convert brand name to brand ID
+        $brandname = \App\Models\Brandname::where('brand_name', $validated['brand'])->first();
+        if($brandname) {
+            $validated['brand'] = $brandname->id;
+        }
 
-
-        
         //file uploads
 
         $label = Label::create($validated);
@@ -102,7 +145,14 @@ class LabelController extends BaseController
 
     public function show($id)
     {
-        $label = Label::findOrFail($id);
+        $label = Label::leftJoin('brandnames', 'labels.brand', '=', 'brandnames.id')
+            ->select('labels.*', 'brandnames.brand_name as brand_name')
+            ->where('labels.id', $id)
+            ->first();
+        if($label) {
+            $label->brand = $label->brand_name ?? $label->brand;
+            unset($label->brand_name);
+        }
         return $this->sendResponse($label, "");
     }
 
@@ -114,18 +164,17 @@ class LabelController extends BaseController
             //for update
 
           
-          "brand"=>"required|string|max:255",
+          "brand"=>"required|exists:brandnames,brand_name",
           "label_name"=>"required|string|max:255",
           "price"=>"required|numeric",
           "stock_qty"=>"required|numeric",
           "order_qty"=>"nullable|numeric",
           "labels_size_a"=>"nullable|numeric",
           "labels_size_b"=>"nullable|numeric",
-          "image"=>"nullable|",
-          "design_"=>"nullable|",
+          "image"=>"nullable|string",
+          "design_file"=>"nullable|string",
           "additional_note"=>"nullable|string",
           "operation_mode"=>"nullable|string|max:255",
-          "is_factory_supplied"=>"required|boolean",
           
         ];
 
@@ -135,8 +184,11 @@ class LabelController extends BaseController
         }
         $validated=$validation->validated();
 
-
-
+        // Convert brand name to brand ID
+        $brandname = \App\Models\Brandname::where('brand_name', $validated['brand'])->first();
+        if($brandname) {
+            $validated['brand'] = $brandname->id;
+        }
 
         //file uploads update
 
