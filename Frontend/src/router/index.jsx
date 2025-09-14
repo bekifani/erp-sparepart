@@ -318,10 +318,11 @@ function Router() {
     path: "producthistor",
     element: <Producthistor />,
   }, 
+  // {
+  //   path: "catalog",
+  //   element: <Catalog />,
+  // },
   {
-    path: "catalog",
-    element: <Catalog />,
-
     path: "productpictures",
     element: <ProductPictures />,
   }, 

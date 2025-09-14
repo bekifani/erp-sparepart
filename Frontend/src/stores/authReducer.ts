@@ -59,10 +59,15 @@ export const authSlice = createSlice({
     csrf_token: "",
   
 
-    front_url: "http://localhost:5173",
-    media_url: "http://localhost:8000/storage/uploads/",
-    app_url: "http://localhost:8000",
-    upload_url: "http://localhost:8000/api/uploadFile",
+    // front_url: "http://localhost:5173",
+    // media_url: "http://localhost:8000/storage/uploads/",
+    // app_url: "http://localhost:8000",
+    // upload_url: "http://localhost:8000/api/uploadFile",
+
+    front_url: "https://erp.learnica.net",
+    media_url: "https://erp-backend.learnica.net/storage/uploads/",
+    app_url: "https://erp-backend.learnica.net",
+    upload_url: "https://erp-backend.learnica.net/api/uploadFile",
 
     lang: "en",
     tenant: "test",
