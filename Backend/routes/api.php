@@ -458,6 +458,14 @@ Route::put('/fileoperation/{id}', [App\Http\Controllers\FileoperationController:
 Route::delete('/fileoperation/{id}', [App\Http\Controllers\FileoperationController::class, 'destroy'])->middleware('permission:fileoperation-delete');
 Route::get('/all_fileoperations', [App\Http\Controllers\FileoperationController::class,'all_fileoperations']);
 
+// Excel Import Routes
+Route::post('/upload-excel', [App\Http\Controllers\FileoperationController::class, 'uploadExcel'])->middleware('permission:fileoperation-create');
+Route::post('/process-import', [App\Http\Controllers\FileoperationController::class, 'processImport'])->middleware('permission:fileoperation-create');
+Route::post('/export-invalid-rows', [App\Http\Controllers\FileoperationController::class, 'exportInvalidRows'])->middleware('permission:fileoperation-create');
+Route::get('/import-history', [App\Http\Controllers\FileoperationController::class, 'getImportHistory'])->middleware('permission:fileoperation-list');
+Route::post('/fileoperation/validate-cross-cars', [App\Http\Controllers\FileoperationController::class, 'validateCrossCars'])->middleware('permission:fileoperation-create');
+Route::post('/fileoperation/import-cross-cars', [App\Http\Controllers\FileoperationController::class, 'processCrossCarsImport'])->middleware('permission:fileoperation-create');
+
 
 Route::get('/customerbrandvisibilit', [App\Http\Controllers\CustomerbrandvisibilitController::class, 'index'])->middleware('permission:customerbrandvisibilit-list|customerbrandvisibilit-create|customerbrandvisibilit-edit|customerbrandvisibilit-delete');
 Route::get('/customerbrandvisibilit/{id}', [App\Http\Controllers\CustomerbrandvisibilitController::class, 'show'])->middleware('permission:customerbrandvisibilit-list|customerbrandvisibilit-create|customerbrandvisibilit-edit|customerbrandvisibilit-delete');
