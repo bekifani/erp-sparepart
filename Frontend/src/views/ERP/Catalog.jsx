@@ -428,7 +428,7 @@ function Catalog() {
         <Dialog.Panel>
           <Dialog.Title>
             <h2 className="mr-auto text-base font-medium">
-              {selectedProduct?.description}
+              {selectedProduct?.description || 'Product Details'}
             </h2>
           </Dialog.Title>
           <Dialog.Description>
@@ -436,7 +436,7 @@ function Catalog() {
               <div className="flex justify-center py-8">
                 <LoadingIcon icon="oval" className="w-8 h-8" />
               </div>
-            ) : productDetails ? (
+            ) : (productDetails && selectedProduct) ? (
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 {/* Product Images */}
                 <div>
@@ -448,7 +448,7 @@ function Catalog() {
                       return technicalImage ? (
                         <img
                           src={`${media_url}${technicalImage}`}
-                          alt={selectedProduct.description}
+                          alt={selectedProduct?.description || 'Product'}
                           className="w-full h-full object-cover"
                           onError={(e) => {
                             console.log('Modal image failed to load:', e.target.src);
