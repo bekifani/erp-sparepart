@@ -10,11 +10,11 @@ use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\Log;
 class OrderController extends BaseController
 {
-    protected $searchableColumns = ['customer_id', 'invoice_no', 'total_qty', 'total_weight', 'total_volume', 'subtotal', 'discount', 'extra_expenses', 'total_amount', 'deposit', 'customer_debt', 'balance', 'order_date', 'expected_date', 'shipping_date', 'status_id', 'invoice_language', 'company_id', 'internal_note', 'customer_note'];
+    protected $searchColumns = ['customers.name_surname', 'customers.shipping_mark', 'productstatuses.status_name_en', 'compans.company_name'];
 
     public function index(Request $request)
     {
-        $sortBy = 'id';
+        $sortBy = 'orders.id';
         $sortDir = 'desc';
         if($request['sort']){
             $sortBy = $request['sort'][0]['field'];
@@ -22,7 +22,20 @@ class OrderController extends BaseController
         }
         $perPage = $request->query('size', 10); 
         $filters = $request['filter'];
-        $query = Order::orderBy($sortBy, $sortDir);
+        
+        $query = Order::select([
+            'orders.*',
+            'customers.name_surname as customer_name',
+            'customers.shipping_mark',
+            'productstatuses.status_name_en as status_name',
+            'compans.company_name'
+        ])
+        ->leftJoin('customers', 'orders.customer_id', '=', 'customers.id')
+        ->leftJoin('productstatuses', 'orders.status_id', '=', 'productstatuses.id')
+        ->leftJoin('compans', 'orders.company_id', '=', 'compans.id')
+        ->withCount(['orderDetails as products_qty'])
+        ->orderBy($sortBy, $sortDir);
+        
         if($filters){
             foreach ($filters as $filter) {
                 $field = $filter['field'];
@@ -56,12 +69,23 @@ class OrderController extends BaseController
                 'message' => 'Please enter a search term.'
             ], 400);
         }
-        $results = Order::where(function ($query) use ($searchTerm) {
-            foreach ($this->searchableColumns as $column) {
+        $query = Order::select([
+            'orders.*',
+            'customers.name_surname as customer_name',
+            'customers.shipping_mark',
+            'productstatuses.status_name_en as status_name',
+            'compans.company_name'
+        ])
+        ->leftJoin('customers', 'orders.customer_id', '=', 'customers.id')
+        ->leftJoin('productstatuses', 'orders.status_id', '=', 'productstatuses.id')
+        ->leftJoin('compans', 'orders.company_id', '=', 'compans.id')
+        ->withCount(['orderDetails as products_qty'])
+        ->where(function ($query) use ($searchTerm) {
+            foreach ($this->searchColumns as $column) {
                 $query->orWhere($column, 'like', "%$searchTerm%");
             }
-        })->paginate(20);
-        return $this->sendResponse($results , 'search resutls for order');
+        })->orderBy('orders.id', 'desc')->paginate(20);
+        return $this->sendResponse($query , 'search resutls for order');
     }
 
 

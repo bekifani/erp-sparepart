@@ -33,7 +33,7 @@ import Basket  from '@/views/ERP/Basket'
 import Basketfile  from '@/views/ERP/Basketfile'
 import Basketitem  from '@/views/ERP/Basketitem'
 import Order  from '@/views/ERP/Order'
-import Orderdetail  from '@/views/ERP/Orderdetail'
+import OrderView  from '@/views/ERP/OrderView'
 import Supplierorder  from '@/views/ERP/Supplierorder'
 import Supplierorderdetail  from '@/views/ERP/Supplierorderdetail'
 import Packagin  from '@/views/ERP/Packagin'
@@ -191,8 +191,8 @@ function Router() {
     element: <Order />,
   }, 
   {
-    path: "orderdetail",
-    element: <Orderdetail />,
+    path: "orderview",
+    element: <OrderView />,
   }, 
   {
     path: "supplierorder",

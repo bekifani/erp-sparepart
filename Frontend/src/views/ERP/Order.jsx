@@ -62,251 +62,136 @@ function index_main() {
   }
   const [data, setData] = useState([
     {
-      title: t("Id"),
-      minWidth: 50,
-      responsive: 0,
-      field: "id",
+      title: t("User"),
+      minWidth: 150,
+      field: "user_name",
+      hozAlign: "center",
+      headerHozAlign: "center",
       vertAlign: "middle",
       print: true,
       download: true,
     },
    
     {
-      title: t("Customer Id"),
+      title: t("Customer"),
       minWidth: 200,
-      field: "customer_id",
+      field: "customer_name",
       hozAlign: "center",
       headerHozAlign: "center",
       vertAlign: "middle",
       print: true,
       download: true,
-      
     },
     
+    {
+      title: t("Shipping Mark"),
+      minWidth: 150,
+      field: "shipping_mark",
+      hozAlign: "center",
+      headerHozAlign: "center",
+      vertAlign: "middle",
+      print: true,
+      download: true,
+    },
 
     {
       title: t("Invoice No"),
-      minWidth: 200,
+      minWidth: 150,
       field: "invoice_no",
       hozAlign: "center",
       headerHozAlign: "center",
       vertAlign: "middle",
       print: true,
       download: true,
-      
     },
     
+    {
+      title: t("Products (Qty)"),
+      minWidth: 120,
+      field: "products_qty",
+      hozAlign: "center",
+      headerHozAlign: "center",
+      vertAlign: "middle",
+      print: true,
+      download: true,
+    },
 
     {
       title: t("Total Qty"),
-      minWidth: 200,
+      minWidth: 100,
       field: "total_qty",
       hozAlign: "center",
       headerHozAlign: "center",
       vertAlign: "middle",
       print: true,
       download: true,
-      
     },
-    
 
     {
-      title: t("Total Weight"),
-      minWidth: 200,
+      title: t("Total Weight (Kg)"),
+      minWidth: 150,
       field: "total_weight",
       hozAlign: "center",
       headerHozAlign: "center",
       vertAlign: "middle",
       print: true,
       download: true,
-      
+      formatter: function(cell) {
+        const value = cell.getValue();
+        return value ? `${value} kg` : '';
+      }
     },
-    
 
     {
-      title: t("Total Volume"),
-      minWidth: 200,
+      title: t("Total Volume (m³)"),
+      minWidth: 150,
       field: "total_volume",
       hozAlign: "center",
       headerHozAlign: "center",
       vertAlign: "middle",
       print: true,
       download: true,
-      
+      formatter: function(cell) {
+        const value = cell.getValue();
+        return value ? `${value} m³` : '';
+      }
     },
-    
 
     {
-      title: t("Subtotal"),
-      minWidth: 200,
-      field: "subtotal",
-      hozAlign: "center",
-      headerHozAlign: "center",
-      vertAlign: "middle",
-      print: true,
-      download: true,
-      
-    },
-    
-
-    {
-      title: t("Discount"),
-      minWidth: 200,
-      field: "discount",
-      hozAlign: "center",
-      headerHozAlign: "center",
-      vertAlign: "middle",
-      print: true,
-      download: true,
-      
-    },
-    
-
-    {
-      title: t("Extra Expenses"),
-      minWidth: 200,
-      field: "extra_expenses",
-      hozAlign: "center",
-      headerHozAlign: "center",
-      vertAlign: "middle",
-      print: true,
-      download: true,
-      
-    },
-    
-
-    {
-      title: t("Total Amount"),
-      minWidth: 200,
+      title: t("Amount"),
+      minWidth: 120,
       field: "total_amount",
       hozAlign: "center",
       headerHozAlign: "center",
       vertAlign: "middle",
       print: true,
       download: true,
-      
     },
-    
-
-    {
-      title: t("Deposit"),
-      minWidth: 200,
-      field: "deposit",
-      hozAlign: "center",
-      headerHozAlign: "center",
-      vertAlign: "middle",
-      print: true,
-      download: true,
-      
-    },
-    
-
-    {
-      title: t("Customer Debt"),
-      minWidth: 200,
-      field: "customer_debt",
-      hozAlign: "center",
-      headerHozAlign: "center",
-      vertAlign: "middle",
-      print: true,
-      download: true,
-      
-    },
-    
-
-    {
-      title: t("Balance"),
-      minWidth: 200,
-      field: "balance",
-      hozAlign: "center",
-      headerHozAlign: "center",
-      vertAlign: "middle",
-      print: true,
-      download: true,
-      
-    },
-    
 
     {
       title: t("Order Date"),
-      minWidth: 200,
+      minWidth: 120,
       field: "order_date",
       hozAlign: "center",
       headerHozAlign: "center",
       vertAlign: "middle",
       print: true,
       download: true,
-      
     },
-    
 
     {
-      title: t("Expected Date"),
-      minWidth: 200,
-      field: "expected_date",
+      title: t("Status"),
+      minWidth: 120,
+      field: "status_name",
       hozAlign: "center",
       headerHozAlign: "center",
       vertAlign: "middle",
       print: true,
       download: true,
-      
     },
-    
 
     {
-      title: t("Shipping Date"),
-      minWidth: 200,
-      field: "shipping_date",
-      hozAlign: "center",
-      headerHozAlign: "center",
-      vertAlign: "middle",
-      print: true,
-      download: true,
-      
-    },
-    
-
-    {
-      title: t("Status Id"),
-      minWidth: 200,
-      field: "status_id",
-      hozAlign: "center",
-      headerHozAlign: "center",
-      vertAlign: "middle",
-      print: true,
-      download: true,
-      
-    },
-    
-
-    {
-      title: t("Invoice Language"),
-      minWidth: 200,
-      field: "invoice_language",
-      hozAlign: "center",
-      headerHozAlign: "center",
-      vertAlign: "middle",
-      print: true,
-      download: true,
-      
-    },
-    
-
-    {
-      title: t("Company Id"),
-      minWidth: 200,
-      field: "company_id",
-      hozAlign: "center",
-      headerHozAlign: "center",
-      vertAlign: "middle",
-      print: true,
-      download: true,
-      
-    },
-    
-
-    {
-      title: t("Internal Note"),
+      title: t("Additional Note"),
       minWidth: 200,
       field: "internal_note",
       hozAlign: "center",
@@ -314,20 +199,6 @@ function index_main() {
       vertAlign: "middle",
       print: true,
       download: true,
-      
-    },
-    
-
-    {
-      title: t("Customer Note"),
-      minWidth: 200,
-      field: "customer_note",
-      hozAlign: "center",
-      headerHozAlign: "center",
-      vertAlign: "middle",
-      print: true,
-      download: true,
-      
     },
     
 
@@ -349,7 +220,7 @@ function index_main() {
         const a =
           stringToHTML(`<div class="flex items-center lg:justify-center">
               <a class="delete-btn flex items-center mr-3" href="javascript:;">
-                <i data-lucide="check-square" class="w-3.5 h-3.5 stroke-[1.7] mr-1.5"></i> Edit
+                <i data-lucide="eye" class="w-3.5 h-3.5 stroke-[1.7] mr-1.5"></i> View
               </a>`);
         const b = stringToHTML(`
               <a class="edit-btn flex items-center text-danger" href="javascript:;">
@@ -358,10 +229,8 @@ function index_main() {
             </div>`);
         a.addEventListener("click", function () {
           const data = cell.getData();
-          Object.keys(data).forEach((key) => {
-            setValue(key, data[key]);
-          });
-          setShowUpdateModal(true);
+          // Navigate to order view instead of edit modal
+          window.location.href = `/menu/orderview?id=${data.id}`;
         });
         b.addEventListener("click", function () {
           const data = cell.getData();
@@ -381,7 +250,7 @@ function index_main() {
       },
     },
 ]);
-  const [searchColumns, setSearchColumns] = useState(['customer_id', 'invoice_no', 'total_qty', 'total_weight', 'total_volume', 'subtotal', 'discount', 'extra_expenses', 'total_amount', 'deposit', 'customer_debt', 'balance', 'order_date', 'expected_date', 'shipping_date', 'status_id', 'invoice_language', 'company_id', 'internal_note', 'customer_note', ]);
+  const [searchColumns, setSearchColumns] = useState(['user_name', 'customer_name', 'shipping_mark', 'invoice_no', 'products_qty', 'total_qty', 'total_weight', 'total_volume', 'total_amount', 'order_date', 'status_name', 'internal_note']);
 
   // schema
   const schema = yup
@@ -1956,6 +1825,7 @@ return (
           refetch={refetch}
           setRefetch={setRefetch}
           permission={"Order"}
+          show_create={false}
         />
       </Can>
     </div>

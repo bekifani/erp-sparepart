@@ -119,9 +119,9 @@ const initialState: SideMenuState = {
               permission: "order-list"
             },
             {
-              icon: "FileText",
-              pathname: "/menu/orderdetail",
-              title: "Order Details",
+              icon: "Eye",
+              pathname: "/menu/orderview",
+              title: "Order View",
               permission: "orderdetail-list"
             }
           ]
