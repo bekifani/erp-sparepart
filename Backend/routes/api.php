@@ -202,6 +202,18 @@ Route::post('/exchangerate', [App\Http\Controllers\ExchangerateController::class
 Route::put('/exchangerate/{id}', [App\Http\Controllers\ExchangerateController::class, 'update'])->middleware('permission:exchangerate-edit');
 Route::delete('/exchangerate/{id}', [App\Http\Controllers\ExchangerateController::class, 'destroy'])->middleware('permission:exchangerate-delete');
 Route::get('/all_exchangerates', [App\Http\Controllers\ExchangerateController::class,'all_exchangerates']);
+Route::get('/available_currencies', [App\Http\Controllers\ExchangerateController::class, 'getAvailableCurrencies']);
+Route::post('/convert_currency', [App\Http\Controllers\ExchangerateController::class, 'convertCurrency']);
+
+// Currency management routes
+Route::get('/currency', [App\Http\Controllers\CurrencyController::class, 'index'])->middleware('permission:currency-list|currency-create|currency-edit|currency-delete');
+Route::get('/currency/{id}', [App\Http\Controllers\CurrencyController::class, 'show'])->middleware('permission:currency-list|currency-create|currency-edit|currency-delete');
+Route::get('/search_currency/{search_term}', [App\Http\Controllers\CurrencyController::class, 'search'])->middleware('permission:currency-list|currency-create|currency-edit|currency-delete');
+Route::post('/currency', [App\Http\Controllers\CurrencyController::class, 'store'])->middleware('permission:currency-create');
+Route::put('/currency/{id}', [App\Http\Controllers\CurrencyController::class, 'update'])->middleware('permission:currency-edit');
+Route::delete('/currency/{id}', [App\Http\Controllers\CurrencyController::class, 'destroy'])->middleware('permission:currency-delete');
+Route::post('/currency/{id}/toggle', [App\Http\Controllers\CurrencyController::class, 'toggle'])->middleware('permission:currency-edit');
+Route::get('/all_currencies', [App\Http\Controllers\CurrencyController::class, 'all_currencies']);
 
 
 Route::get('/compan', [App\Http\Controllers\CompanController::class, 'index'])->middleware('permission:compan-list|compan-create|compan-edit|compan-delete');
