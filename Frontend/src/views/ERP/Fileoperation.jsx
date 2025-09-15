@@ -1,144 +1,42 @@
-
 import "@/assets/css/vendors/tabulator.css";
-import Lucide from "@/components/Base/Lucide";
-import ReactDOMServer from 'react-dom/server';
-import { Slideover } from "@/components/Base/Headless";
-import Button from "@/components/Base/Button";
-import React, { useRef, useState } from "react";
-import { yupResolver } from "@hookform/resolvers/yup";
-import Notification from "@/components/Base/Notification";
-import TableComponent from "@/helpers/ui/TableComponent.jsx";
-import * as yup from "yup";
-import { useForm } from "react-hook-form";
-import { FormCheck, FormTextarea , FormInput, FormLabel } from "@/components/Base/Form";
-import { stringToHTML } from "@/utils/helper";
-import {
-  useCreateFileoperationMutation,
-  useDeleteFileoperationMutation,
-  useEditFileoperationMutation,
-} from "@/stores/apiSlice";
-import clsx from "clsx";
-import Can from "@/helpers/PermissionChecker/index.js";
+import React, { useState, useRef, useCallback } from "react";
 import { useTranslation } from "react-i18next";
-import LoadingIcon from "@/components/Base/LoadingIcon/index.tsx";
-import FileUpload from "@/helpers/ui/FileUpload.jsx";
-import TomSelectSearch from "@/helpers/ui/Tomselect.jsx";
 import { useSelector } from "react-redux";
-import { ClassicEditor } from "@/components/Base/Ckeditor";
-
+import { useDropzone } from 'react-dropzone';
+import axios from 'axios';
+import Button from "@/components/Base/Button";
+import Lucide from "@/components/Base/Lucide";
+import LoadingIcon from "@/components/Base/LoadingIcon";
+import Notification from "@/components/Base/Notification";
+import Can from "@/helpers/PermissionChecker/index.js";
+import TableComponent from "@/helpers/ui/TableComponent.jsx";
+import FileoperationAddCrossCars from "./FileoperationAddCrossCars.jsx";
 
 function index_main() {
-  const { t, i18n } = useTranslation();
-  const app_url = useSelector((state) => state.auth.app_url)
-  const upload_url = useSelector((state)=> state.auth.upload_url)
-  const media_url = useSelector((state)=>state.auth.media_url)
-  const [showCreateModal, setShowCreateModal] = useState(false);
-  const [showUpdateModal, setShowUpdateModal] = useState(false);
-  const [showDeleteModal, setShowDeleteModal] = useState(false);
-  const [editorData, setEditorData] = useState("")
-  const [confirmationMessage, setConfirmationMessage] =
-    useState(t("Are you Sure Do You want to Delete Fileoperation"));
-
+  const { t } = useTranslation();
+  const app_url = useSelector((state) => state.auth.app_url);
+  const user = useSelector((state) => state.auth.user);
+  const token = useSelector((state) => state.auth.token);
   
- const [
-    createFileoperation,
-    { isLoading: loading, isSuccess: success, error: successError },
-  ] = useCreateFileoperationMutation();
-  const [
-    updateFileoperation,
-    { isLoading: updating, isSuccess: updated, error: updateError },
-  ] = useEditFileoperationMutation();
-  const [
-    deleteFileoperation,
-    { isLoading: deleting, isSuccess: deleted, error: deleteError },
-  ] = useDeleteFileoperationMutation()
-
-
-  const [toastMessage, setToastMessage] = useState("");
+  // State management
+  const [activeTab, setActiveTab] = useState("cross_cars");
+  const [uploadedFile, setUploadedFile] = useState(null);
+  const [importData, setImportData] = useState(null);
+  const [validationResult, setValidationResult] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [importHistory, setImportHistory] = useState([]);
+  const [showPreview, setShowPreview] = useState(false);
+  const [currentImportType, setCurrentImportType] = useState('cross_cars');
+  const [refetch, setRefetch] = useState(false);
+  
   const basicStickyNotification = useRef();
-  const user = useSelector((state)=> state.auth.user)
-  const hasPermission = (permission) => {
-    return user.permissions.includes(permission)
-  }
-  const [data, setData] = useState([
-    {
-      title: t("Id"),
-      minWidth: 50,
-      responsive: 0,
-      field: "id",
-      vertAlign: "middle",
-      print: true,
-      download: true,
-    },
-   
-    {
-      title: t("User Id"),
-      minWidth: 200,
-      field: "user_id",
-      hozAlign: "center",
-      headerHozAlign: "center",
-      vertAlign: "middle",
-      print: true,
-      download: true,
-      
-    },
-    
+  const [toastMessage, setToastMessage] = useState("");
 
-    {
-      title: t("Product Id"),
-      minWidth: 200,
-      field: "product_id",
-      hozAlign: "center",
-      headerHozAlign: "center",
-      vertAlign: "middle",
-      print: true,
-      download: true,
-      
-    },
-    
-
-    {
-      title: t("File Path"),
-      minWidth: 200,
-      field: "file_path",
-      hozAlign: "center",
-      headerHozAlign: "center",
-      vertAlign: "middle",
-      print: true,
-      download: true,
-      
-    },
-    
-
-    {
-      title: t("Operation Type"),
-      minWidth: 200,
-      field: "operation_type",
-      hozAlign: "center",
-      headerHozAlign: "center",
-      vertAlign: "middle",
-      print: true,
-      download: true,
-      
-    },
-    
-
-    {
-      title: t("Status"),
-      minWidth: 200,
-      field: "status",
-      hozAlign: "center",
-      headerHozAlign: "center",
-      vertAlign: "middle",
-      print: true,
-      download: true,
-      
-    },
-    
-
+  // Table columns for Added Files section
+  const historyTableColumns = [
     {
       title: t("Actions"),
-      minWidth: 200,
+      minWidth: 120,
       field: "actions",
       responsive: 1,
       hozAlign: "center",
@@ -147,793 +45,595 @@ function index_main() {
       print: false,
       download: false,
       headerSort: false,
-      formatter(cell) {
-        const element = stringToHTML(
-          `<div class="flex items-center lg:justify-center"></div>`
-        );
-        const a =
-          stringToHTML(`<div class="flex items-center lg:justify-center">
-              <a class="delete-btn flex items-center mr-3" href="javascript:;">
-                <i data-lucide="check-square" class="w-3.5 h-3.5 stroke-[1.7] mr-1.5"></i> Edit
-              </a>`);
-        const b = stringToHTML(`
-              <a class="edit-btn flex items-center text-danger" href="javascript:;">
-                <i data-lucide="trash-2" class="w-3.5 h-3.5 stroke-[1.7] mr-1.5"></i> Delete
-              </a>
-            </div>`);
-        a.addEventListener("click", function () {
-          const data = cell.getData();
-          Object.keys(data).forEach((key) => {
-            setValue(key, data[key]);
-          });
-          setShowUpdateModal(true);
-        });
-        b.addEventListener("click", function () {
-          const data = cell.getData();
-          Object.keys(data).forEach((key) => {
-            setValue(key, data[key]);
-          });
-          setShowDeleteModal(true);
-        });
-        let permission = "fileoperation";
-        if(hasPermission(permission+'-edit')){
-          element.append(a)
-        }
-        if(hasPermission(permission+'-delete')){
-          element.append(b)
-        }
-        return element;
-      },
+      formatter: () => {
+        return `<div class="flex items-center justify-center">
+          <button class="view-btn flex items-center mr-2 text-primary" title="${t('View')}">
+            <i data-lucide="eye" class="w-4 h-4"></i>
+          </button>
+          <button class="edit-btn flex items-center mr-2 text-warning" title="${t('Edit')}">
+            <i data-lucide="edit" class="w-4 h-4"></i>
+          </button>
+          <button class="delete-btn flex items-center text-danger" title="${t('Delete')}">
+            <i data-lucide="trash-2" class="w-4 h-4"></i>
+          </button>
+        </div>`;
+      }
     },
-]);
-  const [searchColumns, setSearchColumns] = useState(['user_id', 'product_id', 'file_path', 'operation_type', 'status', ]);
-
-  // schema
-  const schema = yup
-    .object({
-     user_id : yup.string().required(t('The User Id field is required')), 
-product_id : yup.string().required(t('The Product Id field is required')), 
-file_path : yup.string().required(t('The File Path field is required')), 
-operation_type : yup.string().required(t('The Operation Type field is required')), 
-status : yup.string().required(t('The Status field is required')), 
-
-    })
-    .required();
-
-  const {
-    register,
-    trigger,
-    getValues,
-    setValue,
-    handleSubmit,
-    formState: { errors },
-  } = useForm({
-    mode: "onChange",
-    resolver: yupResolver(schema),
-  });
-
-   
-
-
-  const [refetch, setRefetch] = useState(false);
-  const getMiniDisplay = (url) => {
-    let data = app_url +'/api/file/' + url;
-    
-    const fileExtension = data.split('.').pop().toLowerCase();
-    const imageExtensions = ['jpg', 'jpeg', 'png', 'gif', 'bmp', 'svg', 'webp'];
-    const videoExtensions = ['mp4', 'webm', 'ogg', 'mov', 'avi', 'mkv'];
-
-    let element;
-    
-    if (imageExtensions.includes(fileExtension)) {
-      element = (
-        // <DynamicImage imagePath={url} token={token}/>
-        <img data-action="zoom" src={media_url + url} alt="Preview" style={{ width: '40px', height: '40px', objectFit: 'cover' }} className="rounded-md"/>
-      );
-    } else if (videoExtensions.includes(fileExtension)) {
-      element = <Lucide icon="Film" style={{ width: '40px', height: '40px', objectFit: 'cover' }} className="block mx-auto" />;
-    } else {
-      element = (
-        <a href={data} target="_blank" rel="noopener noreferrer">
-          <Lucide icon="File" style={{ width: '40px', height: '40px', objectFit: 'cover' }} className="block mx-auto" />
-        </a>
-      );
+    {
+      title: t("Date"),
+      minWidth: 150,
+      field: "created_at",
+      hozAlign: "center",
+      headerHozAlign: "center",
+      vertAlign: "middle",
+      print: true,
+      download: true,
+      formatter: (cell) => {
+        const date = new Date(cell.getValue());
+        return date.toLocaleDateString('en-GB', {
+          day: '2-digit',
+          month: 'short',
+          year: 'numeric'
+        });
+      }
+    },
+    {
+      title: t("Section"),
+      minWidth: 200,
+      field: "operation_type",
+      hozAlign: "center",
+      headerHozAlign: "center",
+      vertAlign: "middle",
+      print: true,
+      download: true,
+      formatter: (cell) => {
+        const operationType = cell.getValue();
+        return importTypes[operationType]?.name || operationType;
+      }
+    },
+    {
+      title: t("File name"),
+      minWidth: 250,
+      field: "file_path",
+      hozAlign: "left",
+      headerHozAlign: "center",
+      vertAlign: "middle",
+      print: true,
+      download: true,
+      formatter: (cell) => {
+        const filePath = cell.getValue();
+        return filePath ? filePath.split('/').pop() : '';
+      }
     }
+  ];
 
-    return ReactDOMServer.renderToString(element); // Convert JSX to HTML string
+  const searchColumns = ['operation_type', 'file_path', 'status'];
+
+  // Import type configurations
+  const importTypes = {
+    cross_cars: {
+      name: 'Add Cross Cars',
+      description: 'Import cross car compatibility data',
+      requiredColumns: ['Brand', 'Code', 'Car model'],
+      validation: 'Brand/Code vs. Products; Car Model vs. Car Models'
+    },
+    cross_code: {
+      name: 'Add Cross Code',
+      description: 'Import cross code reference data',
+      requiredColumns: ['Brand', 'Code', 'Cross Brand', 'Cross Code'],
+      validation: 'Brand/Code vs. Products'
+    },
+    products: {
+      name: 'Add New Products',
+      description: 'Import new product data',
+      requiredColumns: ['Supplier', 'Brand', 'Description', 'Unit type'],
+      validation: 'Supplier vs. Suppliers; Description vs. Product Names; Unit Type vs. Unit Types'
+    },
+    information: {
+      name: 'Add New Information',
+      description: 'Import product information data',
+      requiredColumns: ['Brand', 'Code', 'Net weight', 'Gross weight'],
+      validation: 'Brand/Code vs. Products'
+    },
+    specifications: {
+      name: 'Add New Specifications',
+      description: 'Import product specifications',
+      requiredColumns: ['Brand', 'Code'],
+      validation: 'Brand/Code vs. Products'
+    },
+    car_models: {
+      name: 'Add New Car Models',
+      description: 'Import new car models',
+      requiredColumns: ['Car model'],
+      validation: 'Car Model must NOT already exist'
+    },
+    product_names: {
+      name: 'Add New Product Names',
+      description: 'Import product names',
+      requiredColumns: ['Description', 'Categories'],
+      validation: 'Category vs. Categories; Name must NOT already exist'
+    },
+    supplier_prices: {
+      name: 'Other Suppliers Prices',
+      description: 'Import supplier pricing data',
+      requiredColumns: ['Supplier', 'Brand', 'Code', 'Price'],
+      validation: 'Supplier vs. Suppliers; Brand/Code vs. Products'
+    },
+    customer_prices: {
+      name: 'Customers Special Price',
+      description: 'Import customer special pricing',
+      requiredColumns: ['Customer', 'Brand', 'Code', 'Price'],
+      validation: 'Customer vs. Customers; Brand/Code vs. Products'
+    }
   };
 
-    const onCreate = async (data) => {
-    console.log('🟡 onCreate called with data:', data);
-    console.log('🟡 Form errors:', errors);
-    console.log('🟡 Current form values:', getValues());
-    console.log('🟡 Form is valid:', Object.keys(errors).length === 0);
-    
-    // Check if form has validation errors
-    if (Object.keys(errors).length > 0) {
-      console.error('🔴 Form has validation errors:', errors);
-      setToastMessage(t("Please fix the form errors before submitting"));
-      basicStickyNotification.current?.showToast();
-      return;
-    }
-    
+  const hasPermission = (permission) => {
+    return user.permissions.includes(permission);
+  };
+
+  // File upload handlers
+  const onDrop = useCallback(async (acceptedFiles) => {
+    const file = acceptedFiles[0];
+    if (!file) return;
+
+    setLoading(true);
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('import_type', currentImportType);
+
     try {
-      const response = await createFileoperation(data);
-      console.log('🟡 API response:', response);
-      
-      if (response && (response.success === true || response.data?.success === true)) {
-        setToastMessage(t("Fileoperation created successfully."));
-        setRefetch(true);
-        setShowCreateModal(false);
+      const response = await axios.post(`${app_url}/api/upload-excel`, formData, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'multipart/form-data'
+        }
+      });
+
+      if (response.data.success) {
+        setUploadedFile(file);
+        setImportData(response.data);
+        setValidationResult(response.data.validation);
+        setShowPreview(true);
+        setToastMessage(t("File uploaded and validated successfully"));
         basicStickyNotification.current?.showToast();
-        // Auto-hide toast after 7 seconds
-        setTimeout(() => {
-          basicStickyNotification.current?.hideToast();
-        }, 7000);
       } else {
-        console.error('🔴 API returned error:', response);
-        let errorMessage = t("Error creating Fileoperation");
-        
-        // Check multiple possible error structures
-        const errorSources = [
-          response?.error?.data?.data?.errors,  // RTK Query error structure
-          response?.data?.data?.errors,         // Direct API response
-          response?.error?.data?.errors,        // Alternative error structure
-          response?.data?.errors                // Simple error structure
-        ];
-        
-        let validationErrors = null;
-        for (const errorSource of errorSources) {
-          if (errorSource && typeof errorSource === 'object') {
-            validationErrors = errorSource;
-            break;
-          }
-        }
-        
-        if (validationErrors) {
-          const errorFields = Object.keys(validationErrors);
-          if (errorFields.length > 0) {
-            // Get the first validation error message
-            const firstFieldErrors = validationErrors[errorFields[0]];
-            if (Array.isArray(firstFieldErrors) && firstFieldErrors.length > 0) {
-              errorMessage = firstFieldErrors[0];
-            } else if (typeof firstFieldErrors === 'string') {
-              errorMessage = firstFieldErrors;
-            }
-          }
-        } else {
-          // Handle parsing errors (when server returns HTML instead of JSON)
-          if (response?.error?.status === "PARSING_ERROR") {
-            errorMessage = t("Server error occurred. Please try again later or contact support.");
-          } else {
-            // Fallback to general error messages
-            const generalErrorSources = [
-              response?.error?.data?.message,
-              response?.data?.message,
-              response?.message,
-              response?.error?.error
-            ];
-            
-            for (const errorSource of generalErrorSources) {
-              if (errorSource && typeof errorSource === 'string') {
-                errorMessage = errorSource;
-                break;
-              }
-            }
-          }
-        }
-        
-        setToastMessage(errorMessage);
+        setToastMessage(t("Error uploading file: ") + response.data.message);
         basicStickyNotification.current?.showToast();
-        // Auto-hide toast after 7 seconds
-        setTimeout(() => {
-          basicStickyNotification.current?.hideToast();
-        }, 7000);
       }
     } catch (error) {
-      console.error('🔴 Exception in onCreate:', error);
-      let errorMessage = t("Error creating Fileoperation");
-      
-      // Check multiple possible error structures in catch block
-      const errorSources = [
-        error?.error?.data?.data?.errors,
-        error?.error?.data?.errors,
-        error?.response?.data?.data?.errors,
-        error?.response?.data?.errors,
-        error?.data?.data?.errors,
-        error?.data?.errors
-      ];
-      
-      let validationErrors = null;
-      for (const errorSource of errorSources) {
-        if (errorSource && typeof errorSource === 'object') {
-          validationErrors = errorSource;
-          break;
-        }
-      }
-      
-      if (validationErrors) {
-        const errorFields = Object.keys(validationErrors);
-        if (errorFields.length > 0) {
-          const firstFieldErrors = validationErrors[errorFields[0]];
-          if (Array.isArray(firstFieldErrors) && firstFieldErrors.length > 0) {
-            errorMessage = firstFieldErrors[0];
-          } else if (typeof firstFieldErrors === 'string') {
-            errorMessage = firstFieldErrors;
-          }
-        }
-      } else {
-        // Handle parsing errors in catch block
-        if (error?.error?.status === "PARSING_ERROR") {
-          errorMessage = t("Server error occurred. Please try again later or contact support.");
-        } else {
-          // Fallback to general error messages
-          const generalErrorSources = [
-            error?.error?.data?.message,
-            error?.response?.data?.message,
-            error?.data?.message,
-            error?.message
-          ];
-          
-          for (const errorSource of generalErrorSources) {
-            if (errorSource && typeof errorSource === 'string') {
-              errorMessage = errorSource;
-              break;
-            }
-          }
-        }
-      }
-      
-      setToastMessage(errorMessage);
+      console.error('Upload error:', error);
+      setToastMessage(t("Error uploading file"));
       basicStickyNotification.current?.showToast();
-      // Auto-hide toast after 7 seconds
-      setTimeout(() => {
-        basicStickyNotification.current?.hideToast();
-      }, 7000);
+    } finally {
+      setLoading(false);
     }
-  };;
+  }, [currentImportType, app_url, token, t]);
 
-    const onUpdate = async (data) => {
+  const { getRootProps, getInputProps, isDragActive } = useDropzone({
+    onDrop,
+    accept: {
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': ['.xlsx'],
+      'application/vnd.ms-excel': ['.xls']
+    },
+    multiple: false
+  });
+
+  // Import processing
+  const handleProcessImport = async (removeDuplicates = false) => {
+    if (!importData || !validationResult) return;
+
+    setLoading(true);
     try {
-      console.log('🟡 Updating fileoperation with data:', data);
-      const response = await updateFileoperation(data);
-      console.log('🟡 Update fileoperation response:', response);
-        
-      if (response && (response.success === true || response.data?.success === true)) {
-        setToastMessage(t('Fileoperation updated successfully'));
-        setRefetch(true);
-        setShowUpdateModal(false);
+      const response = await axios.post(`${app_url}/api/process-import`, {
+        file_id: importData.file_id,
+        import_type: currentImportType,
+        valid_rows: validationResult.valid_rows,
+        remove_duplicates: removeDuplicates
+      }, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (response.data.success) {
+        setToastMessage(response.data.message);
+        setShowPreview(false);
+        setImportData(null);
+        setValidationResult(null);
+        setUploadedFile(null);
+        loadImportHistory();
       } else {
-        // Handle validation errors with comprehensive error extraction
-        let errorMessage = t("Error updating Fileoperation");
-        
-        // Check multiple possible error structures
-        const errorSources = [
-          response?.error?.data?.data?.errors,  // RTK Query error structure
-          response?.data?.data?.errors,         // Direct API response
-          response?.error?.data?.errors,        // Alternative error structure
-          response?.data?.errors                // Simple error structure
-        ];
-        
-        let validationErrors = null;
-        for (const errorSource of errorSources) {
-          if (errorSource && typeof errorSource === 'object') {
-            validationErrors = errorSource;
-            break;
-          }
+        setToastMessage(t("Error processing import: ") + response.data.message);
+      }
+      basicStickyNotification.current?.showToast();
+    } catch (error) {
+      console.error('Import error:', error);
+      setToastMessage(t("Error processing import"));
+      basicStickyNotification.current?.showToast();
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Export invalid rows
+  const handleExportInvalidRows = async () => {
+    if (!validationResult || !validationResult.invalid_rows.length) return;
+
+    try {
+      const response = await axios.post(`${app_url}/api/export-invalid-rows`, {
+        invalid_rows: validationResult.invalid_rows,
+        headers: importData.headers
+      }, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
         }
-        
-        if (validationErrors) {
-          const errorFields = Object.keys(validationErrors);
-          if (errorFields.length > 0) {
-            // Get the first validation error message
-            const firstFieldErrors = validationErrors[errorFields[0]];
-            if (Array.isArray(firstFieldErrors) && firstFieldErrors.length > 0) {
-              errorMessage = firstFieldErrors[0];
-            } else if (typeof firstFieldErrors === 'string') {
-              errorMessage = firstFieldErrors;
-            }
-          }
-        } else {
-          // Handle parsing errors (when server returns HTML instead of JSON)
-          if (response?.error?.status === "PARSING_ERROR") {
-            errorMessage = t("Server error occurred. Please try again later or contact support.");
-          } else {
-            // Fallback to general error messages
-            const generalErrorSources = [
-              response?.error?.data?.message,
-              response?.data?.message,
-              response?.message,
-              response?.error?.error
-            ];
-            
-            for (const errorSource of generalErrorSources) {
-              if (errorSource && typeof errorSource === 'string') {
-                errorMessage = errorSource;
-                break;
-              }
-            }
-          }
+      });
+
+      if (response.data.success) {
+        window.open(response.data.download_url, '_blank');
+        setToastMessage(t("Invalid rows exported successfully"));
+      } else {
+        setToastMessage(t("Error exporting invalid rows"));
+      }
+      basicStickyNotification.current?.showToast();
+    } catch (error) {
+      console.error('Export error:', error);
+      setToastMessage(t("Error exporting invalid rows"));
+      basicStickyNotification.current?.showToast();
+    }
+  };
+
+  // Load import history
+  const loadImportHistory = async () => {
+    try {
+      const response = await axios.get(`${app_url}/api/import-history`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
         }
-        
-        setToastMessage(errorMessage);
-        console.error('🔴 Update failed with response:', response);
-        setShowUpdateModal(true);
+      });
+
+      if (response.data.success) {
+        setImportHistory(response.data.data.data || []);
       }
     } catch (error) {
-      console.error('🔴 Update fileoperation error:', error);
-      let errorMessage = t("Error updating Fileoperation");
-      
-      // Check multiple possible error structures in catch block
-      const errorSources = [
-        error?.error?.data?.data?.errors,
-        error?.error?.data?.errors,
-        error?.response?.data?.data?.errors,
-        error?.response?.data?.errors,
-        error?.data?.data?.errors,
-        error?.data?.errors
-      ];
-      
-      let validationErrors = null;
-      for (const errorSource of errorSources) {
-        if (errorSource && typeof errorSource === 'object') {
-          validationErrors = errorSource;
-          break;
-        }
-      }
-      
-      if (validationErrors) {
-        const errorFields = Object.keys(validationErrors);
-        if (errorFields.length > 0) {
-          const firstFieldErrors = validationErrors[errorFields[0]];
-          if (Array.isArray(firstFieldErrors) && firstFieldErrors.length > 0) {
-            errorMessage = firstFieldErrors[0];
-          } else if (typeof firstFieldErrors === 'string') {
-            errorMessage = firstFieldErrors;
-          }
-        }
-      } else {
-        // Handle parsing errors in catch block
-        if (error?.error?.status === "PARSING_ERROR") {
-          errorMessage = t("Server error occurred. Please try again later or contact support.");
-        } else {
-          // Fallback to general error messages
-          const generalErrorSources = [
-            error?.error?.data?.message,
-            error?.response?.data?.message,
-            error?.data?.message,
-            error?.message
-          ];
-          
-          for (const errorSource of generalErrorSources) {
-            if (errorSource && typeof errorSource === 'string') {
-              errorMessage = errorSource;
-              break;
-            }
-          }
-        }
-      }
-      
-      setToastMessage(errorMessage);
-      setShowUpdateModal(true);
+      console.error('History load error:', error);
     }
-      
-    basicStickyNotification.current?.showToast();
-    // Auto-hide toast after 7 seconds
-    setTimeout(() => {
-      basicStickyNotification.current?.hideToast();
-    }, 7000);
-  };;
+  };
 
-    const onDelete = async () => {
-    let id = getValues("id");
-    setShowDeleteModal(false);
-    
-    try {
-      console.log('🔴 Deleting fileoperation with id:', id);
-      const response = await deleteFileoperation(id);
-      console.log('🔴 Delete fileoperation response:', response);
-      
-      if (response && (response.success === true || response.data?.success === true)) {
-        setToastMessage(t("Fileoperation deleted successfully."));
-        setRefetch(true);
-      } else {
-        // Handle validation errors specifically
-        if (response?.error?.data?.data?.errors) {
-          const validationErrors = response.error.data.data.errors;
-          const errorFields = Object.keys(validationErrors);
-          if (errorFields.length > 0) {
-            const firstError = validationErrors[errorFields[0]][0];
-            setToastMessage(firstError);
-          }
-        } else {
-          const errorMsg = response?.error?.data?.message || response?.message || response?.error || 'Unknown error occurred';
-          setToastMessage(`${t("Error deleting Fileoperation")}: ${errorMsg}`);
-        }
-        console.error('🔴 Delete failed with response:', response);
-      }
-    } catch (error) {
-      console.error('🔴 Delete fileoperation error:', error);
-      let errorMessage = t("Error deleting Fileoperation");
-      
-      if (error?.error?.data?.data?.errors) {
-        // Handle validation errors from error.error.data.data.errors structure
-        const validationErrors = error.error.data.data.errors;
-        const errorFields = Object.keys(validationErrors);
-        if (errorFields.length > 0) {
-          const firstError = validationErrors[errorFields[0]][0];
-          errorMessage = firstError;
-        }
-      } else if (error?.error?.data?.message) {
-        errorMessage = error.error.data.message;
-      } else if (error.response?.data?.message) {
-        errorMessage = error.response.data.message;
-      } else if (error.message) {
-        errorMessage = `${t("Error")}: ${error.message}`;
-      }
-      
-      setToastMessage(errorMessage);
-    }
-    
-    basicStickyNotification.current?.showToast();
-    // Auto-hide toast after 7 seconds
-    setTimeout(() => {
-      basicStickyNotification.current?.hideToast();
-    }, 7000);
-  };;    
+  // Load history on component mount
+  React.useEffect(() => {
+    loadImportHistory();
+  }, []);
 
-return (
-    <div>
-      <Slideover
-        size="xl"
-        open={showDeleteModal}
-        onClose={() => {
-          setShowDeleteModal(false);
-        }}
-      >
-        <Slideover.Panel>
-          <div className="p-5 text-center">
-            <Lucide
-              icon="XCircle"
-              className="w-16 h-16 mx-auto mt-3 text-danger"
-            />
-            <div className="mt-5 text-3xl">{t("Are you sure?")}</div>
-            <div className="mt-2 text-slate-500">{confirmationMessage}</div>
+  // Render data grid for preview
+  const renderDataGrid = () => {
+    if (!importData || !validationResult) return null;
+
+    const { headers } = importData;
+    const { valid_rows, invalid_rows, duplicates } = validationResult;
+    const allRows = [...valid_rows, ...invalid_rows, ...duplicates];
+    const hasErrors = invalid_rows.length > 0 || duplicates.length > 0;
+
+    return (
+      <div className="mt-6">
+        {/* Header with search and actions */}
+        <div className="flex justify-between items-center mb-4">
+          <div className="flex items-center gap-4">
+            <div className="relative">
+              <input
+                type="text"
+                placeholder={t("Search")}
+                className="form-control w-64 pl-10"
+              />
+              <Lucide icon="Search" className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+            </div>
+            <span className="text-sm text-gray-600">
+              {t("4 columns selected")}
+            </span>
           </div>
-          <div className="px-5 pb-8 text-center">
+          
+          <div className="flex gap-2">
+            {hasErrors && (
+              <Button
+                variant="primary"
+                size="sm"
+                onClick={handleExportInvalidRows}
+              >
+                {t("Export xls/xlsx")}
+              </Button>
+            )}
             <Button
-              type="button"
-              variant="outline-secondary"
+              variant="primary"
+              size="sm"
+              onClick={() => handleProcessImport(false)}
+              disabled={loading || valid_rows.length === 0}
+            >
+              {t("Import xls/xlsx")}
+            </Button>
+          </div>
+        </div>
+
+        {/* Column filter dropdowns */}
+        <div className="flex gap-4 mb-4">
+          <div className="relative">
+            <select className="form-select w-32">
+              <option value="">{t("Brand")}</option>
+              <option value="Kanoya">Kanoya</option>
+              <option value="Kanoliya">Kanoliya</option>
+            </select>
+            <Lucide icon="ChevronDown" className="absolute right-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+          </div>
+          
+          <div className="relative">
+            <select className="form-select w-32">
+              <option value="">{t("Code")}</option>
+              <option value="K10402">K10402</option>
+              <option value="K1042202">K1042202</option>
+            </select>
+            <Lucide icon="ChevronDown" className="absolute right-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+          </div>
+          
+          <div className="relative">
+            <select className="form-select w-48">
+              <option value="">{t("Car model")}</option>
+              <option value="INFINITI G37">INFINITI G37</option>
+              <option value="INFINITI M35/M45">INFINITI M35/M45</option>
+              <option value="NISSAN ALMERA">NISSAN ALMERA</option>
+              <option value="NISSAN ALTIMA">NISSAN ALTIMA</option>
+            </select>
+            <Lucide icon="ChevronDown" className="absolute right-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+          </div>
+          
+          <div className="ml-auto">
+            <span className="text-lg font-semibold">{t("Actions")}</span>
+          </div>
+        </div>
+
+        {/* Data table */}
+        <div className="overflow-x-auto border border-gray-200 rounded-lg">
+          <table className="w-full">
+            <tbody>
+              {allRows.slice(0, 50).map((row, index) => {
+                const isInvalid = invalid_rows.includes(row);
+                const isDuplicate = duplicates.includes(row);
+                const hasRowErrors = isInvalid || isDuplicate;
+                
+                return (
+                  <tr key={index} className={`border-b border-gray-100 hover:bg-gray-50 ${hasRowErrors ? 'bg-red-50' : ''}`}>
+                    {/* Brand column */}
+                    <td className="px-4 py-3 w-32">
+                      <span className={hasRowErrors && row.data[0] ? 'text-red-600 font-medium' : ''}>
+                        {row.data[0] || ''}
+                      </span>
+                    </td>
+                    
+                    {/* Code column */}
+                    <td className="px-4 py-3 w-32">
+                      <span className={hasRowErrors && row.data[1] ? 'text-red-600 font-medium' : ''}>
+                        {row.data[1] || ''}
+                      </span>
+                    </td>
+                    
+                    {/* Car model column */}
+                    <td className="px-4 py-3 flex-1">
+                      <span className={hasRowErrors && row.data[2] ? 'text-red-600 font-medium' : ''}>
+                        {row.data[2] || ''}
+                      </span>
+                    </td>
+                    
+                    {/* Actions column */}
+                    <td className="px-4 py-3 w-32">
+                      <div className="flex items-center gap-2">
+                        <button className="p-1 hover:bg-gray-100 rounded" title={t("View")}>
+                          <Lucide icon="Eye" className="w-4 h-4 text-blue-600" />
+                        </button>
+                        <button className="p-1 hover:bg-gray-100 rounded" title={t("Edit")}>
+                          <Lucide icon="Edit" className="w-4 h-4 text-green-600" />
+                        </button>
+                        <button className="p-1 hover:bg-gray-100 rounded" title={t("Delete")}>
+                          <Lucide icon="Trash2" className="w-4 h-4 text-red-600" />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+
+        {/* Error message and action buttons */}
+        {hasErrors && (
+          <div className="mt-4 flex justify-between items-center">
+            <div className="text-red-600 text-sm">
+              * {t("The data in three lines does not match the system data. Please edit or delete these lines.")}
+            </div>
+            
+            <div className="flex gap-2">
+              <Button
+                variant="primary"
+                size="sm"
+                onClick={handleExportInvalidRows}
+              >
+                {t("Export xls/xlsx")}
+              </Button>
+              <Button
+                variant="primary"
+                size="sm"
+                onClick={() => handleProcessImport(true)}
+                disabled={loading}
+              >
+                {t("Remove mismatched rows")} <br />
+                {t("and complete data import")}
+                <Lucide icon="ArrowRight" className="w-4 h-4 ml-2" />
+              </Button>
+            </div>
+          </div>
+        )}
+
+        {/* Pagination */}
+        <div className="flex justify-center items-center mt-4 gap-2">
+          <button className="px-3 py-1 text-sm text-gray-600 hover:bg-gray-100 rounded">
+            &lt; 1 ....
+          </button>
+          <span className="px-3 py-1 text-sm">435</span>
+          <button className="px-2 py-1 text-sm bg-blue-600 text-white rounded">436</button>
+          <span className="px-3 py-1 text-sm">437</span>
+          <button className="px-3 py-1 text-sm text-gray-600 hover:bg-gray-100 rounded">
+            .... 512 &gt;
+          </button>
+        </div>
+
+        {/* Summary stats - hidden but available for reference */}
+        <div className="hidden">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+            <div className="bg-success/10 p-4 rounded-lg">
+              <div className="text-success font-semibold">{t("Valid Rows")}</div>
+              <div className="text-2xl font-bold text-success">{valid_rows.length}</div>
+            </div>
+            <div className="bg-warning/10 p-4 rounded-lg">
+              <div className="text-warning font-semibold">{t("Invalid Rows")}</div>
+              <div className="text-2xl font-bold text-warning">{invalid_rows.length}</div>
+            </div>
+            <div className="bg-danger/10 p-4 rounded-lg">
+              <div className="text-danger font-semibold">{t("Duplicates")}</div>
+              <div className="text-2xl font-bold text-danger">{duplicates.length}</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  return (
+    <div className="p-6">
+      <div className="flex items-center justify-between mb-6">
+        <h2 className="text-2xl font-bold">{t("File Operations")}</h2>
+      </div>
+
+      {/* Tab Navigation */}
+      <div className="mb-6">
+        <div className="flex flex-wrap gap-2">
+          <button
+            onClick={() => setActiveTab("added_files")}
+            className={`px-4 py-2 rounded-lg font-medium text-sm transition-colors ${
+              activeTab === "added_files"
+                ? "bg-primary text-white"
+                : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+            }`}
+          >
+            {t("Added files")}
+          </button>
+          {Object.entries(importTypes).map(([key, config]) => (
+            <button
+              key={key}
               onClick={() => {
-                setShowDeleteModal(false);
+                setActiveTab(key);
+                setCurrentImportType(key);
               }}
-              className="w-24 mr-1"
+              className={`px-4 py-2 rounded-lg font-medium text-sm transition-colors ${
+                activeTab === key
+                  ? "bg-primary text-white"
+                  : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+              }`}
             >
-              {t("Cancel")}
-            </Button>
-            <Button
-              type="button"
-              variant="danger"
-              className="w-24"
-              onClick={() => onDelete()}
-            >
-              {t("Delete")}
-            </Button>
+              {config.name}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Content Area */}
+      {activeTab === "added_files" ? (
+        /* History/Added Files Tab */
+        <Can permission="fileoperation-list">
+          <TableComponent
+            endpoint={app_url + "/api/import-history"}
+            data={historyTableColumns}
+            searchColumns={searchColumns}
+            refetch={refetch}
+            setRefetch={setRefetch}
+            permission={"fileoperation"}
+          />
+        </Can>
+      ) : currentImportType === 'cross_cars' ? (
+        /* Add Cross Cars Component */
+        <FileoperationAddCrossCars
+          onSuccess={(message) => {
+            setToastMessage(message);
+            basicStickyNotification.current.showToast();
+            setRefetch(!refetch);
+          }}
+          onError={(message) => {
+            setToastMessage(message);
+            basicStickyNotification.current.showToast();
+          }}
+        />
+      ) : (
+        /* Other Import Types - Generic Component */
+        <div>
+          <div className="bg-white rounded-lg shadow">
+            <div className="p-6">
+              <div className="mb-6">
+                <h3 className="text-lg font-medium mb-2">{importTypes[currentImportType]?.name}</h3>
+                <p className="text-gray-600 mb-4">{importTypes[currentImportType]?.description}</p>
+                
+                {/* Requirements */}
+                <div className="bg-blue-50 p-4 rounded-lg mb-4">
+                  <h4 className="font-medium text-blue-900 mb-2">{t("Required Columns")}</h4>
+                  <div className="flex flex-wrap gap-2">
+                    {importTypes[currentImportType]?.requiredColumns.map((col, index) => (
+                      <span key={index} className="bg-blue-100 text-blue-800 px-2 py-1 rounded text-sm">
+                        {col}
+                      </span>
+                    ))}
+                  </div>
+                  <p className="text-sm text-blue-700 mt-2">
+                    <strong>{t("Validation")}:</strong> {importTypes[currentImportType]?.validation}
+                  </p>
+                </div>
+              </div>
+
+              {!showPreview ? (
+                /* File Upload Area */
+                <div>
+                  <div
+                    {...getRootProps()}
+                    className={`border-2 border-dashed rounded-lg p-8 text-center cursor-pointer transition-colors ${
+                      isDragActive
+                        ? "border-primary bg-primary/5"
+                        : "border-gray-300 hover:border-gray-400"
+                    }`}
+                  >
+                    <input {...getInputProps()} />
+                    <Lucide icon="Upload" className="w-12 h-12 mx-auto text-gray-400 mb-4" />
+                    <p className="text-lg font-medium text-gray-900 mb-2">
+                      {isDragActive ? t("Drop the file here") : t("Drop Excel file here or click to browse")}
+                    </p>
+                    <p className="text-sm text-gray-500">
+                      {t("Supports .xlsx and .xls files up to 10MB")}
+                    </p>
+                  </div>
+
+                  {loading && (
+                    <div className="mt-4 flex items-center justify-center">
+                      <LoadingIcon icon="oval" className="w-6 h-6 mr-2" />
+                      <span>{t("Processing file...")}</span>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                /* Preview and Validation Results */
+                renderDataGrid()
+              )}
+            </div>
           </div>
-        </Slideover.Panel>
-      </Slideover>
-
-
-      <Slideover
-        size="xl"
-        open={showCreateModal}
-        onClose={() => {
-          setShowCreateModal(false);
-        }}
-      >
-        <Slideover.Panel className="text-center">
-          <form onSubmit={handleSubmit(onCreate)}>
-            <Slideover.Title>
-              <h2 className="mr-auto text-base font-medium">{t("Add New Fileoperation")}</h2>
-            </Slideover.Title>
-            <Slideover.Description className="relative overflow-y-auto max-h-[calc(100vh-200px)]">
-              <div className="relative">
-                {loading || updating || deleting ? (
-                  <div className="w-full h-full z-[99999px] absolute backdrop-blur-md bg-gray-600">
-                    <div className="w-full h-full flex justify-center items-center">
-                      <LoadingIcon icon="tail-spin" className="w-8 h-8" />
-                    </div>
-                  </div>
-                ) : (
-                  <div className=" w-full grid grid-cols-2 gap-4 gap-y-3">
-                    
-   <div className="mt-3 input-form">
-      <FormLabel
-        htmlFor="validation-form-1"
-        className="flex flex-col w-full sm:flex-row"
-      >
-        {t("User Id")}
-      </FormLabel>
-      <TomSelectSearch apiUrl={`${app_url}/api/search_user`} setValue={setValue} variable="user_id"/>
-      {errors.user_id && (
-        <div className="mt-2 text-danger">
-          {typeof errors.user_id.message === "string" &&
-            errors.user_id.message}
         </div>
       )}
-    </div>
 
-   <div className="mt-3 input-form">
-      <FormLabel
-        htmlFor="validation-form-1"
-        className="flex flex-col w-full sm:flex-row"
-      >
-        {t("Product Id")}
-      </FormLabel>
-      <TomSelectSearch apiUrl={`${app_url}/api/search_product`} setValue={setValue} variable="product_id"/>
-      {errors.product_id && (
-        <div className="mt-2 text-danger">
-          {typeof errors.product_id.message === "string" &&
-            errors.product_id.message}
-        </div>
-      )}
-    </div>
-
-<div className="mt-3 input-form">
-                      <FormLabel
-                        htmlFor="validation-form-1"
-                        className="flex justify-start items-start flex-col w-full sm:flex-row"
-                      >
-                        {t("File Path")}
-                      </FormLabel>
-                      <FormInput
-                        {...register("file_path")}
-                        id="validation-form-1"
-                        type="text"
-                        name="file_path"
-                        className={clsx({
-                          "border-danger": errors.file_path,
-                        })}
-                        placeholder={t("Enter file_path")}
-                      />
-                      {errors.file_path && (
-                        <div className="mt-2 text-danger">
-                          {typeof errors.file_path.message === "string" &&
-                            errors.file_path.message}
-                        </div>
-                      )}
-                    </div>
-
-
-<div className="mt-3 input-form">
-                      <FormLabel
-                        htmlFor="validation-form-1"
-                        className="flex justify-start items-start flex-col w-full sm:flex-row"
-                      >
-                        {t("Operation Type")}
-                      </FormLabel>
-                      <FormInput
-                        {...register("operation_type")}
-                        id="validation-form-1"
-                        type="text"
-                        name="operation_type"
-                        className={clsx({
-                          "border-danger": errors.operation_type,
-                        })}
-                        placeholder={t("Enter operation_type")}
-                      />
-                      {errors.operation_type && (
-                        <div className="mt-2 text-danger">
-                          {typeof errors.operation_type.message === "string" &&
-                            errors.operation_type.message}
-                        </div>
-                      )}
-                    </div>
-
-
-<div className="mt-3 input-form">
-                      <FormLabel
-                        htmlFor="validation-form-1"
-                        className="flex justify-start items-start flex-col w-full sm:flex-row"
-                      >
-                        {t("Status")}
-                      </FormLabel>
-                      <FormInput
-                        {...register("status")}
-                        id="validation-form-1"
-                        type="text"
-                        name="status"
-                        className={clsx({
-                          "border-danger": errors.status,
-                        })}
-                        placeholder={t("Enter status")}
-                      />
-                      {errors.status && (
-                        <div className="mt-2 text-danger">
-                          {typeof errors.status.message === "string" &&
-                            errors.status.message}
-                        </div>
-                      )}
-                    </div>
-
-
-                  </div>
-                      )}
-              </div>
-            </Slideover.Description>
-            <Slideover.Footer>
-              <Button
-                type="button"
-                variant="outline-secondary"
-                onClick={() => {
-                  setShowCreateModal(false);
-                }}
-                className="w-20 mx-2"
-              >
-                {t("Cancel")}
-              </Button>
-              <Button variant="primary" type="submit" className="w-20">
-                {t("Save")}
-              </Button>
-            </Slideover.Footer>
-          </form>
-        </Slideover.Panel>
-      </Slideover>
-      <Slideover
-        size="xl"
-        open={showUpdateModal}
-        onClose={() => {
-          setShowUpdateModal(false);
-        }}
-      >
-        <Slideover.Panel className="text-center">
-          <form onSubmit={handleSubmit(onUpdate)}>
-            <Slideover.Title>
-              <h2 className="mr-auto text-base font-medium">{t("Edit Fileoperation")}</h2>
-            </Slideover.Title>
-            <Slideover.Description className="relative overflow-y-auto max-h-[calc(100vh-200px)]">
-              <div className="relative">
-                {loading || updating || deleting ? (
-                  <div className="w-full h-full z-[99999px] absolute backdrop-blur-md bg-gray-600">
-                    <div className="w-full h-full flex justify-center items-center">
-                      <LoadingIcon icon="tail-spin" className="w-8 h-8" />
-                    </div>
-                  </div>
-                ) : (
-                  <div className=" w-full grid grid-cols-1  gap-4 gap-y-3">
-                    
-   <div className="mt-3 input-form">
-      <FormLabel
-        htmlFor="validation-form-1"
-        className="flex flex-col w-full sm:flex-row"
-      >
-        {t("User Id")}
-      </FormLabel>
-      <TomSelectSearch apiUrl={`${app_url}/api/search_user`} setValue={setValue} variable="user_id"/>
-      {errors.user_id && (
-        <div className="mt-2 text-danger">
-          {typeof errors.user_id.message === "string" &&
-            errors.user_id.message}
-        </div>
-      )}
-    </div>
-
-   <div className="mt-3 input-form">
-      <FormLabel
-        htmlFor="validation-form-1"
-        className="flex flex-col w-full sm:flex-row"
-      >
-        {t("Product Id")}
-      </FormLabel>
-      <TomSelectSearch apiUrl={`${app_url}/api/search_product`} setValue={setValue} variable="product_id"/>
-      {errors.product_id && (
-        <div className="mt-2 text-danger">
-          {typeof errors.product_id.message === "string" &&
-            errors.product_id.message}
-        </div>
-      )}
-    </div>
-
-<div className="mt-3 input-form">
-                      <FormLabel
-                        htmlFor="validation-form-1"
-                        className="flex justify-start items-start flex-col w-full sm:flex-row"
-                      >
-                        {t("File Path")}
-                      </FormLabel>
-                      <FormInput
-                        {...register("file_path")}
-                        id="validation-form-1"
-                        type="text"
-                        name="file_path"
-                        className={clsx({
-                          "border-danger": errors.file_path,
-                        })}
-                        placeholder={t("Enter file_path")}
-                      />
-                      {errors.file_path && (
-                        <div className="mt-2 text-danger">
-                          {typeof errors.file_path.message === "string" &&
-                            errors.file_path.message}
-                        </div>
-                      )}
-                    </div>
-
-
-<div className="mt-3 input-form">
-                      <FormLabel
-                        htmlFor="validation-form-1"
-                        className="flex justify-start items-start flex-col w-full sm:flex-row"
-                      >
-                        {t("Operation Type")}
-                      </FormLabel>
-                      <FormInput
-                        {...register("operation_type")}
-                        id="validation-form-1"
-                        type="text"
-                        name="operation_type"
-                        className={clsx({
-                          "border-danger": errors.operation_type,
-                        })}
-                        placeholder={t("Enter operation_type")}
-                      />
-                      {errors.operation_type && (
-                        <div className="mt-2 text-danger">
-                          {typeof errors.operation_type.message === "string" &&
-                            errors.operation_type.message}
-                        </div>
-                      )}
-                    </div>
-
-
-<div className="mt-3 input-form">
-                      <FormLabel
-                        htmlFor="validation-form-1"
-                        className="flex justify-start items-start flex-col w-full sm:flex-row"
-                      >
-                        {t("Status")}
-                      </FormLabel>
-                      <FormInput
-                        {...register("status")}
-                        id="validation-form-1"
-                        type="text"
-                        name="status"
-                        className={clsx({
-                          "border-danger": errors.status,
-                        })}
-                        placeholder={t("Enter status")}
-                      />
-                      {errors.status && (
-                        <div className="mt-2 text-danger">
-                          {typeof errors.status.message === "string" &&
-                            errors.status.message}
-                        </div>
-                      )}
-                    </div>
-
-
-                  </div>
-                )}
-              </div>
-            </Slideover.Description>
-            <Slideover.Footer>
-              <Button
-                type="button"
-                variant="outline-secondary"
-                onClick={() => {
-                  setShowUpdateModal(false);
-                }}
-                className="w-20 mx-2"
-              >
-                {t("Cancel")}
-              </Button>
-              <Button variant="primary" type="submit" className="w-20">
-                {t("Update")}
-              </Button>
-            </Slideover.Footer>
-          </form>
-        </Slideover.Panel>
-      </Slideover>
+      {/* Toast Notification */}
       <Notification
         getRef={(el) => {
           basicStickyNotification.current = el;
@@ -942,17 +642,6 @@ return (
       >
         <div className="font-medium">{toastMessage}</div>
       </Notification>
-      <Can permission="fileoperation-list">
-        <TableComponent
-          setShowCreateModal={setShowCreateModal}
-          endpoint={app_url + "/api/fileoperation"}
-          data={data}
-          searchColumns={searchColumns}
-          refetch={refetch}
-          setRefetch={setRefetch}
-          permission={"Fileoperation"}
-        />
-      </Can>
     </div>
   );
 }
