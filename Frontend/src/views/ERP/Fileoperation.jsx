@@ -11,6 +11,7 @@ import Notification from "@/components/Base/Notification";
 import Can from "@/helpers/PermissionChecker/index.js";
 import TableComponent from "@/helpers/ui/TableComponent.jsx";
 import FileoperationAddCrossCars from "./FileoperationAddCrossCars.jsx";
+import FileoperationAddCarModels from "./FileoperationAddCarModels.jsx";
 
 function index_main() {
   const { t } = useTranslation();
@@ -19,7 +20,7 @@ function index_main() {
   const token = useSelector((state) => state.auth.token);
   
   // State management
-  const [activeTab, setActiveTab] = useState("cross_cars");
+  const [activeTab, setActiveTab] = useState("added_files");
   const [uploadedFile, setUploadedFile] = useState(null);
   const [importData, setImportData] = useState(null);
   const [validationResult, setValidationResult] = useState(null);
@@ -28,6 +29,9 @@ function index_main() {
   const [showPreview, setShowPreview] = useState(false);
   const [currentImportType, setCurrentImportType] = useState('cross_cars');
   const [refetch, setRefetch] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage] = useState(50);
+  const [searchTerm, setSearchTerm] = useState('');
   
   const basicStickyNotification = useRef();
   const [toastMessage, setToastMessage] = useState("");
@@ -228,7 +232,8 @@ function index_main() {
         file_id: importData.file_id,
         import_type: currentImportType,
         valid_rows: validationResult.valid_rows,
-        remove_duplicates: removeDuplicates
+        remove_duplicates: removeDuplicates,
+        file_name: uploadedFile?.name || `${currentImportType}_import.xlsx`
       }, {
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -242,6 +247,7 @@ function index_main() {
         setImportData(null);
         setValidationResult(null);
         setUploadedFile(null);
+        setRefetch(!refetch); // Trigger refresh of Added Files section
         loadImportHistory();
       } else {
         setToastMessage(t("Error processing import: ") + response.data.message);
@@ -316,6 +322,20 @@ function index_main() {
     const allRows = [...valid_rows, ...invalid_rows, ...duplicates];
     const hasErrors = invalid_rows.length > 0 || duplicates.length > 0;
 
+    // Filter rows based on search term
+    const filteredRows = allRows.filter(row => {
+      if (!searchTerm) return true;
+      return row.data.some(cell => 
+        String(cell).toLowerCase().includes(searchTerm.toLowerCase())
+      );
+    });
+
+    // Calculate pagination
+    const totalPages = Math.ceil(filteredRows.length / itemsPerPage);
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    const endIndex = startIndex + itemsPerPage;
+    const currentRows = filteredRows.slice(startIndex, endIndex);
+
     return (
       <div className="mt-6">
         {/* Header with search and actions */}
@@ -326,11 +346,16 @@ function index_main() {
                 type="text"
                 placeholder={t("Search")}
                 className="form-control w-64 pl-10"
+                value={searchTerm}
+                onChange={(e) => {
+                  setSearchTerm(e.target.value);
+                  setCurrentPage(1); // Reset to first page when searching
+                }}
               />
               <Lucide icon="Search" className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
             </div>
             <span className="text-sm text-gray-600">
-              {t("4 columns selected")}
+              {t("Showing")} {startIndex + 1}-{Math.min(endIndex, filteredRows.length)} {t("of")} {filteredRows.length} {t("rows")}
             </span>
           </div>
           
@@ -395,7 +420,7 @@ function index_main() {
         <div className="overflow-x-auto border border-gray-200 rounded-lg">
           <table className="w-full">
             <tbody>
-              {allRows.slice(0, 50).map((row, index) => {
+              {currentRows.map((row, index) => {
                 const isInvalid = invalid_rows.includes(row);
                 const isDuplicate = duplicates.includes(row);
                 const hasRowErrors = isInvalid || isDuplicate;
@@ -474,17 +499,53 @@ function index_main() {
         )}
 
         {/* Pagination */}
-        <div className="flex justify-center items-center mt-4 gap-2">
-          <button className="px-3 py-1 text-sm text-gray-600 hover:bg-gray-100 rounded">
-            &lt; 1 ....
-          </button>
-          <span className="px-3 py-1 text-sm">435</span>
-          <button className="px-2 py-1 text-sm bg-blue-600 text-white rounded">436</button>
-          <span className="px-3 py-1 text-sm">437</span>
-          <button className="px-3 py-1 text-sm text-gray-600 hover:bg-gray-100 rounded">
-            .... 512 &gt;
-          </button>
-        </div>
+        {totalPages > 1 && (
+          <div className="flex justify-center items-center mt-4 gap-2">
+            <button 
+              className="px-3 py-1 text-sm text-gray-600 hover:bg-gray-100 rounded disabled:opacity-50 disabled:cursor-not-allowed"
+              onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
+              disabled={currentPage === 1}
+            >
+              {t("Previous")}
+            </button>
+            
+            {/* Page numbers */}
+            {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+              let pageNum;
+              if (totalPages <= 5) {
+                pageNum = i + 1;
+              } else if (currentPage <= 3) {
+                pageNum = i + 1;
+              } else if (currentPage >= totalPages - 2) {
+                pageNum = totalPages - 4 + i;
+              } else {
+                pageNum = currentPage - 2 + i;
+              }
+              
+              return (
+                <button
+                  key={pageNum}
+                  className={`px-3 py-1 text-sm rounded ${
+                    currentPage === pageNum
+                      ? 'bg-primary text-white'
+                      : 'text-gray-600 hover:bg-gray-100'
+                  }`}
+                  onClick={() => setCurrentPage(pageNum)}
+                >
+                  {pageNum}
+                </button>
+              );
+            })}
+            
+            <button 
+              className="px-3 py-1 text-sm text-gray-600 hover:bg-gray-100 rounded disabled:opacity-50 disabled:cursor-not-allowed"
+              onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
+              disabled={currentPage === totalPages}
+            >
+              {t("Next")}
+            </button>
+          </div>
+        )}
 
         {/* Summary stats - hidden but available for reference */}
         <div className="hidden">
@@ -564,12 +625,25 @@ function index_main() {
           onSuccess={(message) => {
             setToastMessage(message);
             basicStickyNotification.current.showToast();
-            setRefetch(!refetch);
           }}
           onError={(message) => {
             setToastMessage(message);
             basicStickyNotification.current.showToast();
           }}
+          onRefresh={() => setRefetch(!refetch)}
+        />
+      ) : currentImportType === 'car_models' ? (
+        /* Add Car Models Component */
+        <FileoperationAddCarModels
+          onSuccess={(message) => {
+            setToastMessage(message);
+            basicStickyNotification.current.showToast();
+          }}
+          onError={(message) => {
+            setToastMessage(message);
+            basicStickyNotification.current.showToast();
+          }}
+          onRefresh={() => setRefetch(!refetch)}
         />
       ) : (
         /* Other Import Types - Generic Component */

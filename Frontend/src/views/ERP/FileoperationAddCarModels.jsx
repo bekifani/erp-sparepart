@@ -1,13 +1,12 @@
-import React, { useState, useRef, useCallback } from "react";
-import { useTranslation } from "react-i18next";
-import { useSelector } from "react-redux";
+import React, { useState } from 'react';
+import { useTranslation } from 'react-i18next';
+import { useSelector } from 'react-redux';
 import { useDropzone } from 'react-dropzone';
 import axios from 'axios';
-import Button from "@/components/Base/Button";
-import Lucide from "@/components/Base/Lucide";
-import LoadingIcon from "@/components/Base/LoadingIcon";
+import Button from '@/components/Base/Button';
+import LoadingIcon from '@/components/Base/LoadingIcon';
 
-function FileoperationAddCrossCars({ onSuccess, onError, onRefresh }) {
+function FileoperationAddCarModels({ onSuccess, onError, onRefresh }) {
   const { t } = useTranslation();
   const app_url = useSelector((state) => state.auth.app_url);
   const token = useSelector((state) => state.auth.token);
@@ -30,10 +29,10 @@ function FileoperationAddCrossCars({ onSuccess, onError, onRefresh }) {
     try {
       const formData = new FormData();
       formData.append('file', file);
-      formData.append('operation_type', 'cross_cars');
+      formData.append('operation_type', 'car_models');
 
       const response = await axios.post(
-        `${app_url}/api/fileoperation/validate-cross-cars`,
+        `${app_url}/api/fileoperation/validate-car-models`,
         formData,
         {
           headers: {
@@ -125,9 +124,9 @@ function FileoperationAddCrossCars({ onSuccess, onError, onRefresh }) {
 
     setLoading(true);
     try {
-      const response = await axios.post(`${app_url}/api/fileoperation/import-cross-cars`, {
+      const response = await axios.post(`${app_url}/api/fileoperation/import-car-models`, {
         valid_rows: validationResult.valid_rows,
-        file_name: uploadedFile?.name || 'cross_cars_import.xlsx'
+        file_name: uploadedFile?.name || 'car_models_import.xlsx'
       }, {
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -163,13 +162,15 @@ function FileoperationAddCrossCars({ onSuccess, onError, onRefresh }) {
   const handleExportInvalidRows = () => {
     if (!validationResult || !validationResult.invalid_rows.length) return;
 
-    const csvContent = "data:text/csv;charset=utf-8," 
-      + validationResult.invalid_rows.map(row => row.data.join(",")).join("\n");
-    
-    const encodedUri = encodeURI(csvContent);
-    const link = document.createElement("a");
-    link.setAttribute("href", encodedUri);
-    link.setAttribute("download", "invalid_cross_cars.csv");
+    const csvContent = validationResult.invalid_rows.map(row => 
+      row.data.join(',')
+    ).join('\n');
+
+    const blob = new Blob([csvContent], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute("download", "invalid_car_models.csv");
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -225,18 +226,6 @@ function FileoperationAddCrossCars({ onSuccess, onError, onRefresh }) {
 
         {/* Column headers with dropdowns */}
         <div className="flex items-center gap-0 mb-4 bg-gray-50 border border-gray-200 rounded-t-lg">
-          <div className="relative flex-none w-32 px-4 py-3 border-r border-gray-200">
-            <select className="form-select w-full text-sm border-0 bg-transparent p-0 focus:ring-0">
-              <option value="">{t("Brand")}</option>
-            </select>
-          </div>
-          
-          <div className="relative flex-none w-32 px-4 py-3 border-r border-gray-200">
-            <select className="form-select w-full text-sm border-0 bg-transparent p-0 focus:ring-0">
-              <option value="">{t("Code")}</option>
-            </select>
-          </div>
-          
           <div className="relative flex-1 px-4 py-3 border-r border-gray-200">
             <select className="form-select w-full text-sm border-0 bg-transparent p-0 focus:ring-0">
               <option value="">{t("Car model")}</option>
@@ -260,24 +249,10 @@ function FileoperationAddCrossCars({ onSuccess, onError, onRefresh }) {
                   
                   return (
                     <tr key={index} className={`border-b border-gray-100 hover:bg-gray-50 ${hasRowErrors ? 'bg-red-50' : ''}`}>
-                      {/* Brand column */}
-                      <td className="px-4 py-3 w-32 border-r border-gray-100">
-                        <span className={hasRowErrors && row.data[0] ? 'text-red-600 font-medium' : ''}>
-                          {row.data[0] || ''}
-                        </span>
-                      </td>
-                      
-                      {/* Code column */}
-                      <td className="px-4 py-3 w-32 border-r border-gray-100">
-                        <span className={hasRowErrors && row.data[1] ? 'text-red-600 font-medium' : ''}>
-                          {row.data[1] || ''}
-                        </span>
-                      </td>
-                      
                       {/* Car model column */}
                       <td className="px-4 py-3 flex-1 border-r border-gray-100">
-                        <span className={hasRowErrors && row.data[2] ? 'text-red-600 font-medium' : ''}>
-                          {row.data[2] || ''}
+                        <span className={hasRowErrors && row.data[0] ? 'text-red-600 font-medium' : ''}>
+                          {row.data[0] || ''}
                         </span>
                       </td>
                       
@@ -366,19 +341,17 @@ function FileoperationAddCrossCars({ onSuccess, onError, onRefresh }) {
     <div className="bg-white">
       <div className="p-6">
         <div className="mb-6">
-          <h3 className="text-lg font-medium mb-1">{t("Add Cross Cars")}</h3>
-          <p className="text-sm text-gray-600 mb-4">{t("Import cross car compatibility data")}</p>
+          <h3 className="text-lg font-medium mb-1">{t("Add Car Models")}</h3>
+          <p className="text-sm text-gray-600 mb-4">{t("Import car model data")}</p>
           
           {/* Required Columns */}
           <div className="mb-6">
             <div className="text-sm font-medium text-gray-700 mb-2">{t("Required Columns")}</div>
             <div className="flex gap-4 mb-2">
-              <a href="#" className="text-blue-600 hover:text-blue-800 text-sm">{t("Brand")}</a>
-              <a href="#" className="text-blue-600 hover:text-blue-800 text-sm">{t("Code")}</a>
               <a href="#" className="text-blue-600 hover:text-blue-800 text-sm">{t("Car model")}</a>
             </div>
             <div className="text-sm text-blue-600">
-              <strong>{t("Validation")}:</strong> {t("Brand/Code vs. Products; Car Model vs. Car Models")}
+              <strong>{t("Validation")}:</strong> {t("Car Model must be unique (no duplicates allowed)")}
             </div>
           </div>
         </div>
@@ -422,4 +395,4 @@ function FileoperationAddCrossCars({ onSuccess, onError, onRefresh }) {
   );
 }
 
-export default FileoperationAddCrossCars;
+export default FileoperationAddCarModels;

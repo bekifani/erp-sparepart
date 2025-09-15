@@ -26,6 +26,29 @@ class FileoperationController extends BaseController
 {
     protected $searchableColumns = ['user_id', 'product_id', 'file_path', 'operation_type', 'status'];
 
+    /**
+     * Generate a unique file name based on original name with collision handling
+     */
+    private function generateUniqueFileName($originalName, $operationType = null)
+    {
+        // Clean the original filename
+        $pathInfo = pathinfo($originalName);
+        $baseName = $pathInfo['filename'];
+        $extension = isset($pathInfo['extension']) ? '.' . $pathInfo['extension'] : '';
+        
+        // Start with the original name
+        $fileName = $baseName . $extension;
+        $counter = 1;
+        
+        // Check if file name already exists in database
+        while (Fileoperation::where('file_path', $fileName)->exists()) {
+            $fileName = $baseName . '_' . $counter . $extension;
+            $counter++;
+        }
+        
+        return $fileName;
+    }
+
     public function index(Request $request)
     {
         $sortBy = 'id';
@@ -596,10 +619,10 @@ class FileoperationController extends BaseController
     {
         try {
             $validator = Validator::make($request->all(), [
-                'file_id' => 'required|exists:fileoperations,id',
                 'import_type' => 'required|string',
                 'valid_rows' => 'required|array',
-                'remove_duplicates' => 'boolean'
+                'remove_duplicates' => 'boolean',
+                'file_name' => 'string'
             ]);
 
             if ($validator->fails()) {
@@ -609,17 +632,26 @@ class FileoperationController extends BaseController
                 ], 422);
             }
 
-            $fileOperation = Fileoperation::findOrFail($request->file_id);
             $importType = $request->import_type;
             $validRows = $request->valid_rows;
             $removeDuplicates = $request->remove_duplicates ?? false;
+            $fileName = $request->file_name ?? $importType . '_import.xlsx';
 
             // Process the import based on type
             $result = $this->executeImport($importType, $validRows, $removeDuplicates);
 
-            // Update file operation status
-            $fileOperation->update([
-                'status' => $result['success'] ? 'completed' : 'failed'
+            // Create file operation record with unique filename
+            $uniqueFileName = $this->generateUniqueFileName($fileName, $importType);
+            
+            Fileoperation::create([
+                'user_id' => auth()->id(),
+                'file_path' => $uniqueFileName,
+                'operation_type' => $importType,
+                'status' => $result['success'] ? 'success' : 'failed',
+                'records_processed' => $result['imported'] + $result['skipped'],
+                'records_imported' => $result['imported'],
+                'records_skipped' => $result['skipped'],
+                'error_count' => 0
             ]);
 
             return response()->json($result);
@@ -956,6 +988,21 @@ class FileoperationController extends BaseController
                 }
             }
 
+            // Save file operation record with unique filename
+            $originalFileName = $request->input('file_name', 'cross_cars_import.xlsx');
+            $uniqueFileName = $this->generateUniqueFileName($originalFileName, 'cross_cars');
+            
+            Fileoperation::create([
+                'user_id' => auth()->id(),
+                'file_path' => $uniqueFileName,
+                'operation_type' => 'cross_cars',
+                'status' => 'success',
+                'records_processed' => $imported + $skipped,
+                'records_imported' => $imported,
+                'records_skipped' => $skipped,
+                'error_count' => count($errors)
+            ]);
+
             DB::commit();
 
             Log::info('Import completed', ['imported' => $imported, 'skipped' => $skipped, 'errors' => count($errors)]);
@@ -976,6 +1023,213 @@ class FileoperationController extends BaseController
             return response()->json([
                 'success' => false,
                 'message' => 'Error importing cross cars: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    public function validateCarModels(Request $request)
+    {
+        try {
+            $validator = Validator::make($request->all(), [
+                'file' => 'required|file|mimes:xlsx,xls|max:10240',
+                'operation_type' => 'string'
+            ]);
+
+            if ($validator->fails()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Validation failed',
+                    'errors' => $validator->errors()
+                ], 422);
+            }
+
+            $file = $request->file('file');
+            $data = Excel::toCollection(new class implements ToCollection {
+                public function collection(Collection $rows)
+                {
+                    return $rows;
+                }
+            }, $file)->first();
+
+            if ($data->isEmpty()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'File is empty'
+                ], 422);
+            }
+
+            // Extract headers from first row
+            $headers = $data->first()->toArray();
+            $dataRows = $data->skip(1);
+
+            // Validate car models data
+            $validRows = [];
+            $invalidRows = [];
+            $duplicates = [];
+
+            foreach ($dataRows as $index => $row) {
+                $rowData = $row->toArray();
+                
+                // Skip empty rows
+                if (empty(array_filter($rowData))) {
+                    continue;
+                }
+
+                $carModel = $rowData[0] ?? '';
+
+                $isValid = true;
+                $errors = [];
+
+                // Validate car model is not empty
+                if (empty(trim($carModel))) {
+                    $isValid = false;
+                    $errors[] = 'Car model cannot be empty';
+                } else {
+                    // Check for duplicates in existing car models
+                    $exists = Carmodel::where('car_model', $carModel)->exists();
+                    
+                    if ($exists) {
+                        $duplicates[] = [
+                            'row' => $index + 2,
+                            'data' => $rowData,
+                            'errors' => ['Car model already exists']
+                        ];
+                        continue;
+                    }
+                }
+
+                if ($isValid) {
+                    $validRows[] = [
+                        'row' => $index + 2,
+                        'data' => $rowData
+                    ];
+                } else {
+                    $invalidRows[] = [
+                        'row' => $index + 2,
+                        'data' => $rowData,
+                        'errors' => $errors
+                    ];
+                }
+            }
+
+            return response()->json([
+                'success' => true,
+                'data' => [
+                    'headers' => $headers,
+                    'total_rows' => $dataRows->count(),
+                    'file_name' => $file->getClientOriginalName()
+                ],
+                'validation' => [
+                    'valid_rows' => $validRows,
+                    'invalid_rows' => $invalidRows,
+                    'duplicates' => $duplicates,
+                    'summary' => [
+                        'valid_count' => count($validRows),
+                        'invalid_count' => count($invalidRows),
+                        'duplicate_count' => count($duplicates)
+                    ]
+                ]
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('Car models validation error: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Error validating file: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    public function processCarModelsImport(Request $request)
+    {
+        try {
+            $validator = Validator::make($request->all(), [
+                'valid_rows' => 'required|array',
+                'valid_rows.*.data' => 'required|array'
+            ]);
+
+            if ($validator->fails()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Validation failed',
+                    'errors' => $validator->errors()
+                ], 422);
+            }
+
+            $validRows = $request->input('valid_rows');
+            $imported = 0;
+            $errors = [];
+            $skipped = 0;
+
+            Log::info('Processing car models import', ['valid_rows_count' => count($validRows)]);
+
+            DB::beginTransaction();
+
+            foreach ($validRows as $rowData) {
+                try {
+                    $data = $rowData['data'];
+                    $carModel = trim($data[0] ?? '');
+
+                    Log::info('Processing car model row', ['car_model' => $carModel]);
+
+                    if (!empty($carModel)) {
+                        // Check if already exists (double check)
+                        $exists = Carmodel::where('car_model', $carModel)->exists();
+
+                        if (!$exists) {
+                            Carmodel::create([
+                                'car_model' => $carModel
+                            ]);
+                            $imported++;
+                            Log::info('Created car model entry', ['car_model' => $carModel]);
+                        } else {
+                            $skipped++;
+                            Log::info('Skipped duplicate car model', ['car_model' => $carModel]);
+                        }
+                    } else {
+                        $errors[] = "Empty car model name";
+                    }
+                } catch (\Exception $e) {
+                    $errors[] = "Error importing car model: {$carModel} - " . $e->getMessage();
+                    Log::error('Car model import error', ['error' => $e->getMessage(), 'car_model' => $carModel]);
+                }
+            }
+
+            // Save file operation record with unique filename
+            $originalFileName = $request->input('file_name', 'car_models_import.xlsx');
+            $uniqueFileName = $this->generateUniqueFileName($originalFileName, 'car_models');
+            
+            Fileoperation::create([
+                'user_id' => auth()->id(),
+                'file_path' => $uniqueFileName,
+                'operation_type' => 'car_models',
+                'status' => 'success',
+                'records_processed' => $imported + $skipped,
+                'records_imported' => $imported,
+                'records_skipped' => $skipped,
+                'error_count' => count($errors)
+            ]);
+
+            DB::commit();
+
+            Log::info('Car models import completed', ['imported' => $imported, 'skipped' => $skipped, 'errors' => count($errors)]);
+
+            return response()->json([
+                'success' => true,
+                'message' => "Successfully imported {$imported} car model entries" . ($skipped > 0 ? " ({$skipped} duplicates skipped)" : ""),
+                'data' => [
+                    'imported_count' => $imported,
+                    'skipped_count' => $skipped,
+                    'errors' => $errors
+                ]
+            ]);
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error('Car models import error: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Error importing car models: ' . $e->getMessage()
             ], 500);
         }
     }
