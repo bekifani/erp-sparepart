@@ -11,7 +11,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 class BoxeController extends BaseController
 {
-    protected $searchableColumns = ['brand', 'box_name', 'material', 'stock_qty', 'order_qty', 'price', 'size_a', 'size_b', 'size_c', 'volume', 'label', 'image', 'design_file', 'additional_note', 'operation_mode', 'package_type'];
+    protected $searchableColumns = ['brand', 'box_name', 'material', 'stock_qty', 'order_qty', 'price', 'size_a', 'size_b', 'size_c', 'volume', 'label', 'image', 'design_file', 'additional_note', 'operation_mode'];
 
     public function index(Request $request)
     {
@@ -64,6 +64,7 @@ class BoxeController extends BaseController
         }
     }
 
+
     public function search(Request $request, $search_term){
         try {
             $searchTerm = $search_term;
@@ -77,12 +78,31 @@ class BoxeController extends BaseController
                 foreach ($this->searchableColumns as $column) {
                     $query->orWhere($column, 'like', "%$searchTerm%");
                 }
-            })->paginate(20);
+            })->limit(20)->get();
             
-            return $this->sendResponse($results, 'search results for boxe');
+            // Format results for TomSelectSearch with additional fields for ProductInformation
+            $formattedResults = $results->map(function ($item) {
+                return [
+                    'value' => $item->id,
+                    'text' => $item->box_name . ' - ' . $item->brand . ' (' . $item->material . ')',
+                    'id' => $item->id,
+                    'box_name' => $item->box_name,
+                    'brand' => $item->brand,
+                    'material' => $item->material,
+                    'size_a' => $item->size_a,
+                    'size_b' => $item->size_b,
+                    'size_c' => $item->size_c,
+                    'volume' => $item->volume,
+                    'stock_qty' => $item->stock_qty,
+                    'order_qty' => $item->order_qty,
+                    'price' => $item->price
+                ];
+            });
+            
+            return response()->json($formattedResults);
         } catch (\Exception $e) {
             \Log::error('Boxe search error:', ['error' => $e->getMessage()]);
-            return $this->sendError('Search failed', ['error' => $e->getMessage()]);
+            return response()->json(['error' => 'Search failed'], 500);
         }
     }
 
@@ -186,15 +206,19 @@ class BoxeController extends BaseController
 
     public function destroy($id)
     {
-        $boxe = Boxe::findOrFail($id);
-        $boxe->delete();
-
-
-
-$this->deleteFile($boxe->image);$this->deleteFile($boxe->design_file);
-
-        //delete files uploaded
-        return $this->sendResponse(1, "boxe deleted succesfully");
+        try {
+            $boxe = Boxe::findOrFail($id);
+            
+            // Delete associated files before deleting the record
+            $this->deleteFile($boxe->image);
+            $this->deleteFile($boxe->design_file);
+            
+            $boxe->delete();
+            return $this->sendResponse(1, "boxe deleted successfully");
+        } catch (\Exception $e) {
+            \Log::error('Boxe deletion failed:', ['error' => $e->getMessage()]);
+            return $this->sendError("Deletion failed", ['error' => $e->getMessage()]);
+        }
     }
 
     public function deleteFile($filePath) {
