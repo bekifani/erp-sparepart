@@ -18,7 +18,7 @@ class CatalogController extends Controller
     {
         try {
             // Build query based on filters
-            $query = Product::with(['brand', 'categor', 'productinformation']);
+            $query = Product::with(['brand', 'categor', 'ProductInformation']);
             
             // Apply filters
             if ($request->has('search') && !empty($request->search)) {
@@ -138,7 +138,7 @@ class CatalogController extends Controller
     {
         try {
             // Build query with necessary relationships for catalog display
-            $query = Product::with(['brand', 'categor', 'productinformation']);
+            $query = Product::with(['brand', 'categor', 'ProductInformation']);
             
             // Apply filters
             if ($request->has('search') && !empty($request->search)) {
@@ -185,7 +185,7 @@ class CatalogController extends Controller
             $product = Product::with([
                 'brand', 
                 'categor', 
-                'productinformation',
+                'ProductInformation',
                 'productspecifications.specificationheadname',
                 'crosscars.carmodel',
                 'crosscodes.brand'

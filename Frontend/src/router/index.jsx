@@ -71,6 +71,7 @@ import TechnicalImages  from '@/views/ERP/TechnicalImages'
 import BoxImages  from '@/views/ERP/BoxImages'
 import LabelImages  from '@/views/ERP/LabelImages'
 import OtherImages  from '@/views/ERP/OtherImages'
+import Catalog  from '@/views/ERP/Catalog'
 //add file here 
 
 function Router() {
@@ -318,10 +319,10 @@ function Router() {
     path: "producthistor",
     element: <Producthistor />,
   }, 
-  // {
-  //   path: "catalog",
-  //   element: <Catalog />,
-  // },
+  {
+    path: "catalog",
+    element: <Catalog />,
+  },
   {
     path: "productpictures",
     element: <ProductPictures />,
