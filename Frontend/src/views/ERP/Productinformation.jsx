@@ -22,6 +22,7 @@ import { useTranslation } from "react-i18next";
 import LoadingIcon from "@/components/Base/LoadingIcon/index.tsx";
 import FileUpload from "@/helpers/ui/FileUpload.jsx";
 import TomSelectSearch from "@/helpers/ui/Tomselect.jsx";
+import CameraCapture from "@/helpers/ui/CameraCapture.jsx";
 import { useSelector } from "react-redux";
 
 function index_main() {
@@ -64,6 +65,7 @@ function index_main() {
     { title: t("Brand Code"), minWidth: 200, field: "brand_code_name", hozAlign: "center", headerHozAlign: "center", vertAlign: "middle", print: true, download: true },
     { title: t("Oe Code"), minWidth: 200, field: "oe_code", hozAlign: "center", headerHozAlign: "center", vertAlign: "middle", print: true, download: true },
     { title: t("Description"), minWidth: 200, field: "description", hozAlign: "center", headerHozAlign: "center", vertAlign: "middle", print: true, download: true },
+    { title: t("Qty"), minWidth: 100, field: "qty", hozAlign: "center", headerHozAlign: "center", vertAlign: "middle", print: true, download: true },
     { title: t("Net Weight"), minWidth: 200, field: "net_weight", hozAlign: "center", headerHozAlign: "center", vertAlign: "middle", print: true, download: true },
     { title: t("Gross Weight"), minWidth: 200, field: "gross_weight", hozAlign: "center", headerHozAlign: "center", vertAlign: "middle", print: true, download: true },
     { title: t("Unit Name"), minWidth: 200, field: "unit_name", hozAlign: "center", headerHozAlign: "center", vertAlign: "middle", print: true, download: true },
@@ -83,7 +85,11 @@ function index_main() {
       print: true,
       download: true,
       formatter(cell) {
-        return getMiniDisplay(cell.getData().qr_code);
+        const qrCode = cell.getData().qr_code;
+        if (qrCode && qrCode !== 'null') {
+          return `<img src="${app_url}/storage/qr_codes/${qrCode}" alt="QR Code" style="width:60px;height:60px;object-fit:contain;margin:auto;border:1px solid #e2e8f0;border-radius:4px;padding:4px;background:white;" />`;
+        }
+        return '<span class="text-gray-400">No QR Code</span>';
       }
     },
     {
@@ -100,16 +106,25 @@ function index_main() {
       }
     },
     {
-      title: t("Image"),
+      title: t("Pictures"),
       minWidth: 200,
-      field: "image",
+      field: "pictures",
       hozAlign: "center",
       headerHozAlign: "center",
       vertAlign: "middle",
       print: true,
       download: true,
       formatter(cell) {
-        return getMiniDisplay(cell.getData().image);
+        const pictures = cell.getData().pictures;
+        if (pictures && Array.isArray(pictures) && pictures.length > 0) {
+          const imageElements = pictures.slice(0, 3).map((img, index) => {
+            const imgSrc = img.startsWith('data:') ? img : `${media_url}${img}`;
+            return `<img src="${imgSrc}" alt="Picture ${index + 1}" style="width:30px;height:30px;object-fit:cover;margin:1px;border:1px solid #e2e8f0;border-radius:4px;" />`;
+          }).join('');
+          const moreText = pictures.length > 3 ? `<span style="font-size:10px;color:#6b7280;">+${pictures.length - 3} more</span>` : '';
+          return `<div style="display:flex;flex-wrap:wrap;align-items:center;justify-content:center;">${imageElements}${moreText}</div>`;
+        }
+        return '<span class="text-gray-400">No images</span>';
       }
     },
     { title: t("Size Mode"), minWidth: 200, field: "size_mode", hozAlign: "center", headerHozAlign: "center", vertAlign: "middle", print: true, download: true },
@@ -163,6 +178,15 @@ function index_main() {
             brand_code_name: data.brand_code_name || '',
             description: data.description || ''
           });
+          // Populate pictures arrays for editing
+          if (data.pictures && Array.isArray(data.pictures)) {
+            setUploadedImages(data.pictures);
+            setCapturedImages([]);
+            updatePicturesArray([], data.pictures);
+          } else {
+            setUploadedImages([]);
+            setCapturedImages([]);
+          }
           setShowUpdateModal(true);
         });
         b.addEventListener("click", function () {
@@ -182,21 +206,22 @@ function index_main() {
     },
   ]);
 
-  const [searchColumns, setSearchColumns] = useState(['product_code', 'brand_name', 'brand_code_name', 'description']);
+  const [searchColumns, setSearchColumns] = useState(['product_code', 'brand_name', 'brand_code_name', 'description', 'qty']);
 
-  // Validation schema (file uploads and numeric fields optional)
+  // Validation schema
   const schema = yup.object({
     product_id: yup.string().required(t('The Product field is required')),
     unit_id: yup.string().required(t('The Unit Id field is required')),
-    box_id: yup.string().required(t('The Box Id field is required')),
-    label_id: yup.string().required(t('The Label Id field is required')),
-    qr_code: yup.string().required(t('The Qr Code field is required')),
-    properties: yup.string().required(t('The Properties field is required')),
+    box_id: yup.string().nullable(),
+    label_id: yup.string().nullable(),
+    properties: yup.string().nullable(),
     technical_image: yup.string().nullable(),
     image: yup.string().nullable(),
-    size_mode: yup.string().required(t('The Size Mode field is required')),
-    additional_note: yup.string().required(t('The Additional Note field is required')),
+    pictures: yup.array().of(yup.string()).nullable(),
+    size_mode: yup.string().nullable(),
+    additional_note: yup.string().nullable(),
     oe_code: yup.string().nullable(),
+    qty: yup.number().nullable().min(0, t('Quantity must be positive')),
     net_weight: yup.number().nullable(),
     gross_weight: yup.number().nullable(),
     product_size_a: yup.number().nullable(),
@@ -241,6 +266,10 @@ function index_main() {
   }, [sizeA, sizeB, sizeC]);
 
   const [selectedProductMeta, setSelectedProductMeta] = useState({ brand_name: '', brand_code_name: '', description: '' });
+  const [capturedImages, setCapturedImages] = useState([]);
+  const [uploadedImages, setUploadedImages] = useState([]);
+  const [boxType, setBoxType] = useState('2D');
+  const [selectedBox, setSelectedBox] = useState(null);
 
   const getMiniDisplay = (url) => {
     let data = app_url + '/api/file/' + url;
@@ -267,7 +296,18 @@ function index_main() {
   const buildPrintHtml = (item) => {
     const logoUrl = `${media_url || ''}`; // customize if you have a logo path
     const safe = (v) => (v === null || v === undefined ? '' : String(v));
-    const imgTag = (url) => url ? `<img src="${media_url + url}" style="max-width:100%;border:1px solid #eee;border-radius:6px;padding:6px;"/>` : '<span style="color:#999;">-</span>';
+    const imgTag = (url, isQrCode = false) => {
+      if (!url) return '<span style="color:#999;">-</span>';
+      let imgSrc;
+      if (isQrCode) {
+        // QR code files are stored in storage/qr_codes/
+        imgSrc = `${app_url}/storage/qr_codes/${url}`;
+      } else {
+        // Technical images and other files use media_url
+        imgSrc = url.startsWith('http') ? url : `${media_url}${url}`;
+      }
+      return `<img src="${imgSrc}" style="max-width:100%;border:1px solid #eee;border-radius:6px;padding:6px;"/>`;
+    };
     return `
 <!DOCTYPE html>
 <html>
@@ -287,6 +327,8 @@ function index_main() {
     .label { width: 160px; color:#374151; font-weight:600; }
     .value { flex:1; color:#111827; }
     .images { display:grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 8px; }
+    .pictures-grid { display:grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 8px; margin-top: 8px; }
+    .picture-item { width: 100%; height: 80px; object-fit: cover; border: 1px solid #eee; border-radius: 6px; padding: 4px; }
     .footer { margin-top: 24px; font-size: 12px; color:#6b7280; text-align:center; }
     hr { border: none; height: 1px; background: #e5e7eb; margin: 12px 0; }
   </style>
@@ -333,17 +375,23 @@ function index_main() {
     <div class="images">
       <div>
         <div class="label" style="margin-bottom:6px;">Technical Image</div>
-        ${imgTag(item.technical_image)}
-      </div>
-      <div>
-        <div class="label" style="margin-bottom:6px;">Image</div>
-        ${imgTag(item.image)}
+        ${imgTag(item.technical_image, false)}
       </div>
       <div>
         <div class="label" style="margin-bottom:6px;">QR Code</div>
-        ${imgTag(item.qr_code)}
+        ${imgTag(item.qr_code, true)}
       </div>
     </div>
+    ${item.pictures && Array.isArray(item.pictures) && item.pictures.length > 0 ? `
+    <div style="margin-top:16px;">
+      <div class="label" style="margin-bottom:8px;">Pictures (${item.pictures.length})</div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:8px;">
+        ${item.pictures.map((picture, index) => {
+          const imgSrc = picture.startsWith('data:') ? picture : `${media_url}${picture}`;
+          return `<img src="${imgSrc}" alt="Picture ${index + 1}" style="width:100%;height:80px;object-fit:cover;border:1px solid #eee;border-radius:6px;padding:4px;"/>`;
+        }).join('')}
+      </div>
+    </div>` : ''}
   </div>
   <hr />
   <div class="footer">ERP Spare Part • Product Information Sheet</div>
@@ -400,7 +448,7 @@ function index_main() {
       const response = await createProductinformation(payload);
       if (response && response.success !== false) {
         setToastMessage(t("ProductInformation created successfully."));
-        reset();
+        resetFormAndStates();
         setShowCreateModal(false);
         setRefetch(true);
       } else {
@@ -432,7 +480,7 @@ function index_main() {
       const response = await updateProductinformation({ ...payload, id: data.id });
       if (response && response.success !== false) {
         setToastMessage(t("ProductInformation updated successfully."));
-        reset();
+        resetFormAndStates();
         setShowUpdateModal(false);
         setRefetch(true);
       } else {
@@ -449,7 +497,49 @@ function index_main() {
   // File upload setters
   const setUploadTechnical_image = (value) => setValue('technical_image', value);
   const setUploadImage = (value) => setValue('image', value);
-  const setUploadQrCode = (value) => setValue('qr_code', value, { shouldValidate: true });
+  
+  // Reset form and states
+  const resetFormAndStates = () => {
+    reset();
+    setCapturedImages([]);
+    setUploadedImages([]);
+    setSelectedProductMeta({ brand_name: '', brand_code_name: '', description: '' });
+  };
+  
+  // Handle multiple images
+  const handleImageCapture = (imageData, imageUrl) => {
+    // CameraCapture component passes (mockBlob, imageUrl)
+    const base64String = imageData && imageData.data ? imageData.data : imageUrl || imageData;
+    console.log('Camera captured image:', base64String);
+    if (base64String) {
+      const newImages = [...capturedImages, base64String];
+      setCapturedImages(newImages);
+      updatePicturesArray(newImages, uploadedImages);
+    }
+  };
+  
+  const handleImageUpload = (imagePath) => {
+    const newImages = [...uploadedImages, imagePath];
+    setUploadedImages(newImages);
+    updatePicturesArray(capturedImages, newImages);
+  };
+  
+  const updatePicturesArray = (captured, uploaded) => {
+    const allImages = [...captured, ...uploaded].filter(Boolean);
+    setValue('pictures', allImages, { shouldValidate: true });
+  };
+  
+  const removeImage = (index, type) => {
+    if (type === 'captured') {
+      const newImages = capturedImages.filter((_, i) => i !== index);
+      setCapturedImages(newImages);
+      updatePicturesArray(newImages, uploadedImages);
+    } else {
+      const newImages = uploadedImages.filter((_, i) => i !== index);
+      setUploadedImages(newImages);
+      updatePicturesArray(capturedImages, newImages);
+    }
+  };
 
   return (
     <div>
@@ -560,6 +650,54 @@ function index_main() {
                       />
                     </div>
 
+
+                    <div className="col-span-12 sm:col-span-6 input-form">
+                      <FormLabel className="flex justify-start items-start flex-col w-full sm:flex-row">{t("Quantity")}</FormLabel>
+                      <FormInput
+                        {...register("qty")}
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        name="qty"
+                        className={clsx({ "border-danger": errors.qty })}
+                        placeholder={t("Enter quantity")}
+                      />
+                      {errors.qty && <div className="mt-2 text-danger">{errors.qty.message}</div>}
+                    </div>
+
+                    {/* Read-only Product Info */}
+
+                    {/* Read-only display from Products */}
+                    <div className="col-span-12 sm:col-span-6 input-form">
+                      <FormLabel className="flex flex-col w-full sm:flex-row">{t("Brand")}</FormLabel>
+                      <FormInput value={selectedProductMeta.brand_name} disabled readOnly />
+                    </div>
+                    <div className="col-span-12 sm:col-span-6 input-form">
+                      <FormLabel className="flex flex-col w-full sm:flex-row">{t("Brand Code")}</FormLabel>
+                      <FormInput value={selectedProductMeta.brand_code_name} disabled readOnly />
+                    </div>
+                    <div className="col-span-12 input-form">
+                      <FormLabel className="flex flex-col w-full sm:flex-row">{t("Description")}</FormLabel>
+                      <FormInput value={selectedProductMeta.description} disabled readOnly />
+                    </div>
+
+                    {/* Read-only Product Info */}
+
+                    {/* Read-only display from Products */}
+                    <div className="col-span-12 sm:col-span-6 input-form">
+                      <FormLabel className="flex flex-col w-full sm:flex-row">{t("Brand")}</FormLabel>
+                      <FormInput value={selectedProductMeta.brand_name} disabled readOnly />
+                    </div>
+                    <div className="col-span-12 sm:col-span-6 input-form">
+                      <FormLabel className="flex flex-col w-full sm:flex-row">{t("Brand Code")}</FormLabel>
+                      <FormInput value={selectedProductMeta.brand_code_name} disabled readOnly />
+                    </div>
+                    <div className="col-span-12 input-form">
+                      <FormLabel className="flex flex-col w-full sm:flex-row">{t("Description")}</FormLabel>
+                      <FormInput value={selectedProductMeta.description} disabled readOnly />
+                    </div>
+
+                    {/* Row 3 */}
                     <div className="col-span-12 sm:col-span-6 input-form">
                       <FormLabel className="flex justify-start items-start flex-col w-full sm:flex-row">{t("Net Weight")}</FormLabel>
                       <FormInput
@@ -700,18 +838,57 @@ function index_main() {
                       {errors.properties && <div className="mt-2 text-danger">{errors.properties.message}</div>}
                     </div>
 
-                    <div className="col-span-12 sm:col-span-12 input-form">
-                      <FormLabel className="flex justify-start items-start flex-col w-full sm:flex-row">{t("QR Code (Image)")}</FormLabel>
-                      <FileUpload
-                        endpoint={upload_url}
-                        type="image/*"
-                        className="w-full"
-                        setUploadedURL={setUploadQrCode}
-                      />
-                      {getValues('qr_code') ? (
-                        <img src={`${media_url}${getValues('qr_code')}`} alt="QR Code" className="mt-2 w-24 h-24 object-contain border rounded p-1" />
-                      ) : null}
-                      {errors.qr_code && <div className="mt-2 text-danger">{errors.qr_code.message}</div>}
+                    <div className="col-span-12 input-form">
+                      <FormLabel className="flex justify-start items-start flex-col w-full sm:flex-row">{t("Pictures (Multiple Images)")}</FormLabel>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-2">{t("Camera Capture")}</label>
+                          <CameraCapture onCapture={handleImageCapture} />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-2">{t("File Upload")}</label>
+                          <FileUpload
+                            endpoint={upload_url}
+                            type="image/*"
+                            className="w-full"
+                            setUploadedURL={handleImageUpload}
+                          />
+                        </div>
+                      </div>
+                      
+                      {/* Image Previews */}
+                      {(capturedImages.length > 0 || uploadedImages.length > 0) && (
+                        <div className="mt-4">
+                          <label className="block text-sm font-medium text-gray-700 mb-2">{t("Selected Images")}</label>
+                          <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                            {capturedImages.map((img, index) => (
+                              <div key={`captured-${index}`} className="relative">
+                                <img src={img} alt={`Captured ${index + 1}`} className="w-full h-20 object-cover rounded border" />
+                                <button
+                                  type="button"
+                                  onClick={() => removeImage(index, 'captured')}
+                                  className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs"
+                                >
+                                  ×
+                                </button>
+                              </div>
+                            ))}
+                            {uploadedImages.map((img, index) => (
+                              <div key={`uploaded-${index}`} className="relative">
+                                <img src={`${media_url}${img}`} alt={`Uploaded ${index + 1}`} className="w-full h-20 object-cover rounded border" />
+                                <button
+                                  type="button"
+                                  onClick={() => removeImage(index, 'uploaded')}
+                                  className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs"
+                                >
+                                  ×
+                                </button>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                      {errors.pictures && <div className="mt-2 text-danger">{errors.pictures.message}</div>}
                     </div>
 
                     {/* Row 8 */}
@@ -722,12 +899,7 @@ function index_main() {
                       <FileUpload endpoint={upload_url} type="image/*" className="w-full" setUploadedURL={setUploadTechnical_image} />
                     </div>
 
-                    <div className="col-span-12">
-                      <FormLabel className="flex justify-start items-start flex-col w-full sm:flex-row">
-                        {t("Image")}
-                      </FormLabel>
-                      <FileUpload endpoint={upload_url} type="image/*" className="w-full" setUploadedURL={setUploadImage} />
-                    </div>
+
 
                     {/* Row 9 */}
                     <div className="col-span-12 sm:col-span-6 input-form">
@@ -752,20 +924,6 @@ function index_main() {
                         placeholder={t("Enter additional_note")}
                       />
                       {errors.additional_note && <div className="mt-2 text-danger">{errors.additional_note.message}</div>}
-                    </div>
-
-                    {/* Read-only display from Products */}
-                    <div className="col-span-12 sm:col-span-6 input-form">
-                      <FormLabel className="flex flex-col w-full sm:flex-row">{t("Brand")}</FormLabel>
-                      <FormInput value={selectedProductMeta.brand_name} disabled readOnly />
-                    </div>
-                    <div className="col-span-12 sm:col-span-6 input-form">
-                      <FormLabel className="flex flex-col w-full sm:flex-row">{t("Brand Code")}</FormLabel>
-                      <FormInput value={selectedProductMeta.brand_code_name} disabled readOnly />
-                    </div>
-                    <div className="col-span-12 input-form">
-                      <FormLabel className="flex flex-col w-full sm:flex-row">{t("Description")}</FormLabel>
-                      <FormInput value={selectedProductMeta.description} disabled readOnly />
                     </div>
 
                   </div>
@@ -856,6 +1014,54 @@ function index_main() {
                       />
                     </div>
 
+
+                    <div className="col-span-12 sm:col-span-6 input-form">
+                      <FormLabel className="flex justify-start items-start flex-col w-full sm:flex-row">{t("Quantity")}</FormLabel>
+                      <FormInput
+                        {...register("qty")}
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        name="qty"
+                        className={clsx({ "border-danger": errors.qty })}
+                        placeholder={t("Enter quantity")}
+                      />
+                      {errors.qty && <div className="mt-2 text-danger">{errors.qty.message}</div>}
+                    </div>
+
+                    {/* Read-only Product Info */}
+
+                    {/* Read-only display from Products */}
+                    <div className="col-span-12 sm:col-span-6 input-form">
+                      <FormLabel className="flex flex-col w-full sm:flex-row">{t("Brand")}</FormLabel>
+                      <FormInput value={selectedProductMeta.brand_name} disabled readOnly />
+                    </div>
+                    <div className="col-span-12 sm:col-span-6 input-form">
+                      <FormLabel className="flex flex-col w-full sm:flex-row">{t("Brand Code")}</FormLabel>
+                      <FormInput value={selectedProductMeta.brand_code_name} disabled readOnly />
+                    </div>
+                    <div className="col-span-12 input-form">
+                      <FormLabel className="flex flex-col w-full sm:flex-row">{t("Description")}</FormLabel>
+                      <FormInput value={selectedProductMeta.description} disabled readOnly />
+                    </div>
+
+                    {/* Read-only Product Info */}
+
+                    {/* Read-only display from Products */}
+                    <div className="col-span-12 sm:col-span-6 input-form">
+                      <FormLabel className="flex flex-col w-full sm:flex-row">{t("Brand")}</FormLabel>
+                      <FormInput value={selectedProductMeta.brand_name} disabled readOnly />
+                    </div>
+                    <div className="col-span-12 sm:col-span-6 input-form">
+                      <FormLabel className="flex flex-col w-full sm:flex-row">{t("Brand Code")}</FormLabel>
+                      <FormInput value={selectedProductMeta.brand_code_name} disabled readOnly />
+                    </div>
+                    <div className="col-span-12 input-form">
+                      <FormLabel className="flex flex-col w-full sm:flex-row">{t("Description")}</FormLabel>
+                      <FormInput value={selectedProductMeta.description} disabled readOnly />
+                    </div>
+
+                    {/* Row 3 */}
                     <div className="col-span-12 sm:col-span-6 input-form">
                       <FormLabel className="flex justify-start items-start flex-col w-full sm:flex-row">{t("Net Weight")}</FormLabel>
                       <FormInput
@@ -994,18 +1200,57 @@ function index_main() {
                       {errors.properties && <div className="mt-2 text-danger">{errors.properties.message}</div>}
                     </div>
 
-                    <div className="col-span-12 sm:col-span-12 input-form">
-                      <FormLabel className="flex justify-start items-start flex-col w-full sm:flex-row">{t("QR Code (Image)")}</FormLabel>
-                      <FileUpload
-                        endpoint={upload_url}
-                        type="image/*"
-                        className="w-full"
-                        setUploadedURL={setUploadQrCode}
-                      />
-                      {getValues('qr_code') ? (
-                        <img src={`${media_url}${getValues('qr_code')}`} alt="QR Code" className="mt-2 w-24 h-24 object-contain border rounded p-1" />
-                      ) : null}
-                      {errors.qr_code && <div className="mt-2 text-danger">{errors.qr_code.message}</div>}
+                    <div className="col-span-12 input-form">
+                      <FormLabel className="flex justify-start items-start flex-col w-full sm:flex-row">{t("Pictures (Multiple Images)")}</FormLabel>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-2">{t("Camera Capture")}</label>
+                          <CameraCapture onCapture={handleImageCapture} />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-2">{t("File Upload")}</label>
+                          <FileUpload
+                            endpoint={upload_url}
+                            type="image/*"
+                            className="w-full"
+                            setUploadedURL={handleImageUpload}
+                          />
+                        </div>
+                      </div>
+                      
+                      {/* Image Previews */}
+                      {(capturedImages.length > 0 || uploadedImages.length > 0) && (
+                        <div className="mt-4">
+                          <label className="block text-sm font-medium text-gray-700 mb-2">{t("Selected Images")}</label>
+                          <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                            {capturedImages.map((img, index) => (
+                              <div key={`captured-${index}`} className="relative">
+                                <img src={img} alt={`Captured ${index + 1}`} className="w-full h-20 object-cover rounded border" />
+                                <button
+                                  type="button"
+                                  onClick={() => removeImage(index, 'captured')}
+                                  className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs"
+                                >
+                                  ×
+                                </button>
+                              </div>
+                            ))}
+                            {uploadedImages.map((img, index) => (
+                              <div key={`uploaded-${index}`} className="relative">
+                                <img src={`${media_url}${img}`} alt={`Uploaded ${index + 1}`} className="w-full h-20 object-cover rounded border" />
+                                <button
+                                  type="button"
+                                  onClick={() => removeImage(index, 'uploaded')}
+                                  className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs"
+                                >
+                                  ×
+                                </button>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                      {errors.pictures && <div className="mt-2 text-danger">{errors.pictures.message}</div>}
                     </div>
 
                     {/* Row 8 */}
@@ -1016,12 +1261,7 @@ function index_main() {
                       <FileUpload endpoint={upload_url} type="image/*" className="w-full" setUploadedURL={setUploadTechnical_image} />
                     </div>
 
-                    <div className="col-span-12">
-                      <FormLabel className="flex justify-start items-start flex-col w-full sm:flex-row">
-                        {t("Image")}
-                      </FormLabel>
-                      <FileUpload endpoint={upload_url} type="image/*" className="w-full" setUploadedURL={setUploadImage} />
-                    </div>
+
 
                     {/* Row 9 */}
                     <div className="col-span-12 sm:col-span-6 input-form">
@@ -1046,20 +1286,6 @@ function index_main() {
                         placeholder={t("Enter additional_note")}
                       />
                       {errors.additional_note && <div className="mt-2 text-danger">{errors.additional_note.message}</div>}
-                    </div>
-
-                    {/* Read-only display from Products */}
-                    <div className="col-span-12 sm:col-span-6 input-form">
-                      <FormLabel className="flex flex-col w-full sm:flex-row">{t("Brand")}</FormLabel>
-                      <FormInput value={selectedProductMeta.brand_name} disabled readOnly />
-                    </div>
-                    <div className="col-span-12 sm:col-span-6 input-form">
-                      <FormLabel className="flex flex-col w-full sm:flex-row">{t("Brand Code")}</FormLabel>
-                      <FormInput value={selectedProductMeta.brand_code_name} disabled readOnly />
-                    </div>
-                    <div className="col-span-12 input-form">
-                      <FormLabel className="flex flex-col w-full sm:flex-row">{t("Description")}</FormLabel>
-                      <FormInput value={selectedProductMeta.description} disabled readOnly />
                     </div>
 
                   </div>
@@ -1180,10 +1406,19 @@ function index_main() {
                         <div>
                           <div className="text-xs text-slate-500">{t('QR Code')}</div>
                           {viewData.qr_code ? (
-                            <img src={`${media_url}${viewData.qr_code}`} alt="QR Code" className="mt-2 rounded border border-slate-200 p-2 max-h-56 object-contain bg-white" />
-                          ) : (
-                            <div className="text-slate-400 mt-2">{t('No image')}</div>
-                          )}
+                            <img 
+                              src={`${app_url}/storage/qr_codes/${viewData.qr_code}`} 
+                              alt="QR Code" 
+                              className="mt-2 rounded border border-slate-200 p-2 max-h-56 object-contain bg-white"
+                              onError={(e) => {
+                                e.target.style.display = 'none';
+                                e.target.nextSibling.style.display = 'block';
+                              }}
+                            />
+                          ) : null}
+                          <div className="text-slate-400 mt-2" style={{display: viewData.qr_code ? 'none' : 'block'}}>
+                            {viewData.qr_code ? 'QR Code not found' : t('No QR Code')}
+                          </div>
                         </div>
                         <div>
                           <div className="text-xs text-slate-500">{t('Properties')}</div>
@@ -1197,26 +1432,62 @@ function index_main() {
                   <div className="col-span-12">
                     <div className="rounded-lg border border-slate-200 p-5 bg-white">
                       <div className="text-sm font-semibold text-slate-700 mb-4">{t('Images')}</div>
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                      <div className="grid grid-cols-1 gap-6">
                         <div>
                           <div className="text-xs text-slate-500">{t('Technical Image')}</div>
                           {viewData.technical_image ? (
-                            <img src={`${media_url}${viewData.technical_image}`} className="mt-2 rounded border border-slate-200 p-2 max-h-64 object-contain bg-white" />
-                          ) : (
-                            <div className="text-slate-400 mt-2">{t('No image')}</div>
-                          )}
-                        </div>
-                        <div>
-                          <div className="text-xs text-slate-500">{t('Image')}</div>
-                          {viewData.image ? (
-                            <img src={`${media_url}${viewData.image}`} className="mt-2 rounded border border-slate-200 p-2 max-h-64 object-contain bg-white" />
-                          ) : (
-                            <div className="text-slate-400 mt-2">{t('No image')}</div>
-                          )}
+                            <img 
+                              src={`${media_url}${viewData.technical_image}`} 
+                              className="mt-2 rounded border border-slate-200 p-2 max-h-64 object-contain bg-white"
+                              onError={(e) => {
+                                e.target.style.display = 'none';
+                                e.target.nextSibling.style.display = 'block';
+                              }}
+                            />
+                          ) : null}
+                          <div className="text-slate-400 mt-2" style={{display: viewData.technical_image ? 'none' : 'block'}}>
+                            {viewData.technical_image ? 'Technical image not found' : t('No image')}
+                          </div>
                         </div>
                       </div>
                     </div>
                   </div>
+
+                  {/* Pictures Gallery */}
+                  {viewData.pictures && Array.isArray(viewData.pictures) && viewData.pictures.length > 0 && (
+                    <div className="col-span-12">
+                      <div className="rounded-lg border border-slate-200 p-5 bg-white">
+                        <div className="text-sm font-semibold text-slate-700 mb-4">{t('Pictures')} ({viewData.pictures.length})</div>
+                        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
+                          {viewData.pictures.map((picture, index) => {
+                            const imgSrc = picture.startsWith('data:') ? picture : `${media_url}${picture}`;
+                            return (
+                              <div key={index} className="relative group">
+                                <img 
+                                  src={imgSrc}
+                                  alt={`Picture ${index + 1}`}
+                                  className="w-full h-24 object-cover rounded border border-slate-200 cursor-pointer hover:opacity-80 transition-opacity"
+                                  onClick={() => {
+                                    // Open image in new tab for full view
+                                    window.open(imgSrc, '_blank');
+                                  }}
+                                  onError={(e) => {
+                                    e.target.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjQiIGhlaWdodD0iMjQiIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHBhdGggZD0iTTIxIDNWMjFIMTNWM0gyMVoiIGZpbGw9IiNGM0Y0RjYiLz4KPHA+dGggZD0iTTMgM1YyMUgxMVYzSDNaIiBmaWxsPSIjRjNGNEY2Ii8+CjxwYXRoIGQ9Ik0xNSA5SDE5VjEzSDE1VjlaIiBmaWxsPSIjRDFENUQ5Ii8+CjxwYXRoIGQ9Ik01IDlIOVYxM0g1VjlaIiBmaWxsPSIjRDFENUQ5Ii8+Cjwvc3ZnPgo=';
+                                    e.target.alt = 'Image not found';
+                                  }}
+                                />
+                                <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 rounded transition-all duration-200 flex items-center justify-center">
+                                  <div className="text-white text-xs opacity-0 group-hover:opacity-100 transition-opacity">
+                                    Click to view
+                                  </div>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </div>
               ) : (
                 <div className="text-slate-500">{t("No data selected.")}</div>
