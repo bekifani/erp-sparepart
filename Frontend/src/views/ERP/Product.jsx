@@ -361,7 +361,7 @@ function index_main() {
      description: yup.string().nullable(),
      supplier_code: yup.string().nullable(),
      auto_brand_code: yup.boolean().nullable(),
-     product_name_id: yup.string().nullable(),
+     productname_id: yup.string().nullable(),
     })
     .required();
 
@@ -413,77 +413,131 @@ function index_main() {
   };
 
   const onCreate = async (data) => {
+    console.log('=== CREATE PRODUCT DEBUG ===');
+    console.log('Raw form data:', data);
+    
     // Validate client-side first
     const valid = await trigger();
+    console.log('Client-side validation result:', valid);
+    
     if (!valid) {
+      console.log('Validation errors:', errors);
       setToastMessage(t("Please fix the validation errors."));
       basicStickyNotification.current?.showToast();
       return;
     }
+    
     try {
       const clean = { ...data };
-      // When auto is selected, do not send brand_code; instead send auto flag and product_name_id
+      console.log('Data before cleaning:', clean);
+      
+      // Always validate productname_id is present since backend requires it
+      if (!clean.productname_id) {
+        console.log('ERROR: No productname_id provided - this field is always required');
+        setToastMessage(t('Please select a Product Name.'));
+        basicStickyNotification.current?.showToast();
+        return;
+      }
+
+      // When auto is selected, do not send brand_code; instead send auto flag and productname_id
       if (clean.auto_brand_code) {
+        console.log('Auto brand code mode - removing brand_code');
         delete clean.brand_code;
-        if (!clean.product_name_id) {
-          setToastMessage(t('Please select a Product Name for auto brand code generation.'));
-          basicStickyNotification.current?.showToast();
-          return;
-        }
       } else {
-        // Manual: do not send helper fields
-        delete clean.product_name_id;
+        console.log('Manual brand code mode - removing auto_brand_code helper field');
+        // Manual: do not send auto helper field, but keep productname_id as backend requires it
         delete clean.auto_brand_code;
       }
+      
+      console.log('Final payload to send:', clean);
+      
       const response = await createProduct(clean).unwrap();
+      console.log('API Response:', response);
+      
       if (response?.success) {
         setToastMessage(t("Product created successfully."));
         setRefetch(true);
         setShowCreateModal(false);
       } else {
         const msg = response?.message || t('Creation failed');
+        console.log('API returned non-success:', msg);
         throw new Error(msg);
       }
     } catch (error) {
+      console.log('=== CREATE ERROR ===');
+      console.log('Error object:', error);
+      console.log('Error data:', error?.data);
+      console.log('Error message:', error?.message);
+      console.log('Error status:', error?.status);
+      
       const msg = getErrorMessage(error, t("Error creating Product."));
+      console.log('Final error message:', msg);
       setToastMessage(msg);
     }
     basicStickyNotification.current?.showToast();
   };
 
   const onUpdate = async (data) => {
+    console.log('=== UPDATE PRODUCT DEBUG ===');
+    console.log('Raw form data:', data);
+    
     const valid = await trigger();
+    console.log('Client-side validation result:', valid);
+    
     if (!valid) {
+      console.log('Validation errors:', errors);
       setToastMessage(t("Please fix the validation errors."));
       basicStickyNotification.current?.showToast();
       return;
     }
+    
     setShowUpdateModal(false)
+    
     try {
       const clean = { ...data };
+      console.log('Data before cleaning:', clean);
+      
+      // Always validate productname_id is present since backend requires it
+      if (!clean.productname_id) {
+        console.log('ERROR: No productname_id provided - this field is always required');
+        setToastMessage(t('Please select a Product Name.'));
+        basicStickyNotification.current?.showToast();
+        setShowUpdateModal(true);
+        return;
+      }
+
       if (clean.auto_brand_code) {
+        console.log('Auto brand code mode - removing brand_code');
         delete clean.brand_code;
-        if (!clean.product_name_id) {
-          setToastMessage(t('Please select a Product Name for auto brand code generation.'));
-          basicStickyNotification.current?.showToast();
-          setShowUpdateModal(true);
-          return;
-        }
       } else {
-        delete clean.product_name_id;
+        console.log('Manual brand code mode - removing auto_brand_code helper field');
+        // Manual: do not send auto helper field, but keep productname_id as backend requires it
         delete clean.auto_brand_code;
       }
+      
+      console.log('Final payload to send:', clean);
+      
       const response = await updateProduct(clean).unwrap();
+      console.log('API Response:', response);
+      
       if (response?.success) {
         setToastMessage(t('Product updated successfully'));
         setRefetch(true)
       } else {
         const msg = response?.message || t('Update failed');
+        console.log('API returned non-success:', msg);
         throw new Error(msg);
       }
     } catch (error) {
+      console.log('=== UPDATE ERROR ===');
+      console.log('Error object:', error);
+      console.log('Error data:', error?.data);
+      console.log('Error message:', error?.message);
+      console.log('Error status:', error?.status);
+      
       setShowUpdateModal(true)
       const msg = getErrorMessage(error, t('Error updating Product.'))
+      console.log('Final error message:', msg);
       setToastMessage(msg);
     }
     basicStickyNotification.current?.showToast();
@@ -511,13 +565,24 @@ function index_main() {
 
   // Extract meaningful error message from server/RTK Query responses
   const getErrorMessage = (err, fallback = t("An error occurred")) => {
+    console.log('=== ERROR MESSAGE EXTRACTION ===');
+    console.log('Input error:', err);
+    
     try {
       const data = err?.data || err?.error || err;
+      console.log('Extracted data:', data);
+      
       const firstError = data?.errors && typeof data.errors === 'object'
         ? Object.values(data.errors).flat().find(Boolean)
         : null;
-      return data?.message || firstError || err?.message || fallback;
-    } catch (_) {
+      console.log('First error found:', firstError);
+      
+      const finalMessage = data?.message || firstError || err?.message || fallback;
+      console.log('Final error message:', finalMessage);
+      
+      return finalMessage;
+    } catch (parseError) {
+      console.log('Error parsing error message:', parseError);
       return fallback;
     }
   };
@@ -862,9 +927,9 @@ function index_main() {
             setValue('description', field, value);
           }
         }}
-        variable="product_name_id"
+        variable="productname_id"
         onSelectionChange={(item) => {
-          setValue('product_name_id', item?.value, { shouldDirty: true, shouldValidate: true });
+          setValue('productname_id', item?.value, { shouldDirty: true, shouldValidate: true });
           const label = item?.text || '';
           setValue('description', label, { shouldDirty: true, shouldValidate: true });
         }}
@@ -1264,9 +1329,9 @@ function index_main() {
             setValue('description', field, value);
           }
         }}
-        variable="product_name_id"
+        variable="productname_id"
         onSelectionChange={(item) => {
-          setValue('product_name_id', item?.value, { shouldDirty: true, shouldValidate: true });
+          setValue('productname_id', item?.value, { shouldDirty: true, shouldValidate: true });
           const label = item?.text || '';
           setValue('description', label, { shouldDirty: true, shouldValidate: true });
         }}

@@ -12,6 +12,7 @@ use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 class ProductController extends BaseController
 {
@@ -90,9 +91,9 @@ class ProductController extends BaseController
             throw new \RuntimeException('Missing category_code or product_name_code for brand code generation.');
         }
 
-        // Count existing products for the same product_name_id (implicitly the same category)
+        // Count existing products for the same productname_id (implicitly the same category)
         $existingCount = DB::table('products')
-            ->where('products.product_name_id', $productName->id)
+            ->where('products.productname_id', $productName->id)
             ->count();
 
         $k = $existingCount + 1; // 1-based next index
@@ -102,70 +103,75 @@ class ProductController extends BaseController
 
     public function index(Request $request)
     {
-        $sortBy = 'products.id';
-        $sortDir = 'desc';
-        if (!empty($request['sort'])) {
-            $candidate = $request['sort'][0]['field'];
-            $sortBy = $this->mapField($candidate);
-            $sortDir = $request['sort'][0]['dir'];
-        }
-        $perPage = $request->query('size', 10);
-        $filters = $request['filter'];
-
-        $query = Product::with(['ProductInformation'])
-            ->leftJoin('product_information', 'product_information.product_id', '=', 'products.id')
-            ->leftJoin('productnames', 'products.product_name_id', '=', 'productnames.id')
-            ->leftJoin('brandnames', 'products.brand_id', '=', 'brandnames.id')
-            ->leftJoin('boxes', 'product_information.box_id', '=', 'boxes.id')
-            ->leftJoin('labels', 'product_information.label_id', '=', 'labels.id')
-            ->leftJoin('units', 'product_information.unit_id', '=', 'units.id')
-            ->leftJoin('suppliers', 'products.supplier_id', '=', 'suppliers.id');
-
-        $selects = [
-            'products.*',
-            'product_information.product_code',
-            // moved fields now selected from products
-            'products.oe_code',
-            'products.description',
-            'productnames.name_az as product_name',
-            'productnames.product_name_code',
-            'brandnames.brand_name',
-            'products.brand_code as brand_code_name',
-            'boxes.box_name',
-            'labels.label_name',
-            'units.name as unit_name',
-            'suppliers.supplier as supplier',
-        ];
-        // Conditionally include suppliers.code as supplier_code alias if column exists; otherwise NULL alias
-        if (Schema::hasColumn('suppliers', 'code')) {
-            $selects[] = 'suppliers.code as supplier_code';
-        } else {
-            $selects[] = DB::raw('NULL as supplier_code');
-        }
-
-        $query->select($selects)
-            ->orderBy($sortBy, $sortDir);
-
-        if ($filters) {
-            foreach ($filters as $filter) {
-                $field = $this->mapField($filter['field']);
-                $operator = $filter['type'];
-                $searchTerm = $filter['value'];
-                if ($operator == 'like') {
-                    $searchTerm = '%' . $searchTerm . '%';
-                }
-                $query->where($field, $operator, $searchTerm);
+        try {
+            $sortBy = 'products.id';
+            $sortDir = 'desc';
+            if (!empty($request['sort'])) {
+                $candidate = $request['sort'][0]['field'];
+                $sortBy = $this->mapField($candidate);
+                $sortDir = $request['sort'][0]['dir'];
             }
-        }
+            $perPage = $request->query('size', 10);
+            $filters = $request['filter'];
 
-        $product = $query->paginate($perPage);
-        $data = [
-            "data" => $product->toArray(),
-            'current_page' => $product->currentPage(),
-            'total_pages' => $product->lastPage(),
-            'per_page' => $perPage
-        ];
-        return response()->json($data);
+            $query = Product::with(['ProductInformation'])
+                ->leftJoin('product_information', 'product_information.product_id', '=', 'products.id')
+                ->leftJoin('productnames', 'products.productname_id', '=', 'productnames.id')
+                ->leftJoin('brandnames', 'products.brand_id', '=', 'brandnames.id')
+                ->leftJoin('boxes', 'product_information.box_id', '=', 'boxes.id')
+                ->leftJoin('labels', 'product_information.label_id', '=', 'labels.id')
+                ->leftJoin('units', 'product_information.unit_id', '=', 'units.id')
+                ->leftJoin('suppliers', 'products.supplier_id', '=', 'suppliers.id');
+
+            $selects = [
+                'products.*',
+                'product_information.product_code',
+                // moved fields now selected from products
+                'products.oe_code',
+                'products.description',
+                'productnames.name_az as product_name',
+                'productnames.product_name_code',
+                'brandnames.brand_name',
+                'products.brand_code as brand_code_name',
+                'boxes.box_name',
+                'labels.label_name',
+                'units.name as unit_name',
+                'suppliers.supplier as supplier',
+            ];
+            // Conditionally include suppliers.code as supplier_code alias if column exists; otherwise NULL alias
+            if (Schema::hasColumn('suppliers', 'code')) {
+                $selects[] = 'suppliers.code as supplier_code';
+            } else {
+                $selects[] = DB::raw('NULL as supplier_code');
+            }
+
+            $query->select($selects)
+                ->orderBy($sortBy, $sortDir);
+
+            if ($filters) {
+                foreach ($filters as $filter) {
+                    $field = $this->mapField($filter['field']);
+                    $operator = $filter['type'];
+                    $searchTerm = $filter['value'];
+                    if ($operator == 'like') {
+                        $searchTerm = '%' . $searchTerm . '%';
+                    }
+                    $query->where($field, $operator, $searchTerm);
+                }
+            }
+
+            $product = $query->paginate($perPage);
+            $data = [
+                "data" => $product->toArray(),
+                'current_page' => $product->currentPage(),
+                'total_pages' => $product->lastPage(),
+                'per_page' => $perPage
+            ];
+            return response()->json($data);
+        } catch (\Exception $e) {
+            Log::error('ProductController index error: ' . $e->getMessage());
+            return response()->json(['error' => 'Failed to fetch products', 'message' => $e->getMessage()], 500);
+        }
     }
 
     public function all_products()
@@ -185,7 +191,7 @@ class ProductController extends BaseController
 
         $query = Product::with(['ProductInformation'])
             ->leftJoin('product_information', 'product_information.product_id', '=', 'products.id')
-            ->leftJoin('productnames', 'products.product_name_id', '=', 'productnames.id')
+            ->leftJoin('productnames', 'products.productname_id', '=', 'productnames.id')
             ->leftJoin('brandnames', 'products.brand_id', '=', 'brandnames.id')
             ->leftJoin('boxes', 'product_information.box_id', '=', 'boxes.id')
             ->leftJoin('labels', 'product_information.label_id', '=', 'labels.id')
@@ -248,74 +254,75 @@ class ProductController extends BaseController
 
     public function store(Request $request)
     {
-        $validationRules = [
-            "supplier_id" => "required|exists:suppliers,id",
-            "qty" => "required|numeric",
-            "min_qty" => "nullable|numeric",
-            "purchase_price" => "nullable|numeric",
-            "extra_cost" => "nullable|numeric",
-            "cost_basis" => "nullable|numeric",
-            "selling_price" => "nullable|numeric",
-            "additional_note" => "nullable|string",
-            "status" => "nullable|string|max:255",
-            // new fields on products
-            "brand_id" => "nullable|exists:brandnames,id",
-            "brand_code" => "nullable|string|max:255",
-            "oe_code" => "nullable|string|max:255",
-            "description" => "nullable|string|max:255",
-            // virtual field from frontend to support find-or-create brand
-            "brand_name" => "nullable|string|max:255",
-            // auto brand code support
-            "auto_brand_code" => "nullable|boolean",
-            "product_name_id" => "required|exists:productnames,id",
-        ];
-
-        $validation = Validator::make($request->all(), $validationRules);
-        if ($validation->fails()) {
-            return $this->sendError("Invalid Values", ['errors' => $validation->errors()]);
-        }
-        $validated = $validation->validated();
-
-        // If brand_name is provided, find-or-create the brand and set brand_id
-        if (!empty($validated['brand_name'])) {
-            // Build creation attributes conditionally (brandnames.brand_code may not exist)
-            $creationAttributes = [];
-            if (Schema::hasColumn('brandnames', 'brand_code') && array_key_exists('brand_code', $validated)) {
-                $creationAttributes['brand_code'] = $validated['brand_code'];
-            }
-            $brand = Brandname::firstOrCreate(
-                ['brand_name' => $validated['brand_name']],
-                $creationAttributes
-            );
-            $validated['brand_id'] = $brand->id;
-            // do not persist brand_name on products
-            unset($validated['brand_name']);
-        }
-
-        // Auto-generate brand_code if requested
-        if (!empty($validated['auto_brand_code']) && empty($validated['brand_code'])) {
-            try {
-                $validated['brand_code'] = $this->buildBrandCodeFromNameAndCategory((int)$validated['product_name_id']);
-            } catch (\Throwable $e) {
-                return $this->sendError('Failed to generate brand code', ['errors' => ['brand_code' => [$e->getMessage()]]]);
-            }
-        }
-
-        // Manual entry normalization and validation: enforce 6-character alphanumeric (uppercase)
-        if (empty($validated['auto_brand_code']) && !empty($validated['brand_code'])) {
-            $normalized = strtoupper(preg_replace('/[^A-Za-z0-9]/', '', (string)$validated['brand_code']));
-            if (strlen($normalized) !== 6) {
-                return $this->sendError('Invalid brand code length (expected 6 characters: 1 category + 2 name + 3 sequence)', [
-                    'errors' => ['brand_code' => ['brand_code must be exactly 6 alphanumeric characters']]
-                ]);
-            }
-            $validated['brand_code'] = $normalized;
-        }
-
         try {
+            $validationRules = [
+                "supplier_id" => "required|exists:suppliers,id",
+                "qty" => "required|numeric",
+                "min_qty" => "nullable|numeric",
+                "purchase_price" => "nullable|numeric",
+                "extra_cost" => "nullable|numeric",
+                "cost_basis" => "nullable|numeric",
+                "selling_price" => "nullable|numeric",
+                "additional_note" => "nullable|string",
+                "status" => "nullable|string|max:255",
+                // new fields on products
+                "brand_id" => "nullable|exists:brandnames,id",
+                "brand_code" => "nullable|string|max:255",
+                "oe_code" => "nullable|string|max:255",
+                "description" => "nullable|string|max:255",
+                // virtual field from frontend to support find-or-create brand
+                "brand_name" => "nullable|string|max:255",
+                // auto brand code support
+                "auto_brand_code" => "nullable|boolean",
+                "productname_id" => "required|exists:productnames,id",
+            ];
+
+            $validation = Validator::make($request->all(), $validationRules);
+            if ($validation->fails()) {
+                return $this->sendError("Invalid Values", ['errors' => $validation->errors()]);
+            }
+            $validated = $validation->validated();
+
+            // If brand_name is provided, find-or-create the brand and set brand_id
+            if (!empty($validated['brand_name'])) {
+                // Build creation attributes conditionally (brandnames.brand_code may not exist)
+                $creationAttributes = [];
+                if (Schema::hasColumn('brandnames', 'brand_code') && array_key_exists('brand_code', $validated)) {
+                    $creationAttributes['brand_code'] = $validated['brand_code'];
+                }
+                $brand = Brandname::firstOrCreate(
+                    ['brand_name' => $validated['brand_name']],
+                    $creationAttributes
+                );
+                $validated['brand_id'] = $brand->id;
+                // do not persist brand_name on products
+                unset($validated['brand_name']);
+            }
+
+            // Auto-generate brand_code if requested
+            if (!empty($validated['auto_brand_code']) && empty($validated['brand_code'])) {
+                try {
+                    $validated['brand_code'] = $this->buildBrandCodeFromNameAndCategory((int)$validated['productname_id']);
+                } catch (\Throwable $e) {
+                    return $this->sendError('Failed to generate brand code', ['errors' => ['brand_code' => [$e->getMessage()]]]);
+                }
+            }
+
+            // Manual entry normalization and validation: enforce 6-character alphanumeric (uppercase)
+            if (empty($validated['auto_brand_code']) && !empty($validated['brand_code'])) {
+                $normalized = strtoupper(preg_replace('/[^A-Za-z0-9]/', '', (string)$validated['brand_code']));
+                if (strlen($normalized) !== 6) {
+                    return $this->sendError('Invalid brand code length (expected 6 characters: 1 category + 2 name + 3 sequence)', [
+                        'errors' => ['brand_code' => ['brand_code must be exactly 6 alphanumeric characters']]
+                    ]);
+                }
+                $validated['brand_code'] = $normalized;
+            }
+
             $product = Product::create($validated);
             return $this->sendResponse($product, "product created succesfully");
         } catch (\Exception $e) {
+            Log::error('ProductController store error: ' . $e->getMessage());
             return $this->sendError("Error creating product", ['message' => $e->getMessage()]);
         }
     }
@@ -328,73 +335,74 @@ class ProductController extends BaseController
 
     public function update(Request $request, $id)
     {
-        $product = Product::findOrFail($id);
-        $validationRules = [
-            "supplier_id" => "required|exists:suppliers,id",
-            "qty" => "required|numeric",
-            "min_qty" => "nullable|numeric",
-            "purchase_price" => "nullable|numeric",
-            "extra_cost" => "nullable|numeric",
-            "cost_basis" => "nullable|numeric",
-            "selling_price" => "nullable|numeric",
-            "additional_note" => "nullable|string",
-            "status" => "nullable|string|max:255",
-            // new fields on products
-            "brand_id" => "nullable|exists:brandnames,id",
-            "brand_code" => "nullable|string|max:255",
-            "oe_code" => "nullable|string|max:255",
-            "description" => "nullable|string|max:255",
-            // virtual field from frontend to support find-or-create brand
-            "brand_name" => "nullable|string|max:255",
-            // auto brand code support
-            "auto_brand_code" => "nullable|boolean",
-            "product_name_id" => "required|exists:productnames,id",
-        ];
-
-        $validation = Validator::make($request->all(), $validationRules);
-        if ($validation->fails()) {
-            return $this->sendError("Invalid Values", ['errors' => $validation->errors()]);
-        }
-        $validated = $validation->validated();
-
-        // If brand_name is provided, find-or-create the brand and set brand_id
-        if (!empty($validated['brand_name'])) {
-            $creationAttributes = [];
-            if (Schema::hasColumn('brandnames', 'brand_code') && array_key_exists('brand_code', $validated)) {
-                $creationAttributes['brand_code'] = $validated['brand_code'];
-            }
-            $brand = Brandname::firstOrCreate(
-                ['brand_name' => $validated['brand_name']],
-                $creationAttributes
-            );
-            $validated['brand_id'] = $brand->id;
-            unset($validated['brand_name']);
-        }
-
-        // Auto-generate brand_code on update if requested and brand_code not provided
-        if (!empty($validated['auto_brand_code']) && empty($validated['brand_code'])) {
-            try {
-                $validated['brand_code'] = $this->buildBrandCodeFromNameAndCategory((int)$validated['product_name_id']);
-            } catch (\Throwable $e) {
-                return $this->sendError('Failed to generate brand code', ['errors' => ['brand_code' => [$e->getMessage()]]]);
-            }
-        }
-
-        // Manual entry normalization and validation on update when auto is OFF
-        if (empty($validated['auto_brand_code']) && !empty($validated['brand_code'])) {
-            $normalized = strtoupper(preg_replace('/[^A-Za-z0-9]/', '', (string)$validated['brand_code']));
-            if (strlen($normalized) !== 6) {
-                return $this->sendError('Invalid brand code length (expected 6 characters: 1 category + 2 name + 3 sequence)', [
-                    'errors' => ['brand_code' => ['brand_code must be exactly 6 alphanumeric characters']]
-                ]);
-            }
-            $validated['brand_code'] = $normalized;
-        }
-
         try {
+            $product = Product::findOrFail($id);
+            $validationRules = [
+                "supplier_id" => "required|exists:suppliers,id",
+                "qty" => "required|numeric",
+                "min_qty" => "nullable|numeric",
+                "purchase_price" => "nullable|numeric",
+                "extra_cost" => "nullable|numeric",
+                "cost_basis" => "nullable|numeric",
+                "selling_price" => "nullable|numeric",
+                "additional_note" => "nullable|string",
+                "status" => "nullable|string|max:255",
+                // new fields on products
+                "brand_id" => "nullable|exists:brandnames,id",
+                "brand_code" => "nullable|string|max:255",
+                "oe_code" => "nullable|string|max:255",
+                "description" => "nullable|string|max:255",
+                // virtual field from frontend to support find-or-create brand
+                "brand_name" => "nullable|string|max:255",
+                // auto brand code support
+                "auto_brand_code" => "nullable|boolean",
+                "productname_id" => "required|exists:productnames,id",
+            ];
+
+            $validation = Validator::make($request->all(), $validationRules);
+            if ($validation->fails()) {
+                return $this->sendError("Invalid Values", ['errors' => $validation->errors()]);
+            }
+            $validated = $validation->validated();
+
+            // If brand_name is provided, find-or-create the brand and set brand_id
+            if (!empty($validated['brand_name'])) {
+                $creationAttributes = [];
+                if (Schema::hasColumn('brandnames', 'brand_code') && array_key_exists('brand_code', $validated)) {
+                    $creationAttributes['brand_code'] = $validated['brand_code'];
+                }
+                $brand = Brandname::firstOrCreate(
+                    ['brand_name' => $validated['brand_name']],
+                    $creationAttributes
+                );
+                $validated['brand_id'] = $brand->id;
+                unset($validated['brand_name']);
+            }
+
+            // Auto-generate brand_code on update if requested and brand_code not provided
+            if (!empty($validated['auto_brand_code']) && empty($validated['brand_code'])) {
+                try {
+                    $validated['brand_code'] = $this->buildBrandCodeFromNameAndCategory((int)$validated['productname_id']);
+                } catch (\Throwable $e) {
+                    return $this->sendError('Failed to generate brand code', ['errors' => ['brand_code' => [$e->getMessage()]]]);
+                }
+            }
+
+            // Manual entry normalization and validation on update when auto is OFF
+            if (empty($validated['auto_brand_code']) && !empty($validated['brand_code'])) {
+                $normalized = strtoupper(preg_replace('/[^A-Za-z0-9]/', '', (string)$validated['brand_code']));
+                if (strlen($normalized) !== 6) {
+                    return $this->sendError('Invalid brand code length (expected 6 characters: 1 category + 2 name + 3 sequence)', [
+                        'errors' => ['brand_code' => ['brand_code must be exactly 6 alphanumeric characters']]
+                    ]);
+                }
+                $validated['brand_code'] = $normalized;
+            }
+
             $product->update($validated);
             return $this->sendResponse($product, "product updated successfully");
         } catch (\Exception $e) {
+            Log::error('ProductController update error: ' . $e->getMessage());
             return $this->sendError("Error updating product", ['message' => $e->getMessage()]);
         }
     }
@@ -406,6 +414,7 @@ class ProductController extends BaseController
             $product->delete();
             return $this->sendResponse(1, "product deleted succesfully");
         } catch (\Exception $e) {
+            Log::error('ProductController destroy error: ' . $e->getMessage());
             return $this->sendError("Error deleting product", ['message' => $e->getMessage()]);
         }
     }

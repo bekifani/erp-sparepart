@@ -744,8 +744,8 @@ function index_main() {
                         setValue={setValue}
                         variable="box_id"
                         customDataMapping={(item) => ({
-                          value: item.id,
-                          text: item.box_name,
+                          value: item.value || item.id,
+                          text: item.text || item.box_name || String(item.id),
                           size_a: item.size_a,
                           size_b: item.size_b,
                           size_c: item.size_c,
@@ -1106,8 +1106,8 @@ function index_main() {
                         setValue={setValue}
                         variable="box_id"
                         customDataMapping={(item) => ({
-                          value: item.id,
-                          text: item.box_name,
+                          value: item.value || item.id,
+                          text: item.text || item.box_name || String(item.id),
                           size_a: item.size_a,
                           size_b: item.size_b,
                           size_c: item.size_c,
