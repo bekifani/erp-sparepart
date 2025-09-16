@@ -336,9 +336,6 @@ class FileoperationController extends BaseController
             case 'specifications':
                 $errors = $this->validateSpecificationsRow($rowData, $headers);
                 break;
-            case 'product_names':
-                $errors = $this->validateProductNamesRow($rowData, $headers);
-                break;
             case 'supplier_prices':
                 $errors = $this->validateSupplierPricesRow($rowData, $headers);
                 break;
@@ -440,29 +437,6 @@ class FileoperationController extends BaseController
         return $errors;
     }
 
-    private function validateProductNamesRow($rowData, $headers)
-    {
-        $errors = [];
-        
-        $categoryIndex = array_search('Categories', $headers) ?: array_search('categories', $headers);
-        $nameIndex = array_search('Description', $headers) ?: array_search('name', $headers);
-
-        if ($categoryIndex !== false) {
-            $category = $rowData[$categoryIndex] ?? '';
-            if (!Categor::where('name', $category)->exists()) {
-                $errors[] = "Category '{$category}' not found";
-            }
-        }
-
-        if ($nameIndex !== false) {
-            $name = $rowData[$nameIndex] ?? '';
-            if (Productname::where('name_az', $name)->exists()) {
-                $errors[] = "Product name '{$name}' already exists";
-            }
-        }
-
-        return $errors;
-    }
 
     private function validateSupplierPricesRow($rowData, $headers)
     {
@@ -887,252 +861,7 @@ class FileoperationController extends BaseController
         }
     }
 
-
-    public function validateProductNames(Request $request)
-    {
-        try {
-            $validator = Validator::make($request->all(), [
-                'file' => 'required|file|mimes:xlsx,xls|max:10240',
-                'operation_type' => 'string'
-            ]);
-
-            if ($validator->fails()) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Validation failed',
-                    'errors' => $validator->errors()
-                ], 422);
-            }
-
-            $file = $request->file('file');
-            $data = Excel::toCollection(new class implements ToCollection {
-                public function collection(Collection $rows)
-                {
-                    return $rows;
-                }
-            }, $file)->first();
-
-            if ($data->isEmpty()) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'File is empty'
-                ], 422);
-            }
-
-            // Extract headers from first row and create column mapping
-            $headers = $data->first()->toArray();
-            $columnMap = [];
-            foreach ($headers as $index => $header) {
-                // Store both exact and normalized versions for flexible matching
-                $exactHeader = trim($header);
-                $normalizedHeader = strtolower(trim($header));
-                $columnMap[$exactHeader] = $index;
-                $columnMap[$normalizedHeader] = $index;
-            }
-
-            Log::info('Product Names Excel column mapping', ['headers' => $headers, 'column_map' => $columnMap]);
-            
-            $dataRows = $data->skip(1);
-
-            // Helper function to get column value by name
-            $getColumnValue = function($rowData, $columnName, $alternativeNames = []) use ($columnMap) {
-                // First try exact match (case-sensitive)
-                if (isset($columnMap[$columnName])) {
-                    return $rowData[$columnMap[$columnName]] ?? '';
-                }
-                
-                // Then try normalized (lowercase) match
-                $normalizedName = strtolower(trim($columnName));
-                if (isset($columnMap[$normalizedName])) {
-                    return $rowData[$columnMap[$normalizedName]] ?? '';
-                }
-                
-                // Try alternative names
-                foreach ($alternativeNames as $altName) {
-                    if (isset($columnMap[$altName])) {
-                        return $rowData[$columnMap[$altName]] ?? '';
-                    }
-                    $normalizedAlt = strtolower(trim($altName));
-                    if (isset($columnMap[$normalizedAlt])) {
-                        return $rowData[$columnMap[$normalizedAlt]] ?? '';
-                    }
-                }
-                
-                return '';
-            };
-
-            // Validate product names data
-            $validRows = [];
-            $invalidRows = [];
-            $duplicates = [];
-
-            foreach ($dataRows as $index => $row) {
-                $rowData = $row->toArray();
-                
-                // Skip empty rows
-                if (empty(array_filter($rowData))) {
-                    continue;
-                }
-                
-                // Skip rows that contain header values
-                if (in_array('Categories', $rowData) || in_array('HS Code', $rowData) || in_array('Name AZ', $rowData)) {
-                    continue;
-                }
-
-                // Map columns by name instead of position
-                $hsCode = $getColumnValue($rowData, 'HS Code', ['hs code', 'hs_code']);
-                $nameAz = $getColumnValue($rowData, 'Name AZ', ['name az', 'name_az']);
-                $descriptionEn = $getColumnValue($rowData, 'Description EN', ['description en', 'description_en']);
-                $nameRu = $getColumnValue($rowData, 'Name RU', ['name ru', 'name_ru']);
-                $nameCn = $getColumnValue($rowData, 'Name CN', ['name cn', 'name_cn']);
-                $category = $getColumnValue($rowData, 'Categories', ['categories', 'category']);
-
-                $isValid = true;
-                $errors = [];
-
-                // Validate required fields are not empty
-                if (empty(trim($nameAz))) {
-                    $isValid = false;
-                    $errors[] = 'Name (AZ) cannot be empty';
-                }
-
-                if (empty(trim($descriptionEn))) {
-                    $isValid = false;
-                    $errors[] = 'Description (EN) cannot be empty';
-                }
-
-                if (empty(trim($nameRu))) {
-                    $isValid = false;
-                    $errors[] = 'Name (RU) cannot be empty';
-                }
-
-                if (empty(trim($nameCn))) {
-                    $isValid = false;
-                    $errors[] = 'Name (CN) cannot be empty';
-                }
-
-                // Validate category is not empty
-                if (empty(trim($category))) {
-                    $isValid = false;
-                    $errors[] = 'Category cannot be empty';
-                }
-
-                if ($isValid) {
-                    // Check for duplicates in existing product names (using description_en or name_az)
-                    $existsByDescription = Productname::where('description_en', $descriptionEn)->exists();
-                    $existsByNameAz = Productname::where('name_az', $nameAz)->exists();
-                
-                    if ($existsByDescription || $existsByNameAz) {
-                        $duplicates[] = [
-                            'row' => $index + 2,
-                            'data' => $rowData,
-                            'errors' => ['Product name already exists']
-                        ];
-                        continue;
-                    }
-
-                    // Check if category exists in any language column
-                    $categoryExists = Categor::where('category_en', trim($category))
-                                            ->orWhere('category_az', trim($category))
-                                            ->orWhere('category_ru', trim($category))
-                                            ->orWhere('category_cn', trim($category))
-                                            ->exists();
-                    
-                    Log::info('Category validation', [
-                        'category' => $category,
-                        'trimmed_category' => trim($category),
-                        'exists' => $categoryExists,
-                        'row' => $index + 2
-                    ]);
-                    
-                    if (!$categoryExists) {
-                        $invalidRows[] = [
-                            'row' => $index + 2,
-                            'data' => $rowData,
-                            'errors' => ['Category does not exist in system']
-                        ];
-                        continue;
-                    }
-                }
-
-                if ($isValid) {
-                    $validRows[] = [
-                        'row' => $index + 2,
-                        'data' => $rowData
-                    ];
-                } else {
-                    $invalidRows[] = [
-                        'row' => $index + 2,
-                        'data' => $rowData,
-                        'errors' => $errors
-                    ];
-                }
-            }
-
-            
-            // After processing all rows, check for internal duplicates within the Excel file
-            $descriptionCounts = [];
-            
-            // First pass: count occurrences of each description
-            foreach ($validRows as $row) {
-                $description = trim($row['description'] ?? '');
-                if (!empty($description)) {
-                    $descriptionCounts[$description] = ($descriptionCounts[$description] ?? 0) + 1;
-                }
-            }
-            
-            // Second pass: move duplicate rows from valid to duplicates array
-            $filteredValidRows = [];
-            foreach ($validRows as $row) {
-                $description = trim($row['description'] ?? '');
-                if (!empty($description) && $descriptionCounts[$description] > 1) {
-                    // This is a duplicate within the file
-                    $duplicates[] = [
-                        'row' => $row['row'],
-                        'data' => $row['data'],
-                        'errors' => ["Product with description '{$description}' appears multiple times in the Excel file. Each product description must be unique within the import file."]
-                    ];
-                } else {
-                    // This is a unique product within the file - remove description field before adding
-                    $cleanRow = $row;
-                    unset($cleanRow['description']);
-                    $filteredValidRows[] = $cleanRow;
-                }
-            }
-            
-            // Update valid rows to exclude internal duplicates
-            $validRows = $filteredValidRows;
-
-
-            return response()->json([
-                'success' => true,
-                'data' => [
-                    'headers' => $headers,
-                    'total_rows' => $dataRows->count(),
-                    'file_name' => $file->getClientOriginalName()
-                ],
-                'validation' => [
-                    'valid_rows' => $validRows,
-                    'invalid_rows' => $invalidRows,
-                    'duplicates' => $duplicates,
-                    'summary' => [
-                        'valid_count' => count($validRows),
-                        'invalid_count' => count($invalidRows),
-                        'duplicate_count' => count($duplicates)
-                    ]
-                ]
-            ]);
-
-        } catch (\Exception $e) {
-            Log::error('Product names validation error: ' . $e->getMessage());
-            return response()->json([
-                'success' => false,
-                'message' => 'Error validating file: ' . $e->getMessage()
-            ], 500);
-        }
-    }
-
-    public function processProductNamesImport(Request $request)
+    public function importCarModels(Request $request)
     {
         try {
             $validator = Validator::make($request->all(), [
@@ -1151,141 +880,32 @@ class FileoperationController extends BaseController
             $validRows = $request->input('valid_rows');
             $imported = 0;
             $errors = [];
-            $skipped = 0;
-
-            Log::info('Processing product names import', ['valid_rows_count' => count($validRows)]);
 
             DB::beginTransaction();
 
-            foreach ($validRows as $rowData) {
+            foreach ($validRows as $index => $rowData) {
                 try {
                     $data = $rowData['data'];
-                    
-                    // Use correct column mapping based on Excel structure
-                    $supplier = trim($data[0] ?? ''); // Supplier
-                    $supplierCode = trim($data[1] ?? ''); // Supplier Code
-                    $brand = trim($data[2] ?? ''); // Brand
-                    $brandCode = trim($data[3] ?? ''); // Brand code
-                    $oeCode = trim($data[4] ?? ''); // OE code
-                    $description = trim($data[5] ?? ''); // Description
-                    $qty = trim($data[6] ?? ''); // Qty
-                    $unitType = trim($data[7] ?? ''); // Unit type
-                    $minQty = trim($data[8] ?? ''); // Min Qty
-                    $purchasePrice = trim($data[9] ?? ''); // Purchase Price
-                    $extraCost = trim($data[10] ?? ''); // Extra cost
-                    $costBasis = trim($data[11] ?? ''); // Cost Basis
-                    $sellingPrice = trim($data[12] ?? ''); // Selling Price
-                    $supplierPosition = '0'; // Default to 0 (just add)
+                    $carModel = trim($data[0] ?? '');
 
-                    Log::info('Processing product name row', ['name_az' => $data[1], 'description_en' => $data[2], 'category' => $data[5]]);
-
-                    if (!empty($data[1]) && !empty($data[2]) && !empty($data[3]) && !empty($data[4]) && !empty($data[5])) {
-                        // Check if already exists (double check)
-                        $existsByDescription = Productname::where('description_en', $data[2])->exists();
-                        $existsByNameAz = Productname::where('name_az', $data[1])->exists();
-                        
-                        if ($existsByDescription || $existsByNameAz) {
-                            $skipped++;
-                            Log::info('Skipping existing product name', ['name_az' => $nameAz, 'description_en' => $descriptionEn]);
-                            continue;
-                        }
-
-                        // Get category ID from any language column
-                        $categoryModel = Categor::where('category_en', trim($category))
-                                               ->orWhere('category_az', trim($category))
-                                               ->orWhere('category_ru', trim($category))
-                                               ->orWhere('category_cn', trim($category))
-                                               ->first();
-                        
-                        if (!$categoryModel) {
-                            $errors[] = "Category '{$category}' not found for product '{$nameAz}'";
-                            continue;
-                        }
-
-                        // Create new product name with all fields from Excel
-                        Productname::create([
-                            'hs_code' => $hsCode ?: null,
-                            'name_az' => $nameAz,
-                            'description_en' => $descriptionEn,
-                            'name_ru' => $nameRu,
-                            'name_cn' => $nameCn,
-                            'category_id' => $categoryModel->id,
-                            'product_name_code' => strtoupper(substr(md5($nameAz . $descriptionEn), 0, 8)), // Generate unique code
-                            'additional_note' => null,
-                            'product_qty' => null
+                    if (!empty($carModel)) {
+                        Carmodel::create([
+                            'car_model' => $carModel
                         ]);
-                        
                         $imported++;
-                        Log::info('Imported product name', ['name_az' => $nameAz, 'description_en' => $descriptionEn]);
-                    } else {
-                        $errors[] = 'Required fields missing in row';
                     }
                 } catch (\Exception $e) {
-                    $errors[] = 'Error processing row: ' . $e->getMessage();
-                    Log::error('Error processing product name row', ['error' => $e->getMessage(), 'data' => $data]);
+                    $errors[] = 'Error processing row ' . ($index + 1) . ': ' . $e->getMessage();
                 }
             }
-
-            // Create Fileoperation record for history tracking
-            Fileoperation::create([
-                'user_id' => auth()->id(),
-                'product_id' => null, // Not applicable for bulk import
-                'file_path' => 'product_names/' . ($request->input('file_name') ?: 'product_names_import.xlsx'),
-                'operation_type' => 'product_names',
-                'status' => 'success'
-            ]);
 
             DB::commit();
 
-            $message = "Import completed. {$imported} product names imported";
-            if ($skipped > 0) {
-                $message .= ", {$skipped} skipped (already exist)";
-            }
-            if (!empty($errors)) {
-                $message .= ", " . count($errors) . " errors occurred";
-            }
-
-            
-            // After processing all rows, check for internal duplicates within the Excel file
-            $descriptionCounts = [];
-            
-            // First pass: count occurrences of each description
-            foreach ($validRows as $row) {
-                $description = trim($row['description'] ?? '');
-                if (!empty($description)) {
-                    $descriptionCounts[$description] = ($descriptionCounts[$description] ?? 0) + 1;
-                }
-            }
-            
-            // Second pass: move duplicate rows from valid to duplicates array
-            $filteredValidRows = [];
-            foreach ($validRows as $row) {
-                $description = trim($row['description'] ?? '');
-                if (!empty($description) && $descriptionCounts[$description] > 1) {
-                    // This is a duplicate within the file
-                    $duplicates[] = [
-                        'row' => $row['row'],
-                        'data' => $row['data'],
-                        'errors' => ["Product with description '{$description}' appears multiple times in the Excel file. Each product description must be unique within the import file."]
-                    ];
-                } else {
-                    // This is a unique product within the file - remove description field before adding
-                    $cleanRow = $row;
-                    unset($cleanRow['description']);
-                    $filteredValidRows[] = $cleanRow;
-                }
-            }
-            
-            // Update valid rows to exclude internal duplicates
-            $validRows = $filteredValidRows;
-
-
             return response()->json([
                 'success' => true,
-                'message' => $message,
+                'message' => "Import completed. {$imported} car models imported",
                 'data' => [
                     'imported_count' => $imported,
-                    'skipped_count' => $skipped,
                     'error_count' => count($errors),
                     'errors' => $errors
                 ]
@@ -1293,330 +913,10 @@ class FileoperationController extends BaseController
 
         } catch (\Exception $e) {
             DB::rollBack();
-            Log::error('Product names import error: ' . $e->getMessage());
+            Log::error('Car models import error: ' . $e->getMessage());
             return response()->json([
                 'success' => false,
-                'message' => 'Error importing product names: ' . $e->getMessage()
-            ], 500);
-        }
-    }
-
-    public function validateProducts(Request $request)
-    {
-        try {
-            $validator = Validator::make($request->all(), [
-                'file' => 'required|file|mimes:xlsx,xls|max:10240',
-                'operation_type' => 'string'
-            ]);
-
-            if ($validator->fails()) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Validation failed',
-                    'errors' => $validator->errors()
-                ], 422);
-            }
-
-            $file = $request->file('file');
-            $data = Excel::toCollection(new class implements ToCollection {
-                public function collection(Collection $rows)
-                {
-                    return $rows;
-                }
-            }, $file)->first();
-
-            if ($data->isEmpty()) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'File is empty'
-                ], 422);
-            }
-
-            // Extract headers from first row and create column mapping
-            $headers = $data->first()->toArray();
-            $columnMap = [];
-            foreach ($headers as $index => $header) {
-                // Store both exact and normalized versions for flexible matching
-                $exactHeader = trim($header);
-                $normalizedHeader = strtolower(trim($header));
-                $columnMap[$exactHeader] = $index;
-                $columnMap[$normalizedHeader] = $index;
-            }
-
-            Log::info('Excel column mapping', ['headers' => $headers, 'column_map' => $columnMap]);
-            
-            $dataRows = $data->skip(1);
-            
-            // Debug: Log first few data rows to verify column mapping
-            $sampleRows = $dataRows->take(3);
-            foreach ($sampleRows as $index => $row) {
-                $rowData = $row->toArray();
-                Log::info("Sample row $index data", ['row_data' => $rowData]);
-            }
-
-            // Helper function to get column value by name with extensive debugging
-            $getColumnValue = function($rowData, $columnName, $alternativeNames = []) use ($columnMap) {
-                $value = '';
-                $foundKey = null;
-                
-                // First try exact match (case-sensitive)
-                if (isset($columnMap[$columnName])) {
-                    $foundKey = $columnName;
-                    $value = $rowData[$columnMap[$columnName]] ?? '';
-                }
-                
-                // Then try normalized (lowercase) match
-                if (empty($value)) {
-                    $normalizedName = strtolower(trim($columnName));
-                    if (isset($columnMap[$normalizedName])) {
-                        $foundKey = $normalizedName;
-                        $value = $rowData[$columnMap[$normalizedName]] ?? '';
-                    }
-                }
-                
-                // Try alternative names (exact match first, then normalized)
-                if (empty($value)) {
-                    foreach ($alternativeNames as $altName) {
-                        if (isset($columnMap[$altName])) {
-                            $foundKey = $altName;
-                            $value = $rowData[$columnMap[$altName]] ?? '';
-                            break;
-                        }
-                        $normalizedAlt = strtolower(trim($altName));
-                        if (isset($columnMap[$normalizedAlt])) {
-                            $foundKey = $normalizedAlt;
-                            $value = $rowData[$columnMap[$normalizedAlt]] ?? '';
-                            break;
-                        }
-                    }
-                }
-                
-                // Debug logging
-                Log::info("Column mapping debug", [
-                    'looking_for' => $columnName,
-                    'alternatives' => $alternativeNames,
-                    'found_key' => $foundKey,
-                    'column_index' => $foundKey ? $columnMap[$foundKey] : 'NOT_FOUND',
-                    'value' => $value,
-                    'available_columns' => array_keys($columnMap)
-                ]);
-                
-                return $value;
-            };
-
-            // Validate products data
-            $validRows = [];
-            $invalidRows = [];
-            $duplicates = [];
-
-            foreach ($dataRows as $index => $row) {
-                $rowData = $row->toArray();
-                
-                // Skip empty rows
-                if (empty(array_filter($rowData))) {
-                    continue;
-                }
-                
-                $isValid = true;
-                $errors = [];
-                $isDuplicate = false; // Initialize duplicate flag
-
-                // Map columns by name instead of position
-                $supplier = $getColumnValue($rowData, 'Supplier', ['supplier']);
-                $supplierCode = $getColumnValue($rowData, 'Supplier Code', ['supplier code', 'supplier_code']);
-                $brand = $getColumnValue($rowData, 'Brand', ['brand']);
-                $description = $getColumnValue($rowData, 'Description', ['description']);
-                $unitType = $getColumnValue($rowData, 'Unit type', ['Unit Type', 'unit type', 'unit_type']);
-                $brandCode = $getColumnValue($rowData, 'Brand code', ['Brand Code', 'brand code', 'brand_code']);
-                $oeCode = $getColumnValue($rowData, 'OE code', ['OE Code', 'oe code', 'oe_code']);
-                $qty = $getColumnValue($rowData, 'Qty', ['Quantity', 'qty', 'quantity']);
-                $minQty = $getColumnValue($rowData, 'Min. Qty', ['Min Qty', 'Minimum Qty', 'min qty', 'min_qty']);
-                $purchasePrice = $getColumnValue($rowData, 'Purchase Price', ['purchase price', 'purchase_price']);
-                $extraCost = $getColumnValue($rowData, 'Extra cost', ['Extra Cost', 'extra cost', 'extra_cost']);
-                $costBasis = $getColumnValue($rowData, 'Cost Basis', ['cost basis', 'cost_basis']);
-                $sellingPrice = $getColumnValue($rowData, 'Selling Price', ['selling price', 'selling_price']);
-                $supplierPosition = '0'; // Default to 0 (just add)
-                
-                // Debug: Log extracted values for first few rows
-                if ($index < 3) {
-                    Log::info("Row " . ($index + 2) . " extracted values", [
-                        'supplier' => $supplier,
-                        'supplier_code' => $supplierCode,
-                        'brand' => $brand,
-                        'description' => $description,
-                        'unit_type' => $unitType,
-                        'brand_code' => $brandCode,
-                        'oe_code' => $oeCode,
-                        'qty' => $qty,
-                        'min_qty' => $minQty,
-                        'purchase_price' => $purchasePrice,
-                        'extra_cost' => $extraCost,
-                        'cost_basis' => $costBasis,
-                        'selling_price' => $sellingPrice
-                    ]);
-                }
-
-                $isValid = true;
-                $errors = [];
-
-                // Validate required fields are not empty
-                if (empty(trim($supplier))) {
-                    $isValid = false;
-                    $errors[] = 'Supplier field is required and cannot be empty. Please provide a valid supplier name.';
-                }
-
-                if (empty(trim($supplierCode))) {
-                    $isValid = false;
-                    $errors[] = 'Supplier Code field is required and cannot be empty. Please provide a valid supplier code.';
-                }
-
-                if (empty($description)) {
-                    $errors[] = 'Description is required';
-                    $isValid = false;
-                }
-
-                if (empty($unitType)) {
-                    $errors[] = 'Unit Type is required';
-                    $isValid = false;
-                }
-
-                // Only proceed with database checks if basic validation passes
-                if ($isValid) {
-                    // Check if supplier name exists in 'supplier' field
-                    $supplierNameExists = \App\Models\Supplier::where('supplier', trim($supplier))->exists();
-                    
-                    // Check if supplier code exists in 'code' field
-                    $supplierCodeExists = \App\Models\Supplier::where('code', trim($supplierCode))->exists();
-                    
-                    // Both supplier name and supplier code must exist in the system
-                    if (!$supplierNameExists) {
-                        $isValid = false;
-                        $errors[] = "Supplier name '{$supplier}' does not exist in the suppliers table. Please check the supplier name and ensure it exists in the Suppliers database.";
-                    }
-                    
-                    if (!$supplierCodeExists) {
-                        $isValid = false;
-                        $errors[] = "Supplier code '{$supplierCode}' does not exist in the suppliers table. Please check the supplier code and ensure it exists in the Suppliers database.";
-                    }
-                    
-                    // Additional validation: Check if supplier name and code belong to the same supplier record
-                    if ($isValid) {
-                        $supplierMatch = \App\Models\Supplier::where('supplier', trim($supplier))
-                                                            ->where('code', trim($supplierCode))
-                                                            ->exists();
-                        
-                        if (!$supplierMatch) {
-                            $isValid = false;
-                            $errors[] = "Supplier name '{$supplier}' and supplier code '{$supplierCode}' do not belong to the same supplier record. Please verify the supplier name and code combination.";
-                        }
-                    }
-
-                    // Check if brand exists
-                    if ($isValid) {
-                        $brandExists = \App\Models\Brandname::where('brand_name', trim($brand))
-                                                            ->exists();
-                        
-                        if (!$brandExists) {
-                            $isValid = false;
-                            $errors[] = "Brand '{$brand}' does not exist in the system. Please check the brand name and ensure it exists in the Brand Names database.";
-                        }
-                    }
-
-                    // Check if unit type exists
-                    if ($isValid) {
-                        $unitExists = \App\Models\Unit::where('name', trim($unitType))
-                                                       ->exists();
-                        
-                        if (!$unitExists) {
-                            $isValid = false;
-                            $errors[] = "Unit Type '{$unitType}' does not exist in the system. Please check the unit type and ensure it exists in the Unit Types database (e.g., PCS, KG, LTR, etc.).";
-                        }
-                    }
-
-                    // Note: Duplicate checking will be done after processing all rows
-                    // to check for duplicates within the Excel file only
-                }
-
-                // Create ordered data array based on Excel headers order
-                $orderedData = [];
-                foreach ($headers as $header) {
-                    $orderedData[] = $getColumnValue($rowData, $header, []);
-                }
-
-                if ($isValid) {
-                    $validRows[] = [
-                        'row' => $index + 2,
-                        'data' => $orderedData, // All Excel columns in their original order
-                        'description' => $description // Store description for duplicate checking
-                    ];
-                } else {
-                    $invalidRows[] = [
-                        'row' => $index + 2,
-                        'data' => $orderedData, // All Excel columns in their original order
-                        'errors' => $errors
-                    ];
-                }
-            }
-
-            
-            // After processing all rows, check for internal duplicates within the Excel file
-            $descriptionCounts = [];
-            
-            // First pass: count occurrences of each description
-            foreach ($validRows as $row) {
-                $description = trim($row['description'] ?? '');
-                if (!empty($description)) {
-                    $descriptionCounts[$description] = ($descriptionCounts[$description] ?? 0) + 1;
-                }
-            }
-            
-            // Second pass: move duplicate rows from valid to duplicates array
-            $filteredValidRows = [];
-            foreach ($validRows as $row) {
-                $description = trim($row['description'] ?? '');
-                if (!empty($description) && $descriptionCounts[$description] > 1) {
-                    // This is a duplicate within the file
-                    $duplicates[] = [
-                        'row' => $row['row'],
-                        'data' => $row['data'],
-                        'errors' => ["Product with description '{$description}' appears multiple times in the Excel file. Each product description must be unique within the import file."]
-                    ];
-                } else {
-                    // This is a unique product within the file - remove description field before adding
-                    $cleanRow = $row;
-                    unset($cleanRow['description']);
-                    $filteredValidRows[] = $cleanRow;
-                }
-            }
-            
-            // Update valid rows to exclude internal duplicates
-            $validRows = $filteredValidRows;
-
-
-            return response()->json([
-                'success' => true,
-                'data' => [
-                    'headers' => $headers,
-                    'total_rows' => $dataRows->count(),
-                    'file_name' => $file->getClientOriginalName()
-                ],
-                'validation' => [
-                    'valid_rows' => $validRows,
-                    'invalid_rows' => $invalidRows,
-                    'duplicates' => $duplicates,
-                    'summary' => [
-                        'valid_count' => count($validRows),
-                        'invalid_count' => count($invalidRows),
-                        'duplicate_count' => count($duplicates)
-                    ]
-                ]
-            ]);
-
-        } catch (\Exception $e) {
-            Log::error('Products validation error: ' . $e->getMessage());
-            return response()->json([
-                'success' => false,
-                'message' => 'Error validating file: ' . $e->getMessage()
+                'message' => 'Error importing car models: ' . $e->getMessage()
             ], 500);
         }
     }
@@ -1753,19 +1053,22 @@ class FileoperationController extends BaseController
                             $finalBrandCode = strtoupper(substr($brand, 0, 3)) . '_' . strtoupper(substr(md5($description . time()), 0, 6));
                         }
 
-                        // Create product name first
-                        Log::info('Creating product name', ['description' => $description]);
-                        $productName = Productname::create([
-                            'name_az' => $description,
-                            'description_en' => $description,
-                            'name_ru' => $description,
-                            'name_cn' => $description,
-                            'product_name_code' => 'PRD_' . strtoupper(substr(md5($description . time()), 0, 8)),
-                            'category_id' => 1, // Default category
-                            'additional_note' => null,
-                            'product_qty' => $qty ?: null
-                        ]);
-                        Log::info('Product name created', ['product_name_id' => $productName->id]);
+                        // Find existing product name or skip if not found
+                        $productName = Productname::where('description_en', $description)
+                            ->orWhere('name_az', $description)
+                            ->first();
+                        
+                        if (!$productName) {
+                            $errorMsg = 'Product name "' . $description . '" not found. Please import product names first.';
+                            $errors[] = $errorMsg;
+                            Log::error('Product name not found', [
+                                'description' => $description,
+                                'error' => $errorMsg
+                            ]);
+                            continue;
+                        }
+                        
+                        Log::info('Found existing product name', ['product_name_id' => $productName->id, 'description' => $description]);
 
                         // Create product with all Excel data
                         Log::info('Creating product', [
@@ -1846,41 +1149,6 @@ class FileoperationController extends BaseController
             if (!empty($errors)) {
                 $message .= ", " . count($errors) . " errors occurred";
             }
-
-            
-            // After processing all rows, check for internal duplicates within the Excel file
-            $descriptionCounts = [];
-            
-            // First pass: count occurrences of each description
-            foreach ($validRows as $row) {
-                $description = trim($row['description'] ?? '');
-                if (!empty($description)) {
-                    $descriptionCounts[$description] = ($descriptionCounts[$description] ?? 0) + 1;
-                }
-            }
-            
-            // Second pass: move duplicate rows from valid to duplicates array
-            $filteredValidRows = [];
-            foreach ($validRows as $row) {
-                $description = trim($row['description'] ?? '');
-                if (!empty($description) && $descriptionCounts[$description] > 1) {
-                    // This is a duplicate within the file
-                    $duplicates[] = [
-                        'row' => $row['row'],
-                        'data' => $row['data'],
-                        'errors' => ["Product with description '{$description}' appears multiple times in the Excel file. Each product description must be unique within the import file."]
-                    ];
-                } else {
-                    // This is a unique product within the file - remove description field before adding
-                    $cleanRow = $row;
-                    unset($cleanRow['description']);
-                    $filteredValidRows[] = $cleanRow;
-                }
-            }
-            
-            // Update valid rows to exclude internal duplicates
-            $validRows = $filteredValidRows;
-
 
             return response()->json([
                 'success' => true,

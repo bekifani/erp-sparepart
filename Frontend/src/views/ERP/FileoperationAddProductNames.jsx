@@ -271,6 +271,22 @@ function FileoperationAddProductNames({ onSuccess, onError, onRefresh, onDataCha
 
     return (
       <div className="mt-6">
+        {/* Dashboard with counts */}
+        <div className="grid grid-cols-3 gap-4 mb-6">
+          <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+            <div className="text-green-700 font-semibold text-sm mb-1">{t("Valid Rows")}</div>
+            <div className="text-2xl font-bold text-green-600">{valid_rows.length}</div>
+          </div>
+          <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+            <div className="text-yellow-700 font-semibold text-sm mb-1">{t("Invalid Rows")}</div>
+            <div className="text-2xl font-bold text-yellow-600">{invalid_rows.length}</div>
+          </div>
+          <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+            <div className="text-red-700 font-semibold text-sm mb-1">{t("Duplicates")}</div>
+            <div className="text-2xl font-bold text-red-600">{duplicates.length}</div>
+          </div>
+        </div>
+
         {/* Header with search and actions */}
         <div className="flex justify-between items-center mb-4">
           <div className="flex items-center gap-4">
@@ -338,52 +354,58 @@ function FileoperationAddProductNames({ onSuccess, onError, onRefresh, onDataCha
         </div>
 
         {/* Column headers with dropdowns */}
-        <div className="flex items-center gap-0 mb-4 bg-gray-50 border border-gray-200 rounded-t-lg">
-          <div className="relative flex-1 px-4 py-3 border-r border-gray-200">
-            <select className="form-select w-full text-sm border-0 bg-transparent p-0 focus:ring-0">
-              <option value="">{t("HS Code")}</option>
-            </select>
-          </div>
-          
-          <div className="relative flex-1 px-4 py-3 border-r border-gray-200">
-            <select className="form-select w-full text-sm border-0 bg-transparent p-0 focus:ring-0">
-              <option value="">{t("Name AZ")}</option>
-            </select>
-          </div>
-          
-          <div className="relative flex-1 px-4 py-3 border-r border-gray-200">
-            <select className="form-select w-full text-sm border-0 bg-transparent p-0 focus:ring-0">
-              <option value="">{t("Description EN")}</option>
-            </select>
-          </div>
-          
-          <div className="relative flex-1 px-4 py-3 border-r border-gray-200">
-            <select className="form-select w-full text-sm border-0 bg-transparent p-0 focus:ring-0">
-              <option value="">{t("Name RU")}</option>
-            </select>
-          </div>
-          
-          <div className="relative flex-1 px-4 py-3 border-r border-gray-200">
-            <select className="form-select w-full text-sm border-0 bg-transparent p-0 focus:ring-0">
-              <option value="">{t("Name CN")}</option>
-            </select>
-          </div>
-          
-          <div className="relative flex-1 px-4 py-3 border-r border-gray-200">
-            <select className="form-select w-full text-sm border-0 bg-transparent p-0 focus:ring-0">
-              <option value="">{t("Categories")}</option>
-            </select>
-          </div>
-          
-          <div className="flex-none w-32 px-4 py-3 text-center">
-            <span className="text-sm font-medium text-gray-700">{t("Actions")}</span>
-          </div>
+        <div className="bg-gray-50 border border-gray-200 rounded-t-lg">
+          <table className="w-full">
+            <thead>
+              <tr>
+                <th className="w-32 px-4 py-3 border-r border-gray-200 text-left">
+                  <select className="form-select w-full text-sm border-0 bg-transparent p-0 focus:ring-0">
+                    <option value="">{t("HS Code")}</option>
+                  </select>
+                </th>
+                
+                <th className="w-40 px-4 py-3 border-r border-gray-200 text-left">
+                  <select className="form-select w-full text-sm border-0 bg-transparent p-0 focus:ring-0">
+                    <option value="">{t("Name AZ")}</option>
+                  </select>
+                </th>
+                
+                <th className="w-48 px-4 py-3 border-r border-gray-200 text-left">
+                  <select className="form-select w-full text-sm border-0 bg-transparent p-0 focus:ring-0">
+                    <option value="">{t("Description EN")}</option>
+                  </select>
+                </th>
+                
+                <th className="w-40 px-4 py-3 border-r border-gray-200 text-left">
+                  <select className="form-select w-full text-sm border-0 bg-transparent p-0 focus:ring-0">
+                    <option value="">{t("Name RU")}</option>
+                  </select>
+                </th>
+                
+                <th className="w-40 px-4 py-3 border-r border-gray-200 text-left">
+                  <select className="form-select w-full text-sm border-0 bg-transparent p-0 focus:ring-0">
+                    <option value="">{t("Name CN")}</option>
+                  </select>
+                </th>
+                
+                <th className="w-32 px-4 py-3 border-r border-gray-200 text-left">
+                  <select className="form-select w-full text-sm border-0 bg-transparent p-0 focus:ring-0">
+                    <option value="">{t("Categories")}</option>
+                  </select>
+                </th>
+                
+                <th className="w-32 px-4 py-3 text-center">
+                  <span className="text-sm font-medium text-gray-700">{t("Actions")}</span>
+                </th>
+              </tr>
+            </thead>
+          </table>
         </div>
 
         {/* Data table */}
         <div className="border border-gray-200 border-t-0 rounded-b-lg">
           <div className="overflow-x-auto">
-            <table className="w-full">
+            <table className="w-full table-fixed">
               <tbody>
                 {currentRows.map((row, index) => {
                   const isInvalid = invalid_rows.some(invalidRow => invalidRow.row === row.row);
@@ -393,49 +415,61 @@ function FileoperationAddProductNames({ onSuccess, onError, onRefresh, onDataCha
                   return (
                     <tr key={index} className={`border-b border-gray-100 hover:bg-gray-50 ${hasRowErrors ? 'bg-red-50' : ''}`}>
                       {/* HS Code column */}
-                      <td className="px-4 py-3 flex-1 border-r border-gray-100">
-                        <span className={hasRowErrors && row.data[0] ? 'text-red-600 font-medium' : ''}>
-                          {row.data[0] || ''}
-                        </span>
+                      <td className="w-32 px-4 py-3 border-r border-gray-100 align-top">
+                        <div className="break-words">
+                          <span className={hasRowErrors && row.data[0] ? 'text-red-600 font-medium' : 'text-sm'}>
+                            {row.data[0] || ''}
+                          </span>
+                        </div>
                       </td>
                       
                       {/* Name AZ column */}
-                      <td className="px-4 py-3 flex-1 border-r border-gray-100">
-                        <span className={hasRowErrors && row.data[1] ? 'text-red-600 font-medium' : ''}>
-                          {row.data[1] || ''}
-                        </span>
+                      <td className="w-40 px-4 py-3 border-r border-gray-100 align-top">
+                        <div className="break-words">
+                          <span className={hasRowErrors && row.data[1] ? 'text-red-600 font-medium' : 'text-sm'}>
+                            {row.data[1] || ''}
+                          </span>
+                        </div>
                       </td>
                       
                       {/* Description EN column */}
-                      <td className="px-4 py-3 flex-1 border-r border-gray-100">
-                        <span className={hasRowErrors && row.data[2] ? 'text-red-600 font-medium' : ''}>
-                          {row.data[2] || ''}
-                        </span>
+                      <td className="w-48 px-4 py-3 border-r border-gray-100 align-top">
+                        <div className="break-words">
+                          <span className={hasRowErrors && row.data[2] ? 'text-red-600 font-medium' : 'text-sm'}>
+                            {row.data[2] || ''}
+                          </span>
+                        </div>
                       </td>
                       
                       {/* Name RU column */}
-                      <td className="px-4 py-3 flex-1 border-r border-gray-100">
-                        <span className={hasRowErrors && row.data[3] ? 'text-red-600 font-medium' : ''}>
-                          {row.data[3] || ''}
-                        </span>
+                      <td className="w-40 px-4 py-3 border-r border-gray-100 align-top">
+                        <div className="break-words">
+                          <span className={hasRowErrors && row.data[3] ? 'text-red-600 font-medium' : 'text-sm'}>
+                            {row.data[3] || ''}
+                          </span>
+                        </div>
                       </td>
                       
                       {/* Name CN column */}
-                      <td className="px-4 py-3 flex-1 border-r border-gray-100">
-                        <span className={hasRowErrors && row.data[4] ? 'text-red-600 font-medium' : ''}>
-                          {row.data[4] || ''}
-                        </span>
+                      <td className="w-40 px-4 py-3 border-r border-gray-100 align-top">
+                        <div className="break-words">
+                          <span className={hasRowErrors && row.data[4] ? 'text-red-600 font-medium' : 'text-sm'}>
+                            {row.data[4] || ''}
+                          </span>
+                        </div>
                       </td>
                       
                       {/* Categories column */}
-                      <td className="px-4 py-3 flex-1 border-r border-gray-100">
-                        <span className={hasRowErrors && row.data[5] ? 'text-red-600 font-medium' : ''}>
-                          {row.data[5] || ''}
-                        </span>
+                      <td className="w-32 px-4 py-3 border-r border-gray-100 align-top">
+                        <div className="break-words">
+                          <span className={hasRowErrors && row.data[5] ? 'text-red-600 font-medium' : 'text-sm'}>
+                            {row.data[5] || ''}
+                          </span>
+                        </div>
                       </td>
                       
                       {/* Actions column */}
-                      <td className="px-4 py-3 w-32">
+                      <td className="w-32 px-4 py-3 align-top">
                         <div className="flex items-center justify-center gap-2">
                           <button className="p-1 hover:bg-gray-100 rounded" title={t("View")}>
                             <svg className="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
