@@ -1,11 +1,11 @@
-import React, { useState } from 'react';
-import { useTranslation } from 'react-i18next';
-import { useSelector } from 'react-redux';
-import { useDropzone } from 'react-dropzone';
-import axios from 'axios';
-import Button from '@/components/Base/Button';
-import LoadingIcon from '@/components/Base/LoadingIcon';
-import { setGlobalUnsavedData } from '@/hooks/useNavigationBlocker';
+import React, { useState, useRef } from "react";
+import { useTranslation } from "react-i18next";
+import { useSelector } from "react-redux";
+import { useDropzone } from "react-dropzone";
+import axios from "axios";
+import Button from "@/components/Base/Button";
+import LoadingIcon from "@/components/Base/LoadingIcon";
+import { setGlobalUnsavedData } from "@/hooks/useNavigationBlocker";
 
 function FileoperationAddCarModels({ onSuccess, onError, onRefresh, onDataChange }) {
   const { t } = useTranslation();
@@ -57,6 +57,7 @@ function FileoperationAddCarModels({ onSuccess, onError, onRefresh, onDataChange
         setImportData(response.data.data);
         setValidationResult(response.data.validation);
         setShowPreview(true);
+        setUploadedFile(file);
       } else {
         setError(response.data.message || 'Upload failed');
       }
@@ -252,6 +253,22 @@ function FileoperationAddCarModels({ onSuccess, onError, onRefresh, onDataChange
 
     return (
       <div className="mt-6">
+        {/* Dashboard with counts */}
+        <div className="grid grid-cols-3 gap-4 mb-6">
+          <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+            <div className="text-green-700 font-semibold text-sm mb-1">{t("Valid Rows")}</div>
+            <div className="text-2xl font-bold text-green-600">{valid_rows.length}</div>
+          </div>
+          <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+            <div className="text-yellow-700 font-semibold text-sm mb-1">{t("Invalid Rows")}</div>
+            <div className="text-2xl font-bold text-yellow-600">{invalid_rows.length}</div>
+          </div>
+          <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+            <div className="text-red-700 font-semibold text-sm mb-1">{t("Duplicates")}</div>
+            <div className="text-2xl font-bold text-red-600">{duplicates.length}</div>
+          </div>
+        </div>
+
         {/* Header with search and actions */}
         <div className="flex justify-between items-center mb-4">
           <div className="flex items-center gap-4">

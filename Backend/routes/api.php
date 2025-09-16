@@ -466,8 +466,8 @@ Route::get('/import-history', [App\Http\Controllers\FileoperationController::cla
 Route::get('/download-file/{id}', [App\Http\Controllers\FileoperationController::class, 'downloadFile'])->middleware('permission:fileoperation-list');
 Route::post('/fileoperation/validate-cross-cars', [App\Http\Controllers\FileoperationCrossCarController::class, 'validateCrossCars'])->middleware('permission:fileoperation-create');
 Route::post('/fileoperation/import-cross-cars', [App\Http\Controllers\FileoperationCrossCarController::class, 'processCrossCarsImport'])->middleware('permission:fileoperation-create');
-Route::post('/fileoperation/validate-car-models', [App\Http\Controllers\FileoperationController::class, 'validateCarModels'])->middleware('permission:fileoperation-create');
-Route::post('/fileoperation/import-car-models', [App\Http\Controllers\FileoperationController::class, 'processCarModelsImport'])->middleware('permission:fileoperation-create');
+Route::post('/fileoperation/validate-car-models', [App\Http\Controllers\FileoperationCarModelController::class, 'validateCarModels'])->middleware('permission:fileoperation-create');
+Route::post('/fileoperation/import-car-models', [App\Http\Controllers\FileoperationCarModelController::class, 'processCarModelsImport'])->middleware('permission:fileoperation-create');
 Route::post('/fileoperation/validate-product-names', [App\Http\Controllers\FileoperationController::class, 'validateProductNames'])->middleware('permission:fileoperation-create');
 Route::post('/fileoperation/import-product-names', [App\Http\Controllers\FileoperationController::class, 'processProductNamesImport'])->middleware('permission:fileoperation-create');
 Route::post('/fileoperation/validate-products', [App\Http\Controllers\FileoperationController::class, 'validateProducts'])->middleware('permission:fileoperation-create');
