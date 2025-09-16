@@ -13,6 +13,7 @@ import TableComponent from "@/helpers/ui/TableComponent.jsx";
 import FileoperationAddCrossCars from "./FileoperationAddCrossCars.jsx";
 import FileoperationAddCarModels from "./FileoperationAddCarModels.jsx";
 import FileoperationAddProductNames from "./FileoperationAddProductNames.jsx";
+import FileoperationAddProducts from "./FileoperationAddProducts.jsx";
 import { setGlobalUnsavedData } from "@/hooks/useNavigationBlocker";
 
 function index_main() {
@@ -250,8 +251,8 @@ function index_main() {
     products: {
       name: 'Add New Products',
       description: 'Import new product data',
-      requiredColumns: ['Supplier', 'Brand', 'Description', 'Unit type'],
-      validation: 'Supplier vs. Suppliers; Description vs. Product Names; Unit Type vs. Unit Types'
+      requiredColumns: ['Supplier', 'Brand', 'Description', 'Unit Type'],
+      validation: 'Supplier vs. Suppliers; Brand vs. Brand Names; Unit Type vs. Unit Types; Description creates Product Name; Additional optional columns supported for complete product data'
     },
     information: {
       name: 'Add New Information',
@@ -599,56 +600,6 @@ function index_main() {
           </table>
         </div>
 
-            {/* Pagination */}
-            {totalPages > 1 && (
-              <div className="flex justify-center items-center mt-4 gap-2">
-                <button 
-                  className="px-3 py-1 text-sm text-gray-600 hover:bg-gray-100 rounded disabled:opacity-50 disabled:cursor-not-allowed"
-                  onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
-                  disabled={currentPage === 1}
-                >
-                  {t("Previous")}
-                </button>
-                
-                {/* Page numbers */}
-                {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-                  let pageNum;
-                  if (totalPages <= 5) {
-                    pageNum = i + 1;
-                  } else if (currentPage <= 3) {
-                    pageNum = i + 1;
-                  } else if (currentPage >= totalPages - 2) {
-                    pageNum = totalPages - 4 + i;
-                  } else {
-                    pageNum = currentPage - 2 + i;
-                  }
-                  
-                  return (
-                    <button
-                      key={pageNum}
-                      className={`px-3 py-1 text-sm rounded ${
-                        currentPage === pageNum
-                          ? 'bg-primary text-white'
-                          : 'text-gray-600 hover:bg-gray-100'
-                      }`}
-                      onClick={() => setCurrentPage(pageNum)}
-                    >
-                      {pageNum}
-                    </button>
-                  );
-                })}
-                
-                <button 
-                  className="px-3 py-1 text-sm text-gray-600 hover:bg-gray-100 rounded disabled:opacity-50 disabled:cursor-not-allowed"
-                  onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
-                  disabled={currentPage === totalPages}
-                >
-                  {t("Next")}
-                </button>
-              </div>
-            )}
-        )}
-
         {/* Pagination */}
         {totalPages > 1 && (
           <div className="flex justify-center items-center mt-4 gap-2">
@@ -800,6 +751,21 @@ function index_main() {
       ) : currentImportType === 'product_names' ? (
         /* Add Product Names Component */
         <FileoperationAddProductNames
+          onSuccess={(message) => {
+            setToastMessage(message);
+            basicStickyNotification.current.showToast();
+            setHasUnsavedData(false); // Clear unsaved data flag on successful import
+          }}
+          onError={(message) => {
+            setToastMessage(message);
+            basicStickyNotification.current.showToast();
+          }}
+          onRefresh={() => setRefetch(!refetch)}
+          onDataChange={(hasData) => setHasUnsavedData(hasData)}
+        />
+      ) : currentImportType === 'products' ? (
+        /* Add Products Component */
+        <FileoperationAddProducts
           onSuccess={(message) => {
             setToastMessage(message);
             basicStickyNotification.current.showToast();

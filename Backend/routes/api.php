@@ -470,6 +470,8 @@ Route::post('/fileoperation/validate-car-models', [App\Http\Controllers\Fileoper
 Route::post('/fileoperation/import-car-models', [App\Http\Controllers\FileoperationController::class, 'processCarModelsImport'])->middleware('permission:fileoperation-create');
 Route::post('/fileoperation/validate-product-names', [App\Http\Controllers\FileoperationController::class, 'validateProductNames'])->middleware('permission:fileoperation-create');
 Route::post('/fileoperation/import-product-names', [App\Http\Controllers\FileoperationController::class, 'processProductNamesImport'])->middleware('permission:fileoperation-create');
+Route::post('/fileoperation/validate-products', [App\Http\Controllers\FileoperationController::class, 'validateProducts'])->middleware('permission:fileoperation-create');
+Route::post('/fileoperation/import-products', [App\Http\Controllers\FileoperationController::class, 'processProductsImport'])->middleware('permission:fileoperation-create');
 
 
 Route::get('/customerbrandvisibilit', [App\Http\Controllers\CustomerbrandvisibilitController::class, 'index'])->middleware('permission:customerbrandvisibilit-list|customerbrandvisibilit-create|customerbrandvisibilit-edit|customerbrandvisibilit-delete');
