@@ -27,7 +27,7 @@ class FileoperationController extends BaseController
     protected $searchableColumns = ['user_id', 'product_id', 'file_path', 'operation_type', 'status'];
 
     /**
-     * Generate a unique file name based on original name with collision handling
+     * Generate a unique display name based on original name with collision handling
      */
     private function generateUniqueFileName($originalName, $operationType = null)
     {
@@ -40,8 +40,8 @@ class FileoperationController extends BaseController
         $fileName = $baseName . $extension;
         $counter = 1;
         
-        // Check if file name already exists in database
-        while (Fileoperation::where('file_path', $fileName)->exists()) {
+        // Check if file name already exists in database (check file_name column)
+        while (Fileoperation::where('file_name', $fileName)->exists()) {
             $fileName = $baseName . '_' . $counter . $extension;
             $counter++;
         }
@@ -242,10 +242,13 @@ class FileoperationController extends BaseController
             // Validate data based on import type
             $validationResult = $this->validateImportData($rows, $importType, $headers);
 
-            // Store file operation record
+            // Store file operation record with both file path and display name
+            $uniqueDisplayName = $this->generateUniqueFileName($file->getClientOriginalName(), $importType);
+            
             $fileOperation = Fileoperation::create([
                 'user_id' => auth()->id(),
                 'file_path' => $filePath,
+                'file_name' => $uniqueDisplayName,
                 'operation_type' => $importType,
                 'status' => 'uploaded'
             ]);
@@ -640,12 +643,16 @@ class FileoperationController extends BaseController
             // Process the import based on type
             $result = $this->executeImport($importType, $validRows, $removeDuplicates);
 
-            // Create file operation record with unique filename
-            $uniqueFileName = $this->generateUniqueFileName($fileName, $importType);
+            // Create file operation record with both file path and display name
+            $uniqueDisplayName = $this->generateUniqueFileName($fileName, $importType);
+            
+            // Store the file temporarily for tracking
+            $tempFilePath = 'imports/' . $importType . '/' . time() . '_' . $fileName;
             
             Fileoperation::create([
                 'user_id' => auth()->id(),
-                'file_path' => $uniqueFileName,
+                'file_path' => $tempFilePath,
+                'file_name' => $uniqueDisplayName,
                 'operation_type' => $importType,
                 'status' => $result['success'] ? 'success' : 'failed',
                 'records_processed' => $result['imported'] + $result['skipped'],
@@ -772,6 +779,33 @@ class FileoperationController extends BaseController
             return response()->json([
                 'success' => false,
                 'message' => 'Error fetching history: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    public function downloadFile($id)
+    {
+        try {
+            $fileOperation = Fileoperation::findOrFail($id);
+            
+            // Check if file exists
+            if (!Storage::disk('public')->exists($fileOperation->file_path)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'File not found'
+                ], 404);
+            }
+
+            $filePath = Storage::disk('public')->path($fileOperation->file_path);
+            $fileName = $fileOperation->file_name ?: basename($fileOperation->file_path);
+
+            return response()->download($filePath, $fileName);
+
+        } catch (\Exception $e) {
+            Log::error('File download error: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Error downloading file: ' . $e->getMessage()
             ], 500);
         }
     }
@@ -988,13 +1022,17 @@ class FileoperationController extends BaseController
                 }
             }
 
-            // Save file operation record with unique filename
+            // Save file operation record with both file path and display name
             $originalFileName = $request->input('file_name', 'cross_cars_import.xlsx');
-            $uniqueFileName = $this->generateUniqueFileName($originalFileName, 'cross_cars');
+            $uniqueDisplayName = $this->generateUniqueFileName($originalFileName, 'cross_cars');
+            
+            // Store the file temporarily for tracking
+            $tempFilePath = 'imports/cross_cars/' . time() . '_' . $originalFileName;
             
             Fileoperation::create([
                 'user_id' => auth()->id(),
-                'file_path' => $uniqueFileName,
+                'file_path' => $tempFilePath,
+                'file_name' => $uniqueDisplayName,
                 'operation_type' => 'cross_cars',
                 'status' => 'success',
                 'records_processed' => $imported + $skipped,
@@ -1195,13 +1233,17 @@ class FileoperationController extends BaseController
                 }
             }
 
-            // Save file operation record with unique filename
+            // Save file operation record with both file path and display name
             $originalFileName = $request->input('file_name', 'car_models_import.xlsx');
-            $uniqueFileName = $this->generateUniqueFileName($originalFileName, 'car_models');
+            $uniqueDisplayName = $this->generateUniqueFileName($originalFileName, 'car_models');
+            
+            // Store the file temporarily for tracking
+            $tempFilePath = 'imports/car_models/' . time() . '_' . $originalFileName;
             
             Fileoperation::create([
                 'user_id' => auth()->id(),
-                'file_path' => $uniqueFileName,
+                'file_path' => $tempFilePath,
+                'file_name' => $uniqueDisplayName,
                 'operation_type' => 'car_models',
                 'status' => 'success',
                 'records_processed' => $imported + $skipped,

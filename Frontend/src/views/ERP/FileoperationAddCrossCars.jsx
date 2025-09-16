@@ -1,13 +1,13 @@
-import React, { useState, useRef, useCallback } from "react";
+import React, { useState, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { useSelector } from "react-redux";
-import { useDropzone } from 'react-dropzone';
-import axios from 'axios';
+import { useDropzone } from "react-dropzone";
+import axios from "axios";
 import Button from "@/components/Base/Button";
-import Lucide from "@/components/Base/Lucide";
 import LoadingIcon from "@/components/Base/LoadingIcon";
+import { setGlobalUnsavedData } from "@/hooks/useNavigationBlocker";
 
-function FileoperationAddCrossCars({ onSuccess, onError, onRefresh }) {
+function FileoperationAddCrossCars({ onSuccess, onError, onRefresh, onDataChange }) {
   const { t } = useTranslation();
   const app_url = useSelector((state) => state.auth.app_url);
   const token = useSelector((state) => state.auth.token);
@@ -15,8 +15,11 @@ function FileoperationAddCrossCars({ onSuccess, onError, onRefresh }) {
   const [uploadedFile, setUploadedFile] = useState(null);
   const [importData, setImportData] = useState(null);
   const [validationResult, setValidationResult] = useState(null);
-  const [loading, setLoading] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage] = useState(50);
+  const [searchTerm, setSearchTerm] = useState('');
   const [error, setError] = useState('');
 
   // File upload handling
@@ -26,6 +29,13 @@ function FileoperationAddCrossCars({ onSuccess, onError, onRefresh }) {
 
     setLoading(true);
     setError('');
+    
+    // Set global unsaved data flag
+    console.log('Cross Cars: Setting unsaved data to true');
+    setGlobalUnsavedData(true);
+    if (onDataChange) {
+      onDataChange(true);
+    }
 
     try {
       const formData = new FormData();
@@ -144,6 +154,10 @@ function FileoperationAddCrossCars({ onSuccess, onError, onRefresh }) {
         onRefresh();
       }
       
+      // Clear global unsaved data flag
+      setGlobalUnsavedData(false);
+      if (onDataChange) onDataChange(false);
+      
       // Reset form
       setShowPreview(false);
       setImportData(null);
@@ -175,14 +189,66 @@ function FileoperationAddCrossCars({ onSuccess, onError, onRefresh }) {
     document.body.removeChild(link);
   };
 
+  // Handle upload new file when no valid rows
+  const handleUploadNewFile = () => {
+    const confirmed = window.confirm("There are no matching rows in the current file. Do you want to upload another file?");
+    if (confirmed) {
+      // Reset all states to allow new file upload
+      setShowPreview(false);
+      setImportData(null);
+      setValidationResult(null);
+      setUploadedFile(null);
+      setCurrentPage(1);
+      setSearchTerm('');
+      
+      // Clear global unsaved data flag
+      setGlobalUnsavedData(false);
+      if (onDataChange) onDataChange(false);
+    }
+  };
+
   // Render data grid for preview
   const renderDataGrid = () => {
     if (!importData || !validationResult) return null;
+
+    // Handle case when all rows are deleted
+    if (validationResult.valid_rows.length === 0 && validationResult.invalid_rows.length === 0 && validationResult.duplicates.length === 0) {
+      return (
+        <div className="mt-6 text-center py-8">
+          <div className="text-gray-500 mb-4">
+            {t("All rows have been removed. No data to display.")}
+          </div>
+          <Button
+            variant="outline-primary"
+            size="sm"
+            onClick={handleUploadNewFile}
+            disabled={loading}
+          >
+            {t("Upload New File")}
+          </Button>
+        </div>
+      );
+    }
 
     const { valid_rows = [], invalid_rows = [], duplicates = [], summary = {} } = validationResult;
     const allRows = [...valid_rows, ...invalid_rows, ...duplicates];
     const hasErrors = invalid_rows.length > 0 || duplicates.length > 0;
     const hasDuplicates = duplicates.length > 0;
+    const hasNoValidRows = valid_rows.length === 0 && allRows.length > 0;
+
+    // Filter rows based on search term
+    const filteredRows = allRows.filter(row => {
+      if (!searchTerm) return true;
+      return row.data.some(cell => 
+        String(cell).toLowerCase().includes(searchTerm.toLowerCase())
+      );
+    });
+
+    // Calculate pagination
+    const totalPages = Math.ceil(filteredRows.length / itemsPerPage);
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    const endIndex = startIndex + itemsPerPage;
+    const currentRows = filteredRows.slice(startIndex, endIndex);
 
     return (
       <div className="mt-6">
@@ -194,32 +260,61 @@ function FileoperationAddCrossCars({ onSuccess, onError, onRefresh }) {
                 type="text"
                 placeholder={t("Search")}
                 className="form-control w-64 pl-10"
+                value={searchTerm}
+                onChange={(e) => {
+                  setSearchTerm(e.target.value);
+                  setCurrentPage(1); // Reset to first page when searching
+                }}
               />
               <svg className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
               </svg>
             </div>
+            <span className="text-sm text-gray-600">
+              {t("Showing")} {((currentPage - 1) * itemsPerPage) + 1}-{Math.min(currentPage * itemsPerPage, filteredRows.length)} {t("of")} {filteredRows.length} {t("rows")}
+            </span>
           </div>
           
           <div className="flex gap-2">
-            {hasDuplicates && (
+            {hasNoValidRows ? (
               <Button
                 variant="outline-primary"
                 size="sm"
-                onClick={handleRemoveDuplicates}
+                onClick={handleUploadNewFile}
                 disabled={loading}
               >
-                {t("Remove duplicate lines")}
+                {t("Upload New File")}
               </Button>
+            ) : (
+              <>
+                <Button
+                  variant="outline-primary"
+                  size="sm"
+                  onClick={handleUploadNewFile}
+                  disabled={loading}
+                >
+                  {t("Upload New File")}
+                </Button>
+                {hasDuplicates && (
+                  <Button
+                    variant="outline-primary"
+                    size="sm"
+                    onClick={handleRemoveDuplicates}
+                    disabled={loading}
+                  >
+                    {t("Remove duplicate lines")}
+                  </Button>
+                )}
+                <Button
+                  variant="primary"
+                  size="sm"
+                  onClick={() => handleProcessImport(false)}
+                  disabled={loading || valid_rows.length === 0}
+                >
+                  {t("Import xls/xlsx")}
+                </Button>
+              </>
             )}
-            <Button
-              variant="primary"
-              size="sm"
-              onClick={() => handleProcessImport(false)}
-              disabled={loading || valid_rows.length === 0}
-            >
-              {t("Import xls/xlsx")}
-            </Button>
           </div>
         </div>
 
@@ -253,7 +348,7 @@ function FileoperationAddCrossCars({ onSuccess, onError, onRefresh }) {
           <div className="overflow-x-auto">
             <table className="w-full">
               <tbody>
-                {allRows.slice(0, 50).map((row, index) => {
+                {currentRows.map((row, index) => {
                   const isInvalid = invalid_rows.some(invalidRow => invalidRow.row === row.row);
                   const isDuplicate = duplicates.some(dupRow => dupRow.row === row.row);
                   const hasRowErrors = isInvalid || isDuplicate;
@@ -315,17 +410,53 @@ function FileoperationAddCrossCars({ onSuccess, onError, onRefresh }) {
         </div>
 
         {/* Pagination */}
-        <div className="flex justify-center items-center mt-4 gap-2">
-          <button className="px-3 py-1 text-sm text-gray-600 hover:bg-gray-100 rounded">
-            &lt; 1 ....
-          </button>
-          <span className="px-3 py-1 text-sm">435</span>
-          <button className="px-2 py-1 text-sm bg-blue-600 text-white rounded">436</button>
-          <span className="px-3 py-1 text-sm">437</span>
-          <button className="px-3 py-1 text-sm text-gray-600 hover:bg-gray-100 rounded">
-            .... 512 &gt;
-          </button>
-        </div>
+        {totalPages > 1 && (
+          <div className="flex justify-center items-center mt-4 gap-2">
+            <button 
+              className="px-3 py-1 text-sm text-gray-600 hover:bg-gray-100 rounded disabled:opacity-50 disabled:cursor-not-allowed"
+              onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
+              disabled={currentPage === 1}
+            >
+              {t("Previous")}
+            </button>
+            
+            {/* Page numbers */}
+            {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+              let pageNum;
+              if (totalPages <= 5) {
+                pageNum = i + 1;
+              } else if (currentPage <= 3) {
+                pageNum = i + 1;
+              } else if (currentPage >= totalPages - 2) {
+                pageNum = totalPages - 4 + i;
+              } else {
+                pageNum = currentPage - 2 + i;
+              }
+              
+              return (
+                <button
+                  key={pageNum}
+                  className={`px-3 py-1 text-sm rounded ${
+                    currentPage === pageNum
+                      ? 'bg-blue-600 text-white'
+                      : 'text-gray-600 hover:bg-gray-100'
+                  }`}
+                  onClick={() => setCurrentPage(pageNum)}
+                >
+                  {pageNum}
+                </button>
+              );
+            })}
+            
+            <button 
+              className="px-3 py-1 text-sm text-gray-600 hover:bg-gray-100 rounded disabled:opacity-50 disabled:cursor-not-allowed"
+              onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
+              disabled={currentPage === totalPages}
+            >
+              {t("Next")}
+            </button>
+          </div>
+        )}
 
         {/* Error message and action buttons */}
         {hasErrors && (

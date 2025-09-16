@@ -12,6 +12,7 @@ import Can from "@/helpers/PermissionChecker/index.js";
 import TableComponent from "@/helpers/ui/TableComponent.jsx";
 import FileoperationAddCrossCars from "./FileoperationAddCrossCars.jsx";
 import FileoperationAddCarModels from "./FileoperationAddCarModels.jsx";
+import { setGlobalUnsavedData } from "@/hooks/useNavigationBlocker";
 
 function index_main() {
   const { t } = useTranslation();
@@ -32,9 +33,124 @@ function index_main() {
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage] = useState(50);
   const [searchTerm, setSearchTerm] = useState('');
-  
+
+  // Toast notification
   const basicStickyNotification = useRef();
+
+  // File download handler
+  const handleFileDownload = async (fileId, fileName) => {
+    const confirmed = window.confirm(`Do you want to download "${fileName}"?`);
+    if (!confirmed) return;
+
+    try {
+      const response = await axios.get(`${app_url}/api/download-file/${fileId}`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        responseType: 'blob'
+      });
+
+      // Create blob link to download
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', fileName);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+
+      setToastMessage(`File "${fileName}" downloaded successfully`);
+      basicStickyNotification.current.showToast();
+      
+      // Auto-dismiss toast after 7 seconds
+      setTimeout(() => {
+        basicStickyNotification.current.hideToast();
+      }, 7000);
+    } catch (error) {
+      console.error('Download error:', error);
+      setToastMessage(`Error downloading file: ${error.response?.data?.message || error.message}`);
+      basicStickyNotification.current.showToast();
+      
+      // Auto-dismiss error toast after 7 seconds
+      setTimeout(() => {
+        basicStickyNotification.current.hideToast();
+      }, 7000);
+    }
+  };
+
+  // Make handleFileDownload available globally for the formatter
+  window.handleFileDownload = handleFileDownload;
   const [toastMessage, setToastMessage] = useState("");
+
+  // Track if child components have unsaved data
+  const [hasUnsavedData, setHasUnsavedData] = useState(false);
+  
+  // Update global unsaved data state whenever local state changes
+  React.useEffect(() => {
+    setGlobalUnsavedData(hasUnsavedData);
+  }, [hasUnsavedData]);
+
+  // Add beforeunload event listener to prevent leaving page with unsaved data
+  React.useEffect(() => {
+    const handleBeforeUnload = (e) => {
+      console.log('beforeunload triggered, hasUnsavedData:', hasUnsavedData); // Debug log
+      if (hasUnsavedData) {
+        e.preventDefault();
+        e.returnValue = "You have an uploaded file that hasn't been imported. If you leave this page, the upload will be lost.";
+        return e.returnValue;
+      }
+    };
+
+    // Also add popstate event for browser navigation
+    const handlePopState = (e) => {
+      console.log('popstate triggered, hasUnsavedData:', hasUnsavedData); // Debug log
+      if (hasUnsavedData) {
+        const confirmed = window.confirm("You have an uploaded file that hasn't been imported. If you leave this page, the upload will be lost. Do you want to continue?");
+        if (!confirmed) {
+          // Push current state back to prevent navigation
+          window.history.pushState(null, '', window.location.href);
+        }
+      }
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    window.addEventListener('popstate', handlePopState);
+    
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+      window.removeEventListener('popstate', handlePopState);
+    };
+  }, [hasUnsavedData]);
+
+  // Debug: Log hasUnsavedData changes
+  React.useEffect(() => {
+    console.log('hasUnsavedData changed to:', hasUnsavedData);
+  }, [hasUnsavedData]);
+
+  // Handle tab switching with unsaved data confirmation
+  const handleTabSwitch = (newTab, newImportType = null) => {
+    console.log('Tab switch attempted, hasUnsavedData:', hasUnsavedData, 'activeTab:', activeTab, 'newTab:', newTab);
+    
+    // Check if there's unsaved data (file uploaded but not imported)
+    if (hasUnsavedData) {
+      const confirmed = window.confirm("You have an uploaded file that hasn't been imported. If you leave this tab, the upload will be lost. Do you want to continue?");
+      if (!confirmed) {
+        console.log('Tab switch cancelled by user');
+        return;
+      }
+      console.log('Tab switch confirmed by user');
+    }
+    
+    setActiveTab(newTab);
+    if (newImportType) {
+      setCurrentImportType(newImportType);
+    }
+    // Reset unsaved data flag when switching tabs
+    console.log('Clearing unsaved data after tab switch');
+    setHasUnsavedData(false);
+  };
 
   // Table columns for Added Files section
   const historyTableColumns = [
@@ -98,20 +214,23 @@ function index_main() {
     {
       title: t("File name"),
       minWidth: 250,
-      field: "file_path",
+      field: "file_name",
       hozAlign: "left",
       headerHozAlign: "center",
       vertAlign: "middle",
       print: true,
       download: true,
-      formatter: (cell) => {
-        const filePath = cell.getValue();
-        return filePath ? filePath.split('/').pop() : '';
+      formatter: (cell, formatterParams, onRendered) => {
+        const row = cell.getRow().getData();
+        const fileName = row.file_name || (row.file_path ? row.file_path.split('/').pop() : '');
+        
+        return `<div class="cursor-pointer text-blue-600 hover:text-blue-800 hover:underline" 
+                     onclick="handleFileDownload('${row.id}', '${fileName}')">${fileName}</div>`;
       }
     }
   ];
 
-  const searchColumns = ['operation_type', 'file_path', 'status'];
+  const searchColumns = ['operation_type', 'file_name', 'file_path', 'status'];
 
   // Import type configurations
   const importTypes = {
@@ -181,6 +300,9 @@ function index_main() {
     if (!file) return;
 
     setLoading(true);
+    // Set unsaved data flag when file is uploaded
+    console.log('Main Fileoperation: Setting unsaved data to true');
+    setHasUnsavedData(true);
     const formData = new FormData();
     formData.append('file', file);
     formData.append('import_type', currentImportType);
@@ -203,11 +325,15 @@ function index_main() {
       } else {
         setToastMessage(t("Error uploading file: ") + response.data.message);
         basicStickyNotification.current?.showToast();
+        // Clear unsaved data flag on upload failure
+        setHasUnsavedData(false);
       }
     } catch (error) {
       console.error('Upload error:', error);
       setToastMessage(t("Error uploading file"));
       basicStickyNotification.current?.showToast();
+      // Clear unsaved data flag on upload error
+      setHasUnsavedData(false);
     } finally {
       setLoading(false);
     }
@@ -249,6 +375,9 @@ function index_main() {
         setUploadedFile(null);
         setRefetch(!refetch); // Trigger refresh of Added Files section
         loadImportHistory();
+        // Clear unsaved data flag on successful import
+        console.log('Main Fileoperation: Clearing unsaved data after successful import');
+        setHasUnsavedData(false);
       } else {
         setToastMessage(t("Error processing import: ") + response.data.message);
       }
@@ -578,7 +707,7 @@ function index_main() {
       <div className="mb-6">
         <div className="flex flex-wrap gap-2">
           <button
-            onClick={() => setActiveTab("added_files")}
+            onClick={() => handleTabSwitch("added_files")}
             className={`px-4 py-2 rounded-lg font-medium text-sm transition-colors ${
               activeTab === "added_files"
                 ? "bg-primary text-white"
@@ -590,10 +719,7 @@ function index_main() {
           {Object.entries(importTypes).map(([key, config]) => (
             <button
               key={key}
-              onClick={() => {
-                setActiveTab(key);
-                setCurrentImportType(key);
-              }}
+              onClick={() => handleTabSwitch(key, key)}
               className={`px-4 py-2 rounded-lg font-medium text-sm transition-colors ${
                 activeTab === key
                   ? "bg-primary text-white"
@@ -625,12 +751,14 @@ function index_main() {
           onSuccess={(message) => {
             setToastMessage(message);
             basicStickyNotification.current.showToast();
+            setHasUnsavedData(false); // Clear unsaved data flag on successful import
           }}
           onError={(message) => {
             setToastMessage(message);
             basicStickyNotification.current.showToast();
           }}
           onRefresh={() => setRefetch(!refetch)}
+          onDataChange={(hasData) => setHasUnsavedData(hasData)}
         />
       ) : currentImportType === 'car_models' ? (
         /* Add Car Models Component */
@@ -638,12 +766,14 @@ function index_main() {
           onSuccess={(message) => {
             setToastMessage(message);
             basicStickyNotification.current.showToast();
+            setHasUnsavedData(false); // Clear unsaved data flag on successful import
           }}
           onError={(message) => {
             setToastMessage(message);
             basicStickyNotification.current.showToast();
           }}
           onRefresh={() => setRefetch(!refetch)}
+          onDataChange={(hasData) => setHasUnsavedData(hasData)}
         />
       ) : (
         /* Other Import Types - Generic Component */
