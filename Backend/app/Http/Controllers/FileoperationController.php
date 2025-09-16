@@ -230,20 +230,27 @@ class FileoperationController extends BaseController
             
             // Parse Excel file
             $data = Excel::toCollection(new class implements ToCollection {
-                public function collection(Collection $rows) {
-                    return $rows;
-                }
-            }, $file)->first();
+            public function collection(Collection $rows)
+            {
+                return $rows;
+            }
+        }, $file);
 
-            // Remove header row
-            $headers = $data->first()->toArray();
-            $rows = $data->skip(1);
+        $sheet = $data->first();
+        $headers = $sheet->first()->toArray(); // First row as headers
+        $dataRows = $sheet->skip(1)->filter(function($row) {
+            // Skip empty rows and header-like rows
+            $rowArray = $row->toArray();
+            return !empty(array_filter($rowArray)) && 
+                   !in_array('Categories', $rowArray) && 
+                   !in_array('HS Code', $rowArray);
+        }); // Skip header row and filter out empty/header rows
 
-            // Validate data based on import type
-            $validationResult = $this->validateImportData($rows, $importType, $headers);
+        // Validate data based on import type
+        $validationResult = $this->validateImportData($dataRows, $importType, $headers);
 
-            // Store file operation record with both file path and display name
-            $uniqueDisplayName = $this->generateUniqueFileName($file->getClientOriginalName(), $importType);
+        // Store file operation record with both file path and display name
+        $uniqueDisplayName = $this->generateUniqueFileName($file->getClientOriginalName(), $importType);
             
             $fileOperation = Fileoperation::create([
                 'user_id' => auth()->id(),
@@ -1323,6 +1330,11 @@ class FileoperationController extends BaseController
                 if (empty(array_filter($rowData))) {
                     continue;
                 }
+                
+                // Skip rows that contain header values
+                if (in_array('Categories', $rowData) || in_array('HS Code', $rowData) || in_array('Name AZ', $rowData)) {
+                    continue;
+                }
 
                 $hsCode = $rowData[0] ?? '';
                 $nameAz = $rowData[1] ?? '';
@@ -1375,8 +1387,19 @@ class FileoperationController extends BaseController
                         continue;
                     }
 
-                    // Check if category exists (using category_az column)
-                    $categoryExists = Categor::where('category_az', $category)->exists();
+                    // Check if category exists in any language column
+                    $categoryExists = Categor::where('category_en', trim($category))
+                                            ->orWhere('category_az', trim($category))
+                                            ->orWhere('category_ru', trim($category))
+                                            ->orWhere('category_cn', trim($category))
+                                            ->exists();
+                    
+                    Log::info('Category validation', [
+                        'category' => $category,
+                        'trimmed_category' => trim($category),
+                        'exists' => $categoryExists,
+                        'row' => $index + 2
+                    ]);
                     
                     if (!$categoryExists) {
                         $invalidRows[] = [
@@ -1478,8 +1501,12 @@ class FileoperationController extends BaseController
                             continue;
                         }
 
-                        // Get category ID
-                        $categoryModel = Categor::where('category_az', $category)->first();
+                        // Get category ID from any language column
+                        $categoryModel = Categor::where('category_en', trim($category))
+                                               ->orWhere('category_az', trim($category))
+                                               ->orWhere('category_ru', trim($category))
+                                               ->orWhere('category_cn', trim($category))
+                                               ->first();
                         
                         if (!$categoryModel) {
                             $errors[] = "Category '{$category}' not found for product '{$nameAz}'";
@@ -1509,6 +1536,15 @@ class FileoperationController extends BaseController
                     Log::error('Error processing product name row', ['error' => $e->getMessage(), 'data' => $data]);
                 }
             }
+
+            // Create Fileoperation record for history tracking
+            Fileoperation::create([
+                'user_id' => auth()->id(),
+                'product_id' => null, // Not applicable for bulk import
+                'file_path' => 'product_names/' . ($request->input('file_name') ?: 'product_names_import.xlsx'),
+                'operation_type' => 'product_names',
+                'status' => 'success'
+            ]);
 
             DB::commit();
 

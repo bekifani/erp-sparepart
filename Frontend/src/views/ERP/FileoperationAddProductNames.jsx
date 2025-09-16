@@ -103,13 +103,15 @@ function FileoperationAddProductNames({ onSuccess, onError, onRefresh, onDataCha
   const handleRemoveMismatchedRows = () => {
     if (!validationResult) return;
     
-    // Remove invalid rows from validation result
+    // Remove ALL invalid rows and duplicates, keep only valid rows
     const updatedValidation = {
       ...validationResult,
       invalid_rows: [],
+      duplicates: [],
       summary: {
-        ...validationResult.summary,
-        invalid_count: 0
+        valid_count: validationResult.valid_rows.length,
+        invalid_count: 0,
+        duplicate_count: 0
       }
     };
     setValidationResult(updatedValidation);
