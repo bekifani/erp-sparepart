@@ -330,17 +330,11 @@ class FileoperationController extends BaseController
             case 'cross_code':
                 $errors = $this->validateCrossCodeRow($rowData, $headers);
                 break;
-            case 'products':
-                $errors = $this->validateProductsRow($rowData, $headers);
-                break;
             case 'information':
                 $errors = $this->validateInformationRow($rowData, $headers);
                 break;
             case 'specifications':
                 $errors = $this->validateSpecificationsRow($rowData, $headers);
-                break;
-            case 'car_models':
-                $errors = $this->validateCarModelsRow($rowData, $headers);
                 break;
             case 'product_names':
                 $errors = $this->validateProductNamesRow($rowData, $headers);
@@ -383,37 +377,6 @@ class FileoperationController extends BaseController
         return $errors;
     }
 
-    private function validateProductsRow($rowData, $headers)
-    {
-        $errors = [];
-        
-        $supplierIndex = array_search('Supplier', $headers) ?: array_search('supplier', $headers);
-        $descriptionIndex = array_search('Description', $headers) ?: array_search('description', $headers);
-        $unitTypeIndex = array_search('Unit type', $headers) ?: array_search('unit_type', $headers);
-
-        if ($supplierIndex !== false) {
-            $supplier = $rowData[$supplierIndex] ?? '';
-            if (!Supplier::where('company_name', $supplier)->exists()) {
-                $errors[] = "Supplier '{$supplier}' not found";
-            }
-        }
-
-        if ($descriptionIndex !== false) {
-            $description = $rowData[$descriptionIndex] ?? '';
-            if (!Productname::where('name_az', $description)->exists()) {
-                $errors[] = "Product name '{$description}' not found";
-            }
-        }
-
-        if ($unitTypeIndex !== false) {
-            $unitType = $rowData[$unitTypeIndex] ?? '';
-            if (!Unit::where('unit_name', $unitType)->exists()) {
-                $errors[] = "Unit type '{$unitType}' not found";
-            }
-        }
-
-        return $errors;
-    }
 
     private function validateInformationRow($rowData, $headers)
     {
@@ -661,9 +624,6 @@ class FileoperationController extends BaseController
                     case 'cross_code':
                         $result = $this->importCrossCode($rowData);
                         break;
-                    case 'products':
-                        $result = $this->importProduct($rowData);
-                        break;
                     // Add other import types
                     default:
                         $result = false;
@@ -703,11 +663,6 @@ class FileoperationController extends BaseController
         return true;
     }
 
-    private function importProduct($rowData)
-    {
-        // Implementation for importing product data
-        return true;
-    }
 
     public function exportInvalidRows(Request $request)
     {
@@ -932,103 +887,6 @@ class FileoperationController extends BaseController
         }
     }
 
-    public function processCarModelsImport(Request $request)
-    {
-        try {
-            $validator = Validator::make($request->all(), [
-                'valid_rows' => 'required|array',
-                'valid_rows.*.data' => 'required|array'
-            ]);
-
-            if ($validator->fails()) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Validation failed',
-                    'errors' => $validator->errors()
-                ], 422);
-            }
-
-            $validRows = $request->input('valid_rows');
-            $imported = 0;
-            $errors = [];
-            $skipped = 0;
-
-            Log::info('Processing car models import', ['valid_rows_count' => count($validRows)]);
-
-            DB::beginTransaction();
-
-            foreach ($validRows as $rowData) {
-                try {
-                    $data = $rowData['data'];
-                    $carModel = trim($data[0] ?? '');
-
-                    Log::info('Processing car model row', ['car_model' => $carModel]);
-
-                    if (!empty($carModel)) {
-                        // Check if already exists (double check)
-                        $exists = Carmodel::where('car_model', $carModel)->exists();
-
-                        if (!$exists) {
-                            Carmodel::create([
-                                'car_model' => $carModel
-                            ]);
-                            $imported++;
-                            Log::info('Created car model entry', ['car_model' => $carModel]);
-                        } else {
-                            $skipped++;
-                            Log::info('Skipped duplicate car model', ['car_model' => $carModel]);
-                        }
-                    } else {
-                        $errors[] = "Empty car model name";
-                    }
-                } catch (\Exception $e) {
-                    $errors[] = "Error importing car model: {$carModel} - " . $e->getMessage();
-                    Log::error('Car model import error', ['error' => $e->getMessage(), 'car_model' => $carModel]);
-                }
-            }
-
-            // Save file operation record with both file path and display name
-            $originalFileName = $request->input('file_name', 'car_models_import.xlsx');
-            $uniqueDisplayName = $this->generateUniqueFileName($originalFileName, 'car_models');
-            
-            // Store the file temporarily for tracking
-            $tempFilePath = 'imports/car_models/' . time() . '_' . $originalFileName;
-            
-            Fileoperation::create([
-                'user_id' => auth()->id(),
-                'file_path' => $tempFilePath,
-                'file_name' => $uniqueDisplayName,
-                'operation_type' => 'car_models',
-                'status' => 'success',
-                'records_processed' => $imported + $skipped,
-                'records_imported' => $imported,
-                'records_skipped' => $skipped,
-                'error_count' => count($errors)
-            ]);
-
-            DB::commit();
-
-            Log::info('Car models import completed', ['imported' => $imported, 'skipped' => $skipped, 'errors' => count($errors)]);
-
-            return response()->json([
-                'success' => true,
-                'message' => "Successfully imported {$imported} car model entries" . ($skipped > 0 ? " ({$skipped} duplicates skipped)" : ""),
-                'data' => [
-                    'imported_count' => $imported,
-                    'skipped_count' => $skipped,
-                    'errors' => $errors
-                ]
-            ]);
-
-        } catch (\Exception $e) {
-            DB::rollBack();
-            Log::error('Car models import error: ' . $e->getMessage());
-            return response()->json([
-                'success' => false,
-                'message' => 'Error importing car models: ' . $e->getMessage()
-            ], 500);
-        }
-    }
 
     public function validateProductNames(Request $request)
     {

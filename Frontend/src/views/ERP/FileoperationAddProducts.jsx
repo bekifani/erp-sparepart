@@ -286,40 +286,58 @@ function FileoperationAddProducts({ onSuccess, onError, onRefresh, onDataChange 
 
     return (
       <div className="mt-6">
-        {/* Summary Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-          <div className="bg-green-50 p-4 rounded-lg">
-            <div className="text-green-700 font-semibold">{t("Valid Rows")}</div>
+        {/* Dashboard with counts */}
+        <div className="grid grid-cols-3 gap-4 mb-6">
+          <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+            <div className="text-green-700 font-semibold text-sm mb-1">{t("Valid Rows")}</div>
             <div className="text-2xl font-bold text-green-600">{valid_rows.length}</div>
           </div>
-          <div className="bg-yellow-50 p-4 rounded-lg">
-            <div className="text-yellow-700 font-semibold">{t("Invalid Rows")}</div>
+          <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+            <div className="text-yellow-700 font-semibold text-sm mb-1">{t("Invalid Rows")}</div>
             <div className="text-2xl font-bold text-yellow-600">{invalid_rows.length}</div>
           </div>
-          <div className="bg-red-50 p-4 rounded-lg">
-            <div className="text-red-700 font-semibold">{t("Duplicates")}</div>
+          <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+            <div className="text-red-700 font-semibold text-sm mb-1">{t("Duplicates")}</div>
             <div className="text-2xl font-bold text-red-600">{duplicates.length}</div>
           </div>
         </div>
 
-        {/* Search and Upload New File */}
-        <div className="mb-4 flex gap-3">
-          <input
-            type="text"
-            placeholder={t("Search in data...")}
-            className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-          />
-          <Button
-            variant="outline-primary"
-            size="sm"
-            onClick={handleUploadNewFile}
-            disabled={loading}
-            className="whitespace-nowrap"
-          >
-            {t("Upload New File")}
-          </Button>
+        {/* Search and pagination info */}
+        <div className="mb-4 flex justify-between items-center">
+          <div className="flex gap-3 flex-1">
+            <input
+              type="text"
+              placeholder={t("Search in data...")}
+              className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+          </div>
+          
+          <div className="text-sm text-gray-600 ml-4">
+            <span>
+              {t("Showing")} {((currentPage - 1) * itemsPerPage) + 1}-{Math.min(currentPage * itemsPerPage, filteredRows.length)} {t("of")} {filteredRows.length} {t("rows")}
+            </span>
+          </div>
+          
+          <div className="flex gap-2 ml-4">
+            <Button
+              variant="outline-primary"
+              size="sm"
+              onClick={handleUploadNewFile}
+              disabled={loading}
+            >
+              {t("Upload New File")}
+            </Button>
+            <Button
+              variant="primary"
+              size="sm"
+              onClick={() => handleProcessImport(false)}
+              disabled={loading || valid_rows.length === 0}
+            >
+              {t("Import")} {valid_rows.length} {t("Products")}
+            </Button>
+          </div>
         </div>
 
         {/* Data Table */}
@@ -436,19 +454,18 @@ function FileoperationAddProducts({ onSuccess, onError, onRefresh, onDataChange 
           </div>
         )}
 
-        {/* Action Buttons */}
+        {/* Error message and action buttons */}
         {(invalid_rows.length > 0 || duplicates.length > 0) && (
-          <div className="mt-6 flex flex-wrap gap-3">
-            <div className="text-sm text-red-600 mb-2 w-full">
+          <div className="mt-4 flex justify-between items-center">
+            <div className="text-red-600 text-sm">
               * {t("The data in")} {invalid_rows.length + duplicates.length} {t("lines does not match the system data. Please edit or delete these lines.")}
             </div>
-            <div className="flex flex-wrap gap-3">
+            
+            <div className="flex gap-2">
               <Button
-                variant="outline-secondary"
+                variant="primary"
                 size="sm"
                 onClick={handleExportInvalidRows}
-                disabled={loading}
-                className="whitespace-nowrap"
               >
                 {t("Export xls/xlsx")}
               </Button>
@@ -466,21 +483,6 @@ function FileoperationAddProducts({ onSuccess, onError, onRefresh, onDataChange 
                 </svg>
               </Button>
             </div>
-          </div>
-        )}
-
-        {/* Import Button */}
-        {valid_rows.length > 0 && (
-          <div className="mt-6">
-            <Button
-              variant="primary"
-              onClick={() => handleProcessImport()}
-              disabled={loading}
-              className="w-full"
-            >
-              {loading && <LoadingIcon icon="oval" className="w-4 h-4 mr-2" />}
-              {t("Import")} {valid_rows.length} {t("Products")}
-            </Button>
           </div>
         )}
       </div>
