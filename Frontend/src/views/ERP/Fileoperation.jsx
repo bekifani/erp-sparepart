@@ -12,6 +12,7 @@ import Can from "@/helpers/PermissionChecker/index.js";
 import TableComponent from "@/helpers/ui/TableComponent.jsx";
 import FileoperationAddCrossCars from "./FileoperationAddCrossCars.jsx";
 import FileoperationAddCarModels from "./FileoperationAddCarModels.jsx";
+import FileoperationAddProductNames from "./FileoperationAddProductNames.jsx";
 import { setGlobalUnsavedData } from "@/hooks/useNavigationBlocker";
 
 function index_main() {
@@ -598,33 +599,54 @@ function index_main() {
           </table>
         </div>
 
-        {/* Error message and action buttons */}
-        {hasErrors && (
-          <div className="mt-4 flex justify-between items-center">
-            <div className="text-red-600 text-sm">
-              * {t("The data in three lines does not match the system data. Please edit or delete these lines.")}
-            </div>
-            
-            <div className="flex gap-2">
-              <Button
-                variant="primary"
-                size="sm"
-                onClick={handleExportInvalidRows}
-              >
-                {t("Export xls/xlsx")}
-              </Button>
-              <Button
-                variant="primary"
-                size="sm"
-                onClick={() => handleProcessImport(true)}
-                disabled={loading}
-              >
-                {t("Remove mismatched rows")} <br />
-                {t("and complete data import")}
-                <Lucide icon="ArrowRight" className="w-4 h-4 ml-2" />
-              </Button>
-            </div>
-          </div>
+            {/* Pagination */}
+            {totalPages > 1 && (
+              <div className="flex justify-center items-center mt-4 gap-2">
+                <button 
+                  className="px-3 py-1 text-sm text-gray-600 hover:bg-gray-100 rounded disabled:opacity-50 disabled:cursor-not-allowed"
+                  onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
+                  disabled={currentPage === 1}
+                >
+                  {t("Previous")}
+                </button>
+                
+                {/* Page numbers */}
+                {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                  let pageNum;
+                  if (totalPages <= 5) {
+                    pageNum = i + 1;
+                  } else if (currentPage <= 3) {
+                    pageNum = i + 1;
+                  } else if (currentPage >= totalPages - 2) {
+                    pageNum = totalPages - 4 + i;
+                  } else {
+                    pageNum = currentPage - 2 + i;
+                  }
+                  
+                  return (
+                    <button
+                      key={pageNum}
+                      className={`px-3 py-1 text-sm rounded ${
+                        currentPage === pageNum
+                          ? 'bg-primary text-white'
+                          : 'text-gray-600 hover:bg-gray-100'
+                      }`}
+                      onClick={() => setCurrentPage(pageNum)}
+                    >
+                      {pageNum}
+                    </button>
+                  );
+                })}
+                
+                <button 
+                  className="px-3 py-1 text-sm text-gray-600 hover:bg-gray-100 rounded disabled:opacity-50 disabled:cursor-not-allowed"
+                  onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
+                  disabled={currentPage === totalPages}
+                >
+                  {t("Next")}
+                </button>
+              </div>
+            )}
         )}
 
         {/* Pagination */}
@@ -763,6 +785,21 @@ function index_main() {
       ) : currentImportType === 'car_models' ? (
         /* Add Car Models Component */
         <FileoperationAddCarModels
+          onSuccess={(message) => {
+            setToastMessage(message);
+            basicStickyNotification.current.showToast();
+            setHasUnsavedData(false); // Clear unsaved data flag on successful import
+          }}
+          onError={(message) => {
+            setToastMessage(message);
+            basicStickyNotification.current.showToast();
+          }}
+          onRefresh={() => setRefetch(!refetch)}
+          onDataChange={(hasData) => setHasUnsavedData(hasData)}
+        />
+      ) : currentImportType === 'product_names' ? (
+        /* Add Product Names Component */
+        <FileoperationAddProductNames
           onSuccess={(message) => {
             setToastMessage(message);
             basicStickyNotification.current.showToast();

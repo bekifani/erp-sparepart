@@ -1275,4 +1275,269 @@ class FileoperationController extends BaseController
             ], 500);
         }
     }
+
+    public function validateProductNames(Request $request)
+    {
+        try {
+            $validator = Validator::make($request->all(), [
+                'file' => 'required|file|mimes:xlsx,xls|max:10240',
+                'operation_type' => 'string'
+            ]);
+
+            if ($validator->fails()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Validation failed',
+                    'errors' => $validator->errors()
+                ], 422);
+            }
+
+            $file = $request->file('file');
+            $data = Excel::toCollection(new class implements ToCollection {
+                public function collection(Collection $rows)
+                {
+                    return $rows;
+                }
+            }, $file)->first();
+
+            if ($data->isEmpty()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'File is empty'
+                ], 422);
+            }
+
+            // Extract headers from first row
+            $headers = $data->first()->toArray();
+            $dataRows = $data->skip(1);
+
+            // Validate product names data
+            $validRows = [];
+            $invalidRows = [];
+            $duplicates = [];
+
+            foreach ($dataRows as $index => $row) {
+                $rowData = $row->toArray();
+                
+                // Skip empty rows
+                if (empty(array_filter($rowData))) {
+                    continue;
+                }
+
+                $hsCode = $rowData[0] ?? '';
+                $nameAz = $rowData[1] ?? '';
+                $descriptionEn = $rowData[2] ?? '';
+                $nameRu = $rowData[3] ?? '';
+                $nameCn = $rowData[4] ?? '';
+                $category = $rowData[5] ?? '';
+
+                $isValid = true;
+                $errors = [];
+
+                // Validate required fields are not empty
+                if (empty(trim($nameAz))) {
+                    $isValid = false;
+                    $errors[] = 'Name (AZ) cannot be empty';
+                }
+
+                if (empty(trim($descriptionEn))) {
+                    $isValid = false;
+                    $errors[] = 'Description (EN) cannot be empty';
+                }
+
+                if (empty(trim($nameRu))) {
+                    $isValid = false;
+                    $errors[] = 'Name (RU) cannot be empty';
+                }
+
+                if (empty(trim($nameCn))) {
+                    $isValid = false;
+                    $errors[] = 'Name (CN) cannot be empty';
+                }
+
+                // Validate category is not empty
+                if (empty(trim($category))) {
+                    $isValid = false;
+                    $errors[] = 'Category cannot be empty';
+                }
+
+                if ($isValid) {
+                    // Check for duplicates in existing product names (using description_en or name_az)
+                    $existsByDescription = Productname::where('description_en', $descriptionEn)->exists();
+                    $existsByNameAz = Productname::where('name_az', $nameAz)->exists();
+                
+                    if ($existsByDescription || $existsByNameAz) {
+                        $duplicates[] = [
+                            'row' => $index + 2,
+                            'data' => $rowData,
+                            'errors' => ['Product name already exists']
+                        ];
+                        continue;
+                    }
+
+                    // Check if category exists (using category_az column)
+                    $categoryExists = Categor::where('category_az', $category)->exists();
+                    
+                    if (!$categoryExists) {
+                        $invalidRows[] = [
+                            'row' => $index + 2,
+                            'data' => $rowData,
+                            'errors' => ['Category does not exist in system']
+                        ];
+                        continue;
+                    }
+                }
+
+                if ($isValid) {
+                    $validRows[] = [
+                        'row' => $index + 2,
+                        'data' => $rowData
+                    ];
+                } else {
+                    $invalidRows[] = [
+                        'row' => $index + 2,
+                        'data' => $rowData,
+                        'errors' => $errors
+                    ];
+                }
+            }
+
+            return response()->json([
+                'success' => true,
+                'data' => [
+                    'headers' => $headers,
+                    'total_rows' => $dataRows->count(),
+                    'file_name' => $file->getClientOriginalName()
+                ],
+                'validation' => [
+                    'valid_rows' => $validRows,
+                    'invalid_rows' => $invalidRows,
+                    'duplicates' => $duplicates,
+                    'summary' => [
+                        'valid_count' => count($validRows),
+                        'invalid_count' => count($invalidRows),
+                        'duplicate_count' => count($duplicates)
+                    ]
+                ]
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('Product names validation error: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Error validating file: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    public function processProductNamesImport(Request $request)
+    {
+        try {
+            $validator = Validator::make($request->all(), [
+                'valid_rows' => 'required|array',
+                'valid_rows.*.data' => 'required|array'
+            ]);
+
+            if ($validator->fails()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Validation failed',
+                    'errors' => $validator->errors()
+                ], 422);
+            }
+
+            $validRows = $request->input('valid_rows');
+            $imported = 0;
+            $errors = [];
+            $skipped = 0;
+
+            Log::info('Processing product names import', ['valid_rows_count' => count($validRows)]);
+
+            DB::beginTransaction();
+
+            foreach ($validRows as $rowData) {
+                try {
+                    $data = $rowData['data'];
+                    $hsCode = trim($data[0] ?? '');
+                    $nameAz = trim($data[1] ?? '');
+                    $descriptionEn = trim($data[2] ?? '');
+                    $nameRu = trim($data[3] ?? '');
+                    $nameCn = trim($data[4] ?? '');
+                    $category = trim($data[5] ?? '');
+
+                    Log::info('Processing product name row', ['name_az' => $nameAz, 'description_en' => $descriptionEn, 'category' => $category]);
+
+                    if (!empty($nameAz) && !empty($descriptionEn) && !empty($nameRu) && !empty($nameCn) && !empty($category)) {
+                        // Check if already exists (double check)
+                        $existsByDescription = Productname::where('description_en', $descriptionEn)->exists();
+                        $existsByNameAz = Productname::where('name_az', $nameAz)->exists();
+                        
+                        if ($existsByDescription || $existsByNameAz) {
+                            $skipped++;
+                            Log::info('Skipping existing product name', ['name_az' => $nameAz, 'description_en' => $descriptionEn]);
+                            continue;
+                        }
+
+                        // Get category ID
+                        $categoryModel = Categor::where('category_az', $category)->first();
+                        
+                        if (!$categoryModel) {
+                            $errors[] = "Category '{$category}' not found for product '{$nameAz}'";
+                            continue;
+                        }
+
+                        // Create new product name with all fields from Excel
+                        Productname::create([
+                            'hs_code' => $hsCode ?: null,
+                            'name_az' => $nameAz,
+                            'description_en' => $descriptionEn,
+                            'name_ru' => $nameRu,
+                            'name_cn' => $nameCn,
+                            'category_id' => $categoryModel->id,
+                            'product_name_code' => strtoupper(substr(md5($nameAz . $descriptionEn), 0, 8)), // Generate unique code
+                            'additional_note' => null,
+                            'product_qty' => null
+                        ]);
+                        
+                        $imported++;
+                        Log::info('Imported product name', ['name_az' => $nameAz, 'description_en' => $descriptionEn]);
+                    } else {
+                        $errors[] = 'Required fields missing in row';
+                    }
+                } catch (\Exception $e) {
+                    $errors[] = 'Error processing row: ' . $e->getMessage();
+                    Log::error('Error processing product name row', ['error' => $e->getMessage(), 'data' => $data]);
+                }
+            }
+
+            DB::commit();
+
+            $message = "Import completed. {$imported} product names imported";
+            if ($skipped > 0) {
+                $message .= ", {$skipped} skipped (already exist)";
+            }
+            if (!empty($errors)) {
+                $message .= ", " . count($errors) . " errors occurred";
+            }
+
+            return response()->json([
+                'success' => true,
+                'message' => $message,
+                'data' => [
+                    'imported_count' => $imported,
+                    'skipped_count' => $skipped,
+                    'error_count' => count($errors),
+                    'errors' => $errors
+                ]
+            ]);
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error('Product names import error: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Error importing product names: ' . $e->getMessage()
+            ], 500);
+        }
+    }
 }
