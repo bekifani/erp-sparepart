@@ -921,6 +921,41 @@ class FileoperationController extends BaseController
                 }
             }
 
+            
+            // After processing all rows, check for internal duplicates within the Excel file
+            $descriptionCounts = [];
+            
+            // First pass: count occurrences of each description
+            foreach ($validRows as $row) {
+                $description = trim($row['description'] ?? '');
+                if (!empty($description)) {
+                    $descriptionCounts[$description] = ($descriptionCounts[$description] ?? 0) + 1;
+                }
+            }
+            
+            // Second pass: move duplicate rows from valid to duplicates array
+            $filteredValidRows = [];
+            foreach ($validRows as $row) {
+                $description = trim($row['description'] ?? '');
+                if (!empty($description) && $descriptionCounts[$description] > 1) {
+                    // This is a duplicate within the file
+                    $duplicates[] = [
+                        'row' => $row['row'],
+                        'data' => $row['data'],
+                        'errors' => ["Product with description '{$description}' appears multiple times in the Excel file. Each product description must be unique within the import file."]
+                    ];
+                } else {
+                    // This is a unique product within the file - remove description field before adding
+                    $cleanRow = $row;
+                    unset($cleanRow['description']);
+                    $filteredValidRows[] = $cleanRow;
+                }
+            }
+            
+            // Update valid rows to exclude internal duplicates
+            $validRows = $filteredValidRows;
+
+
             return response()->json([
                 'success' => true,
                 'data' => [
@@ -1156,6 +1191,41 @@ class FileoperationController extends BaseController
                     ];
                 }
             }
+
+            
+            // After processing all rows, check for internal duplicates within the Excel file
+            $descriptionCounts = [];
+            
+            // First pass: count occurrences of each description
+            foreach ($validRows as $row) {
+                $description = trim($row['description'] ?? '');
+                if (!empty($description)) {
+                    $descriptionCounts[$description] = ($descriptionCounts[$description] ?? 0) + 1;
+                }
+            }
+            
+            // Second pass: move duplicate rows from valid to duplicates array
+            $filteredValidRows = [];
+            foreach ($validRows as $row) {
+                $description = trim($row['description'] ?? '');
+                if (!empty($description) && $descriptionCounts[$description] > 1) {
+                    // This is a duplicate within the file
+                    $duplicates[] = [
+                        'row' => $row['row'],
+                        'data' => $row['data'],
+                        'errors' => ["Product with description '{$description}' appears multiple times in the Excel file. Each product description must be unique within the import file."]
+                    ];
+                } else {
+                    // This is a unique product within the file - remove description field before adding
+                    $cleanRow = $row;
+                    unset($cleanRow['description']);
+                    $filteredValidRows[] = $cleanRow;
+                }
+            }
+            
+            // Update valid rows to exclude internal duplicates
+            $validRows = $filteredValidRows;
+
 
             return response()->json([
                 'success' => true,
@@ -1464,6 +1534,41 @@ class FileoperationController extends BaseController
                 }
             }
 
+            
+            // After processing all rows, check for internal duplicates within the Excel file
+            $descriptionCounts = [];
+            
+            // First pass: count occurrences of each description
+            foreach ($validRows as $row) {
+                $description = trim($row['description'] ?? '');
+                if (!empty($description)) {
+                    $descriptionCounts[$description] = ($descriptionCounts[$description] ?? 0) + 1;
+                }
+            }
+            
+            // Second pass: move duplicate rows from valid to duplicates array
+            $filteredValidRows = [];
+            foreach ($validRows as $row) {
+                $description = trim($row['description'] ?? '');
+                if (!empty($description) && $descriptionCounts[$description] > 1) {
+                    // This is a duplicate within the file
+                    $duplicates[] = [
+                        'row' => $row['row'],
+                        'data' => $row['data'],
+                        'errors' => ["Product with description '{$description}' appears multiple times in the Excel file. Each product description must be unique within the import file."]
+                    ];
+                } else {
+                    // This is a unique product within the file - remove description field before adding
+                    $cleanRow = $row;
+                    unset($cleanRow['description']);
+                    $filteredValidRows[] = $cleanRow;
+                }
+            }
+            
+            // Update valid rows to exclude internal duplicates
+            $validRows = $filteredValidRows;
+
+
             return response()->json([
                 'success' => true,
                 'data' => [
@@ -1520,18 +1625,21 @@ class FileoperationController extends BaseController
             foreach ($validRows as $rowData) {
                 try {
                     $data = $rowData['data'];
-                    $supplierCode = trim($data[0] ?? '');
-                    $brand = trim($data[1] ?? '');
-                    $brandCode = trim($data[2] ?? ''); // Brand code from Excel
-                    $oeCode = trim($data[3] ?? '');
-                    $description = trim($data[4] ?? '');
-                    $qty = trim($data[5] ?? '');
-                    $unitType = trim($data[6] ?? '');
-                    $minQty = trim($data[7] ?? '');
-                    $purchasePrice = trim($data[8] ?? '');
-                    $extraCost = trim($data[9] ?? '');
-                    $costBasis = trim($data[10] ?? '');
-                    $sellingPrice = trim($data[11] ?? '');
+                    
+                    // Use correct column mapping based on Excel structure
+                    $supplier = trim($data[0] ?? ''); // Supplier
+                    $supplierCode = trim($data[1] ?? ''); // Supplier Code
+                    $brand = trim($data[2] ?? ''); // Brand
+                    $brandCode = trim($data[3] ?? ''); // Brand code
+                    $oeCode = trim($data[4] ?? ''); // OE code
+                    $description = trim($data[5] ?? ''); // Description
+                    $qty = trim($data[6] ?? ''); // Qty
+                    $unitType = trim($data[7] ?? ''); // Unit type
+                    $minQty = trim($data[8] ?? ''); // Min Qty
+                    $purchasePrice = trim($data[9] ?? ''); // Purchase Price
+                    $extraCost = trim($data[10] ?? ''); // Extra cost
+                    $costBasis = trim($data[11] ?? ''); // Cost Basis
+                    $sellingPrice = trim($data[12] ?? ''); // Selling Price
                     $supplierPosition = '0'; // Default to 0 (just add)
 
                     Log::info('Processing product name row', ['name_az' => $data[1], 'description_en' => $data[2], 'category' => $data[5]]);
@@ -1601,6 +1709,41 @@ class FileoperationController extends BaseController
             if (!empty($errors)) {
                 $message .= ", " . count($errors) . " errors occurred";
             }
+
+            
+            // After processing all rows, check for internal duplicates within the Excel file
+            $descriptionCounts = [];
+            
+            // First pass: count occurrences of each description
+            foreach ($validRows as $row) {
+                $description = trim($row['description'] ?? '');
+                if (!empty($description)) {
+                    $descriptionCounts[$description] = ($descriptionCounts[$description] ?? 0) + 1;
+                }
+            }
+            
+            // Second pass: move duplicate rows from valid to duplicates array
+            $filteredValidRows = [];
+            foreach ($validRows as $row) {
+                $description = trim($row['description'] ?? '');
+                if (!empty($description) && $descriptionCounts[$description] > 1) {
+                    // This is a duplicate within the file
+                    $duplicates[] = [
+                        'row' => $row['row'],
+                        'data' => $row['data'],
+                        'errors' => ["Product with description '{$description}' appears multiple times in the Excel file. Each product description must be unique within the import file."]
+                    ];
+                } else {
+                    // This is a unique product within the file - remove description field before adding
+                    $cleanRow = $row;
+                    unset($cleanRow['description']);
+                    $filteredValidRows[] = $cleanRow;
+                }
+            }
+            
+            // Update valid rows to exclude internal duplicates
+            $validRows = $filteredValidRows;
+
 
             return response()->json([
                 'success' => true,
@@ -1739,12 +1882,11 @@ class FileoperationController extends BaseController
                     continue;
                 }
                 
-                // Skip rows that contain header values
-                if (in_array('Supplier', $rowData) || in_array('Brand', $rowData) || in_array('Description', $rowData)) {
-                    continue;
-                }
+                $isValid = true;
+                $errors = [];
+                $isDuplicate = false; // Initialize duplicate flag
 
-                // Map columns by name - Supplier and Supplier Code are separate fields
+                // Map columns by name instead of position
                 $supplier = $getColumnValue($rowData, 'Supplier', ['supplier']);
                 $supplierCode = $getColumnValue($rowData, 'Supplier Code', ['supplier code', 'supplier_code']);
                 $brand = $getColumnValue($rowData, 'Brand', ['brand']);
@@ -1813,112 +1955,51 @@ class FileoperationController extends BaseController
                     
                     // Both supplier name and supplier code must exist in the system
                     if (!$supplierNameExists) {
-                        // Create ordered data array for invalid rows
-                        $orderedData = [];
-                        foreach ($headers as $header) {
-                            $orderedData[] = $getColumnValue($rowData, $header, []);
-                        }
-                        
-                        $invalidRows[] = [
-                            'row' => $index + 2,
-                            'data' => $orderedData,
-                            'errors' => ["Supplier name '{$supplier}' does not exist in the suppliers table. Please check the supplier name and ensure it exists in the Suppliers database."]
-                        ];
-                        continue;
+                        $isValid = false;
+                        $errors[] = "Supplier name '{$supplier}' does not exist in the suppliers table. Please check the supplier name and ensure it exists in the Suppliers database.";
                     }
                     
                     if (!$supplierCodeExists) {
-                        // Create ordered data array for invalid rows
-                        $orderedData = [];
-                        foreach ($headers as $header) {
-                            $orderedData[] = $getColumnValue($rowData, $header, []);
-                        }
-                        
-                        $invalidRows[] = [
-                            'row' => $index + 2,
-                            'data' => $orderedData,
-                            'errors' => ["Supplier code '{$supplierCode}' does not exist in the suppliers table. Please check the supplier code and ensure it exists in the Suppliers database."]
-                        ];
-                        continue;
+                        $isValid = false;
+                        $errors[] = "Supplier code '{$supplierCode}' does not exist in the suppliers table. Please check the supplier code and ensure it exists in the Suppliers database.";
                     }
                     
                     // Additional validation: Check if supplier name and code belong to the same supplier record
-                    $supplierMatch = \App\Models\Supplier::where('supplier', trim($supplier))
-                                                        ->where('code', trim($supplierCode))
-                                                        ->exists();
-                    
-                    if (!$supplierMatch) {
-                        // Create ordered data array for invalid rows
-                        $orderedData = [];
-                        foreach ($headers as $header) {
-                            $orderedData[] = $getColumnValue($rowData, $header, []);
-                        }
+                    if ($isValid) {
+                        $supplierMatch = \App\Models\Supplier::where('supplier', trim($supplier))
+                                                            ->where('code', trim($supplierCode))
+                                                            ->exists();
                         
-                        $invalidRows[] = [
-                            'row' => $index + 2,
-                            'data' => $orderedData,
-                            'errors' => ["Supplier name '{$supplier}' and supplier code '{$supplierCode}' do not belong to the same supplier record. Please verify the supplier name and code combination."]
-                        ];
-                        continue;
+                        if (!$supplierMatch) {
+                            $isValid = false;
+                            $errors[] = "Supplier name '{$supplier}' and supplier code '{$supplierCode}' do not belong to the same supplier record. Please verify the supplier name and code combination.";
+                        }
                     }
 
                     // Check if brand exists
-                    $brandExists = \App\Models\Brandname::where('brand_name', trim($brand))
-                                                        ->exists();
-                    
-                    if (!$brandExists) {
-                        // Create ordered data array for invalid rows
-                        $orderedData = [];
-                        foreach ($headers as $header) {
-                            $orderedData[] = $getColumnValue($rowData, $header, []);
-                        }
+                    if ($isValid) {
+                        $brandExists = \App\Models\Brandname::where('brand_name', trim($brand))
+                                                            ->exists();
                         
-                        $invalidRows[] = [
-                            'row' => $index + 2,
-                            'data' => $orderedData,
-                            'errors' => ["Brand '{$brand}' does not exist in the system. Please check the brand name and ensure it exists in the Brand Names database."]
-                        ];
-                        continue;
+                        if (!$brandExists) {
+                            $isValid = false;
+                            $errors[] = "Brand '{$brand}' does not exist in the system. Please check the brand name and ensure it exists in the Brand Names database.";
+                        }
                     }
 
                     // Check if unit type exists
-                    $unitExists = \App\Models\Unit::where('name', trim($unitType))
-                                                   ->exists();
-                    
-                    if (!$unitExists) {
-                        // Create ordered data array for invalid rows
-                        $orderedData = [];
-                        foreach ($headers as $header) {
-                            $orderedData[] = $getColumnValue($rowData, $header, []);
-                        }
+                    if ($isValid) {
+                        $unitExists = \App\Models\Unit::where('name', trim($unitType))
+                                                       ->exists();
                         
-                        $invalidRows[] = [
-                            'row' => $index + 2,
-                            'data' => $orderedData,
-                            'errors' => ["Unit Type '{$unitType}' does not exist in the system. Please check the unit type and ensure it exists in the Unit Types database (e.g., PCS, KG, LTR, etc.)."]
-                        ];
-                        continue;
+                        if (!$unitExists) {
+                            $isValid = false;
+                            $errors[] = "Unit Type '{$unitType}' does not exist in the system. Please check the unit type and ensure it exists in the Unit Types database (e.g., PCS, KG, LTR, etc.).";
+                        }
                     }
 
-                    // Check if product already exists by description
-                    $productExists = Productname::where('description_en', trim($description))
-                                                ->orWhere('name_az', trim($description))
-                                                ->exists();
-                    
-                    if ($productExists) {
-                        // Create ordered data array for duplicates too
-                        $orderedData = [];
-                        foreach ($headers as $header) {
-                            $orderedData[] = $getColumnValue($rowData, $header, []);
-                        }
-                        
-                        $duplicates[] = [
-                            'row' => $index + 2,
-                            'data' => $orderedData,
-                            'errors' => ["Product with description '{$description}' already exists in the Product Names database. Duplicate products cannot be imported."]
-                        ];
-                        continue;
-                    }
+                    // Note: Duplicate checking will be done after processing all rows
+                    // to check for duplicates within the Excel file only
                 }
 
                 // Create ordered data array based on Excel headers order
@@ -1930,7 +2011,8 @@ class FileoperationController extends BaseController
                 if ($isValid) {
                     $validRows[] = [
                         'row' => $index + 2,
-                        'data' => $orderedData // All Excel columns in their original order
+                        'data' => $orderedData, // All Excel columns in their original order
+                        'description' => $description // Store description for duplicate checking
                     ];
                 } else {
                     $invalidRows[] = [
@@ -1940,6 +2022,41 @@ class FileoperationController extends BaseController
                     ];
                 }
             }
+
+            
+            // After processing all rows, check for internal duplicates within the Excel file
+            $descriptionCounts = [];
+            
+            // First pass: count occurrences of each description
+            foreach ($validRows as $row) {
+                $description = trim($row['description'] ?? '');
+                if (!empty($description)) {
+                    $descriptionCounts[$description] = ($descriptionCounts[$description] ?? 0) + 1;
+                }
+            }
+            
+            // Second pass: move duplicate rows from valid to duplicates array
+            $filteredValidRows = [];
+            foreach ($validRows as $row) {
+                $description = trim($row['description'] ?? '');
+                if (!empty($description) && $descriptionCounts[$description] > 1) {
+                    // This is a duplicate within the file
+                    $duplicates[] = [
+                        'row' => $row['row'],
+                        'data' => $row['data'],
+                        'errors' => ["Product with description '{$description}' appears multiple times in the Excel file. Each product description must be unique within the import file."]
+                    ];
+                } else {
+                    // This is a unique product within the file - remove description field before adding
+                    $cleanRow = $row;
+                    unset($cleanRow['description']);
+                    $filteredValidRows[] = $cleanRow;
+                }
+            }
+            
+            // Update valid rows to exclude internal duplicates
+            $validRows = $filteredValidRows;
+
 
             return response()->json([
                 'success' => true,
@@ -1992,73 +2109,107 @@ class FileoperationController extends BaseController
 
             DB::beginTransaction();
 
-            Log::info('Processing products import', ['valid_rows_count' => count($validRows)]);
+            Log::info('Processing products import', [
+                'valid_rows_count' => count($validRows),
+                'request_data' => $request->all()
+            ]);
 
-            foreach ($validRows as $rowData) {
+            foreach ($validRows as $index => $rowData) {
                 try {
+                    Log::info("Processing row {$index}", ['row_data' => $rowData]);
                     $data = $rowData['data'];
-                    $supplierCode = trim($data[0] ?? '');
-                    $brand = trim($data[1] ?? '');
-                    $brandCode = trim($data[2] ?? ''); // Brand code from Excel
-                    $oeCode = trim($data[3] ?? '');
-                    $description = trim($data[4] ?? '');
-                    $qty = trim($data[5] ?? '');
-                    $unitType = trim($data[6] ?? '');
-                    $minQty = trim($data[7] ?? '');
-                    $purchasePrice = trim($data[8] ?? '');
-                    $extraCost = trim($data[9] ?? '');
-                    $costBasis = trim($data[10] ?? '');
-                    $sellingPrice = trim($data[11] ?? '');
+                    
+                    // Use correct column mapping based on Excel structure
+                    $supplier = trim($data[0] ?? ''); // Supplier
+                    $supplierCode = trim($data[1] ?? ''); // Supplier Code
+                    $brand = trim($data[2] ?? ''); // Brand
+                    $brandCode = trim($data[3] ?? ''); // Brand code
+                    $oeCode = trim($data[4] ?? ''); // OE code
+                    $description = trim($data[5] ?? ''); // Description
+                    $qty = trim($data[6] ?? ''); // Qty
+                    $unitType = trim($data[7] ?? ''); // Unit type
+                    $minQty = trim($data[8] ?? ''); // Min Qty
+                    $purchasePrice = trim($data[9] ?? ''); // Purchase Price
+                    $extraCost = trim($data[10] ?? ''); // Extra cost
+                    $costBasis = trim($data[11] ?? ''); // Cost Basis
+                    $sellingPrice = trim($data[12] ?? ''); // Selling Price
                     $supplierPosition = '0'; // Default to 0 (just add)
 
                     Log::info('Processing product row', [
+                        'supplier' => $supplier,
                         'supplier_code' => $supplierCode,
                         'brand' => $brand,
                         'description' => $description,
                         'unit_type' => $unitType,
                         'brand_code' => $brandCode,
-                        'oe_code' => $oeCode
+                        'oe_code' => $oeCode,
+                        'qty' => $qty,
+                        'purchase_price' => $purchasePrice
                     ]);
 
                     if (!empty($supplierCode) && !empty($brand) && !empty($description) && !empty($unitType)) {
-                        // Check if already exists (double check)
-                        $existsByDescription = Productname::where('description_en', $description)
-                                                          ->orWhere('name_az', $description)
-                                                          ->exists();
-                        
-                        if ($existsByDescription) {
-                            $skipped++;
-                            Log::info('Skipping existing product', ['description' => $description]);
-                            continue;
-                        }
+                        // Note: Duplicate checking was already done in validation phase
+                        // We should import all valid rows that passed validation
 
-                        // Get supplier ID
-                        $supplierModel = \App\Models\Supplier::where('supplier', $supplierCode)
-                                                             ->orWhere('code', $supplierCode)
+                        // Get supplier ID using both supplier name and code
+                        $supplierModel = \App\Models\Supplier::where('supplier', $supplier)
+                                                             ->where('code', $supplierCode)
                                                              ->first();
                         
+                        // Fallback to individual checks if exact match not found
                         if (!$supplierModel) {
-                            $errors[] = "Supplier '{$supplierCode}' not found for product '{$description}'";
+                            $supplierModel = \App\Models\Supplier::where('supplier', $supplier)
+                                                                 ->orWhere('code', $supplierCode)
+                                                                 ->first();
+                        }
+                        
+                        if (!$supplierModel) {
+                            $errorMsg = "Supplier '{$supplier}' (code: {$supplierCode}) not found for product '{$description}'";
+                            $errors[] = $errorMsg;
+                            Log::error('Supplier lookup failed', [
+                                'supplier' => $supplier,
+                                'supplier_code' => $supplierCode,
+                                'description' => $description,
+                                'error' => $errorMsg
+                            ]);
                             continue;
                         }
+                        
+                        Log::info('Supplier found', ['supplier_id' => $supplierModel->id, 'supplier_name' => $supplierModel->supplier]);
 
                         // Get brand ID
                         $brandModel = \App\Models\Brandname::where('brand_name', $brand)
                                                            ->first();
                         
                         if (!$brandModel) {
-                            $errors[] = "Brand '{$brand}' not found for product '{$description}'";
+                            $errorMsg = "Brand '{$brand}' not found for product '{$description}'";
+                            $errors[] = $errorMsg;
+                            Log::error('Brand lookup failed', [
+                                'brand' => $brand,
+                                'description' => $description,
+                                'error' => $errorMsg
+                            ]);
                             continue;
                         }
+                        
+                        Log::info('Brand found', ['brand_id' => $brandModel->id, 'brand_name' => $brandModel->brand_name]);
 
                         // Get unit ID
                         $unitModel = \App\Models\Unit::where('name', $unitType)
                                                      ->first();
                         
                         if (!$unitModel) {
-                            $errors[] = "Unit Type '{$unitType}' not found for product '{$description}'";
+                            $errorMsg = "Unit Type '{$unitType}' not found for product '{$description}'";
+                            $errors[] = $errorMsg;
+                            Log::error('Unit lookup failed', [
+                                'unit_type' => $unitType,
+                                'description' => $description,
+                                'error' => $errorMsg
+                            ]);
                             continue;
                         }
+                        
+                        Log::info('Unit found', ['unit_id' => $unitModel->id, 'unit_name' => $unitModel->name]);
 
                         // Use brand code from Excel or generate if empty
                         $finalBrandCode = $brandCode;
@@ -2068,6 +2219,7 @@ class FileoperationController extends BaseController
                         }
 
                         // Create product name first
+                        Log::info('Creating product name', ['description' => $description]);
                         $productName = Productname::create([
                             'name_az' => $description,
                             'description_en' => $description,
@@ -2078,36 +2230,34 @@ class FileoperationController extends BaseController
                             'additional_note' => null,
                             'product_qty' => $qty ?: null
                         ]);
+                        Log::info('Product name created', ['product_name_id' => $productName->id]);
 
                         // Create product with all Excel data
+                        Log::info('Creating product', [
+                            'supplier_id' => $supplierModel->id,
+                            'productname_id' => $productName->id,
+                            'brand_id' => $brandModel->id,
+                            'brand_code' => $finalBrandCode,
+                            'purchase_price' => $purchasePrice ?: 0,
+                            'qty' => $qty ?: 0
+                        ]);
+                        
                         $product = Product::create([
                             'supplier_id' => $supplierModel->id,
-                            'product_name_id' => $productName->id,
-                            'unit_id' => $unitModel->id,
-                            'product_code' => $finalBrandCode,
-                            'product_price' => $purchasePrice ?: 0,
-                            'product_qty' => $qty ?: 0,
-                            'product_status' => 'active',
-                            'supplier_position' => $supplierPosition,
+                            'productname_id' => $productName->id,
+                            'brand_id' => $brandModel->id,
+                            'brand_code' => $finalBrandCode,
+                            'purchase_price' => $purchasePrice ?: 0,
+                            'qty' => $qty ?: 0,
+                            'status' => 'active',
                             'min_qty' => $minQty ?: null,
                             'selling_price' => $sellingPrice ?: null,
                             'extra_cost' => $extraCost ?: null,
                             'cost_basis' => $costBasis ?: null,
                             'oe_code' => $oeCode ?: null
                         ]);
-
-                        // Create product information
-                        \App\Models\Productinformation::create([
-                            'product_id' => $product->id,
-                            'brandname_id' => $brandModel->id,
-                            'net_weight' => null,
-                            'gross_weight' => null,
-                            'length' => null,
-                            'width' => null,
-                            'height' => null,
-                            'volume' => null,
-                            'additional_note' => null
-                        ]);
+                        
+                        Log::info('Product created successfully', ['product_id' => $product->id]);
                         
                         $imported++;
                         Log::info('Imported product', [
@@ -2117,16 +2267,28 @@ class FileoperationController extends BaseController
                             'supplier_position' => $supplierPosition
                         ]);
                     } else {
-                        $errors[] = 'Required fields missing in row: Supplier, Brand, Description, and Unit Type are all required fields.';
+                        $errorMsg = 'Required fields missing in row: Supplier, Brand, Description, and Unit Type are all required fields.';
+                        $errors[] = $errorMsg;
+                        Log::error('Missing required fields', [
+                            'supplier' => $supplier,
+                            'supplier_code' => $supplierCode,
+                            'brand' => $brand,
+                            'description' => $description,
+                            'unit_type' => $unitType,
+                            'error' => $errorMsg
+                        ]);
                     }
                 } catch (\Exception $e) {
-                    $errors[] = 'Error processing row with description "' . ($description ?? 'N/A') . '": ' . $e->getMessage();
+                    $errorMsg = 'Error processing row with description "' . ($description ?? 'N/A') . '": ' . $e->getMessage();
+                    $errors[] = $errorMsg;
                     Log::error('Error processing product row', [
-                        'error' => $e->getMessage(), 
+                        'error' => $e->getMessage(),
+                        'description' => $description ?? 'N/A',
+                        'row_data' => $rowData,
+                        'stack_trace' => $e->getTraceAsString(),
                         'data' => $data,
                         'supplier' => $supplier ?? 'N/A',
-                        'brand' => $brand ?? 'N/A',
-                        'description' => $description ?? 'N/A'
+                        'brand' => $brand ?? 'N/A'
                     ]);
                 }
             }
@@ -2149,6 +2311,41 @@ class FileoperationController extends BaseController
             if (!empty($errors)) {
                 $message .= ", " . count($errors) . " errors occurred";
             }
+
+            
+            // After processing all rows, check for internal duplicates within the Excel file
+            $descriptionCounts = [];
+            
+            // First pass: count occurrences of each description
+            foreach ($validRows as $row) {
+                $description = trim($row['description'] ?? '');
+                if (!empty($description)) {
+                    $descriptionCounts[$description] = ($descriptionCounts[$description] ?? 0) + 1;
+                }
+            }
+            
+            // Second pass: move duplicate rows from valid to duplicates array
+            $filteredValidRows = [];
+            foreach ($validRows as $row) {
+                $description = trim($row['description'] ?? '');
+                if (!empty($description) && $descriptionCounts[$description] > 1) {
+                    // This is a duplicate within the file
+                    $duplicates[] = [
+                        'row' => $row['row'],
+                        'data' => $row['data'],
+                        'errors' => ["Product with description '{$description}' appears multiple times in the Excel file. Each product description must be unique within the import file."]
+                    ];
+                } else {
+                    // This is a unique product within the file - remove description field before adding
+                    $cleanRow = $row;
+                    unset($cleanRow['description']);
+                    $filteredValidRows[] = $cleanRow;
+                }
+            }
+            
+            // Update valid rows to exclude internal duplicates
+            $validRows = $filteredValidRows;
+
 
             return response()->json([
                 'success' => true,

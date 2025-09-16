@@ -87,17 +87,30 @@ function FileoperationAddProducts({ onSuccess, onError, onRefresh, onDataChange 
   const handleProcessImport = async (removeDuplicates = false) => {
     if (!validationResult) return;
 
+    console.log('=== IMPORT PROCESS STARTED ===');
+    console.log('Valid rows to import:', validationResult.valid_rows);
+    console.log('Valid rows count:', validationResult.valid_rows.length);
+    console.log('File name:', uploadedFile?.name);
+
     setLoading(true);
     try {
-      const response = await axios.post(`${app_url}/api/fileoperation/import-products`, {
+      const importPayload = {
         valid_rows: validationResult.valid_rows,
         file_name: uploadedFile?.name || 'products_import.xlsx'
-      }, {
+      };
+      
+      console.log('Import payload:', importPayload);
+
+      const response = await axios.post(`${app_url}/api/fileoperation/import-products`, importPayload, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
         },
       });
+
+      console.log('=== IMPORT RESPONSE ===');
+      console.log('Response status:', response.status);
+      console.log('Response data:', response.data);
 
       if (onSuccess) {
         onSuccess(response.data.message || `Import completed successfully. ${response.data.data?.imported_count || 0} records imported.`);
@@ -118,9 +131,17 @@ function FileoperationAddProducts({ onSuccess, onError, onRefresh, onDataChange 
       setValidationResult(null);
       setUploadedFile(null);
     } catch (error) {
-      console.error('Import error:', error);
+      console.error('=== IMPORT ERROR ===');
+      console.error('Error object:', error);
+      console.error('Error response:', error.response);
+      console.error('Error response data:', error.response?.data);
+      console.error('Error response status:', error.response?.status);
+      console.error('Error message:', error.message);
+      
       if (onError) {
-        onError(error.response?.data?.message || 'Import failed');
+        const errorMessage = error.response?.data?.message || error.response?.data?.error || error.message || 'Import failed';
+        console.error('Final error message sent to user:', errorMessage);
+        onError(errorMessage);
       }
     } finally {
       setLoading(false);
@@ -281,15 +302,24 @@ function FileoperationAddProducts({ onSuccess, onError, onRefresh, onDataChange 
           </div>
         </div>
 
-        {/* Search */}
-        <div className="mb-4">
+        {/* Search and Upload New File */}
+        <div className="mb-4 flex gap-3">
           <input
             type="text"
             placeholder={t("Search in data...")}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
+          <Button
+            variant="outline-primary"
+            size="sm"
+            onClick={handleUploadNewFile}
+            disabled={loading}
+            className="whitespace-nowrap"
+          >
+            {t("Upload New File")}
+          </Button>
         </div>
 
         {/* Data Table */}
