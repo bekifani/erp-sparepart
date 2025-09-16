@@ -464,8 +464,8 @@ Route::post('/process-import', [App\Http\Controllers\FileoperationController::cl
 Route::post('/export-invalid-rows', [App\Http\Controllers\FileoperationController::class, 'exportInvalidRows'])->middleware('permission:fileoperation-create');
 Route::get('/import-history', [App\Http\Controllers\FileoperationController::class, 'getImportHistory'])->middleware('permission:fileoperation-list');
 Route::get('/download-file/{id}', [App\Http\Controllers\FileoperationController::class, 'downloadFile'])->middleware('permission:fileoperation-list');
-Route::post('/fileoperation/validate-cross-cars', [App\Http\Controllers\FileoperationController::class, 'validateCrossCars'])->middleware('permission:fileoperation-create');
-Route::post('/fileoperation/import-cross-cars', [App\Http\Controllers\FileoperationController::class, 'processCrossCarsImport'])->middleware('permission:fileoperation-create');
+Route::post('/fileoperation/validate-cross-cars', [App\Http\Controllers\FileoperationCrossCarController::class, 'validateCrossCars'])->middleware('permission:fileoperation-create');
+Route::post('/fileoperation/import-cross-cars', [App\Http\Controllers\FileoperationCrossCarController::class, 'processCrossCarsImport'])->middleware('permission:fileoperation-create');
 Route::post('/fileoperation/validate-car-models', [App\Http\Controllers\FileoperationController::class, 'validateCarModels'])->middleware('permission:fileoperation-create');
 Route::post('/fileoperation/import-car-models', [App\Http\Controllers\FileoperationController::class, 'processCarModelsImport'])->middleware('permission:fileoperation-create');
 Route::post('/fileoperation/validate-product-names', [App\Http\Controllers\FileoperationController::class, 'validateProductNames'])->middleware('permission:fileoperation-create');
