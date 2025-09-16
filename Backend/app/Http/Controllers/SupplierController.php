@@ -149,7 +149,7 @@ class SupplierController extends BaseController
             "images" => "nullable|array",
             "images.*" => "nullable|string",
             "additional_note" => "nullable|string",
-            "price_adjustment_type" => "nullable|string|in:increase,decrease",
+            "price_adjustment_type" => "nullable|string|in:increase,decrease",  
             "price_adjustment_percent" => "nullable|numeric|min:0|max:100",
             "is_main_supplier" => "nullable|boolean",
             "selected_products" => "nullable|array",
