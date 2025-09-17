@@ -66,6 +66,7 @@ import Warehouseaccount  from '@/views/ERP/Warehouseaccount'
 import Supplieraccount  from '@/views/ERP/Supplieraccount'
 import Producthistor  from '@/views/ERP/Producthistor'
 import Catalog  from '@/views/ERP/Catalog'
+import { Navigate } from "react-router-dom";
 //add file here 
 
 function Router() {
@@ -341,6 +342,10 @@ function Router() {
     {
       path: "forgot-password",
       element: <ForgotPassword />,
+    },
+    {
+      path: "shared-product/:id",
+      element: <Navigate to={`/catalog?product=${":id"}`} />,
     }
   ];
 

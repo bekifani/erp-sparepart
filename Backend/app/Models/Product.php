@@ -28,13 +28,13 @@ class Product extends Model
             ->useLogName("Product");
     }
 
-    public function ProductInformation()
+    public function productinformation()
     {
         // New relationship: product_information has product_id foreign key pointing to products.id
         return $this->hasOne(ProductInformation::class, 'product_id', 'id');
     }
 
-    public function productName()
+    public function productname()
     {
         return $this->belongsTo(Productname::class, 'product_name_id', 'id');
     }
@@ -47,16 +47,6 @@ class Product extends Model
     {
         return $this->belongsTo(Brandname::class, 'brand_id', 'id');
     }
-
-    public function categor()
-    {
-        return $this->belongsTo(Categor::class, 'category_id', 'id');
-    }
-
-    // public function productinformation()
-    // {
-    //     return $this->hasOne(ProductInformation::class, 'product_id', 'id');
-    // }
 
     public function productspecifications()
     {
