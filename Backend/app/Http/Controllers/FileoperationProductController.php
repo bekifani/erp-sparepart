@@ -23,8 +23,9 @@ class FileoperationProductController extends Controller
     {
         try {
             $validator = Validator::make($request->all(), [
-                'file' => 'required|file|mimes:xlsx,xls|max:10240',
-                'operation_type' => 'string'
+                'file' => 'required|file|mimes:xlsx,xls,csv|max:10240',
+                'operation_type' => 'string',
+                'auto_coding' => 'in:0,1,true,false'
             ]);
 
             if ($validator->fails()) {
@@ -53,6 +54,80 @@ class FileoperationProductController extends Controller
             // Extract headers from first row
             $headers = $data->first()->toArray();
             $dataRows = $data->skip(1);
+            
+            // Normalize headers for case-insensitive matching (handle newlines, trim, lowercase, replace underscores/spaces)
+            $normalizedHeaders = array_map(function($header) {
+                return strtolower(trim(preg_replace('/[\n\r]/', '', str_replace([' ', '_'], ' ', $header))));
+            }, $headers);
+            
+            // Define expected headers with variations
+            $expectedHeaders = [
+                ['variations' => ['supplier'], 'display' => 'Supplier'],
+                ['variations' => ['supplier code', 'suppliercode', 'supplier_code'], 'display' => 'Supplier Code'],
+                ['variations' => ['brand'], 'display' => 'Brand'],
+                ['variations' => ['brand code', 'brandcode', 'brand_code'], 'display' => 'Brand Code'],
+                ['variations' => ['description'], 'display' => 'Description']
+            ];
+            
+            // Check for missing required columns
+            $missingColumns = [];
+            foreach ($expectedHeaders as $expected) {
+                $found = false;
+                foreach ($expected['variations'] as $variation) {
+                    if (in_array($variation, $normalizedHeaders)) {
+                        $found = true;
+                        break;
+                    }
+                }
+                if (!$found) {
+                    $missingColumns[] = $expected['display'];
+                }
+            }
+            
+            if (!empty($missingColumns)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Invalid template format. Missing required columns: ' . implode(', ', $missingColumns) . '. Please download and use the provided template.'
+                ], 422);
+            }
+            
+            // Create column mapping for flexible header matching
+            $columnMapping = [];
+            foreach ($expectedHeaders as $expected) {
+                foreach ($expected['variations'] as $variation) {
+                    $headerIndex = array_search($variation, $normalizedHeaders);
+                    if ($headerIndex !== false) {
+                        $columnMapping[$expected['display']] = $headerIndex;
+                        break;
+                    }
+                }
+            }
+            
+            // Add optional columns mapping
+            $optionalColumns = [
+                ['variations' => ['oe code', 'oecode', 'oe_code'], 'display' => 'OE Code'],
+                ['variations' => ['qty', 'quantity'], 'display' => 'Qty'],
+                ['variations' => ['unit type', 'unittype', 'unit_type'], 'display' => 'Unit Type'],
+                ['variations' => ['min qty', 'minqty', 'min_qty'], 'display' => 'Min Qty'],
+                ['variations' => ['purchase price', 'purchaseprice', 'purchase_price'], 'display' => 'Purchase Price'],
+                ['variations' => ['extra cost', 'extracost', 'extra_cost'], 'display' => 'Extra Cost'],
+                ['variations' => ['cost basis', 'costbasis', 'cost_basis'], 'display' => 'Cost Basis'],
+                ['variations' => ['selling price', 'sellingprice', 'selling_price'], 'display' => 'Selling Price'],
+                ['variations' => ['additional note', 'additionalnote', 'additional_note'], 'display' => 'Additional Note'],
+                ['variations' => ['status'], 'display' => 'Status']
+            ];
+            
+            foreach ($optionalColumns as $optional) {
+                foreach ($optional['variations'] as $variation) {
+                    $headerIndex = array_search($variation, $normalizedHeaders);
+                    if ($headerIndex !== false) {
+                        $columnMapping[$optional['display']] = $headerIndex;
+                        break;
+                    }
+                }
+            }
+            
+            $autoCoding = in_array($request->input('auto_coding', '0'), ['1', 'true', true], true);
 
             Log::info('Products validation started', [
                 'headers' => $headers,
@@ -72,13 +147,22 @@ class FileoperationProductController extends Controller
                     continue;
                 }
 
-                $supplier = trim($rowData[0] ?? '');
-                $supplierCode = trim($rowData[1] ?? '');
-                $brand = trim($rowData[2] ?? '');
-                $brandCode = trim($rowData[3] ?? '');
-                $description = trim($rowData[5] ?? '');
-                $qty = trim($rowData[6] ?? '');
-                $unitType = trim($rowData[7] ?? '');
+                // Use column mapping for flexible data extraction
+                $supplier = trim($rowData[$columnMapping['Supplier']] ?? '');
+                $supplierCode = trim($rowData[$columnMapping['Supplier Code']] ?? '');
+                $brand = trim($rowData[$columnMapping['Brand']] ?? '');
+                $brandCode = trim($rowData[$columnMapping['Brand Code']] ?? '');
+                $description = trim($rowData[$columnMapping['Description']] ?? '');
+                $oeCode = trim($rowData[$columnMapping['OE Code'] ?? ''] ?? '');
+                $qty = trim($rowData[$columnMapping['Qty'] ?? ''] ?? '');
+                $unitType = trim($rowData[$columnMapping['Unit Type'] ?? ''] ?? '');
+                $minQty = trim($rowData[$columnMapping['Min Qty'] ?? ''] ?? '');
+                $purchasePrice = trim($rowData[$columnMapping['Purchase Price'] ?? ''] ?? '');
+                $extraCost = trim($rowData[$columnMapping['Extra Cost'] ?? ''] ?? '');
+                $costBasis = trim($rowData[$columnMapping['Cost Basis'] ?? ''] ?? '');
+                $sellingPrice = trim($rowData[$columnMapping['Selling Price'] ?? ''] ?? '');
+                $additionalNote = trim($rowData[$columnMapping['Additional Note'] ?? ''] ?? '');
+                $status = trim($rowData[$columnMapping['Status'] ?? ''] ?? '');
 
                 Log::info("Processing row {$index}", [
                     'supplier' => $supplier,
@@ -109,7 +193,15 @@ class FileoperationProductController extends Controller
                     $errors[] = 'Brand is required';
                 }
 
-                if (empty($brandCode)) {
+                // Handle auto coding for brand code
+                if ($autoCoding && empty($brandCode) && !empty($brand)) {
+                    // Generate brand code automatically based on brand name
+                    $brandCode = strtoupper(substr(preg_replace('/[^A-Za-z0-9]/', '', $brand), 0, 6));
+                    if (strlen($brandCode) < 3) {
+                        $brandCode = strtoupper($brand . '001');
+                    }
+                    Log::info('Auto-generated brand code', ['brand' => $brand, 'generated_code' => $brandCode]);
+                } elseif (!$autoCoding && empty($brandCode)) {
                     $isValid = false;
                     $errors[] = 'Brand code is required';
                 }
@@ -197,10 +289,17 @@ class FileoperationProductController extends Controller
                 // If we reach here and row is still valid, it's not a duplicate
 
                 if ($isValid) {
+                    // Include auto-generated codes in the row data if auto coding is enabled
+                    $processedRowData = $rowData;
+                    if ($autoCoding && !empty($brandCode)) {
+                        $processedRowData[$columnMapping['Brand Code']] = $brandCode;
+                    }
+                    
                     $validRows[] = [
                         'row' => $index + 2,
-                        'data' => $rowData,
-                        'description' => $description
+                        'data' => $processedRowData,
+                        'description' => $description,
+                        'auto_coded' => $autoCoding
                     ];
                 } else {
                     $invalidRows[] = [
@@ -260,7 +359,8 @@ class FileoperationProductController extends Controller
                 'success' => true,
                 'data' => [
                     'headers' => $headers,
-                    'total_rows' => $dataRows->count()
+                    'total_rows' => $dataRows->count(),
+                    'auto_coding_enabled' => $autoCoding
                 ],
                 'validation' => [
                     'valid_rows' => $validRows,
@@ -273,7 +373,9 @@ class FileoperationProductController extends Controller
                         'valid' => count($validRows),
                         'invalid' => count($invalidRows), 
                         'duplicates' => count($duplicates)
-                    ]
+                    ],
+                    'column_mapping' => $columnMapping,
+                    'auto_coding' => $autoCoding
                 ]
             ]);
 

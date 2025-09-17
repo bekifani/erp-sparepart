@@ -1,11 +1,15 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useSelector } from 'react-redux';
 import { useDropzone } from 'react-dropzone';
 import axios from 'axios';
 import Button from '@/components/Base/Button';
+import { Dialog } from '@headlessui/react';
+import Lucide from "@/components/Base/Lucide";
+import * as XLSX from 'xlsx';
 import LoadingIcon from '@/components/Base/LoadingIcon';
 import { setGlobalUnsavedData } from '@/hooks/useNavigationBlocker';
+import Notification from "@/components/Base/Notification";
 
 function FileoperationAddProducts({ onSuccess, onError, onRefresh, onDataChange }) {
   const { t } = useTranslation();
@@ -15,71 +19,301 @@ function FileoperationAddProducts({ onSuccess, onError, onRefresh, onDataChange 
   const [uploadedFile, setUploadedFile] = useState(null);
   const [importData, setImportData] = useState(null);
   const [validationResult, setValidationResult] = useState(null);
-  const [showPreview, setShowPreview] = useState(false);
-  const [loading, setLoading] = useState(false);
+  const [showModal, setShowModal] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [autoCodingEnabled, setAutoCodingEnabled] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage] = useState(50);
   const [searchTerm, setSearchTerm] = useState('');
   const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [showPreview, setShowPreview] = useState(false);
+  const [toastMessage, setToastMessage] = useState('');
+  const [editingRow, setEditingRow] = useState(null);
+  const [editingData, setEditingData] = useState({});
+  const [viewingRow, setViewingRow] = useState(null);
+  const basicStickyNotification = useRef();
 
   // File upload handling
-  const handleFileUpload = async (acceptedFiles) => {
-    const file = acceptedFiles[0];
-    if (!file) return;
+  const downloadTemplate = () => {
+    // Define template columns based on backend validation requirements
+    const templateData = [
+      // Headers
+      [
+        'Supplier', 'Supplier Code', 'Brand', 'Brand Code', 'OE Code', 'Description',
+        'Qty', 'Unit Type', 'Min Qty', 'Purchase Price', 'Extra Cost', 'Cost Basis',
+        'Selling Price', 'Additional Note', 'Status'
+      ],
+      // Sample data row 1
+      [
+        'Sample Supplier', 'SUP001', 'Toyota', 'TOY001', 'OE12345', 'Brake Pad Front',
+        '10', 'Piece', '5', '25.50', '2.00', '27.50', '35.00', 'High quality brake pad', 'Active'
+      ],
+      // Sample data row 2
+      [
+        'Auto Parts Co', 'APC002', 'Honda', 'HON002', 'OE67890', 'Oil Filter',
+        '20', 'Piece', '10', '15.75', '1.25', '17.00', '22.00', 'Premium oil filter', 'Active'
+      ]
+    ];
 
+    const ws = XLSX.utils.aoa_to_sheet(templateData);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Products Template');
+    
+    // Set column widths for better readability
+    ws['!cols'] = [
+      { width: 15 }, // Supplier
+      { width: 12 }, // Supplier Code
+      { width: 10 }, // Brand
+      { width: 12 }, // Brand Code
+      { width: 10 }, // OE Code
+      { width: 20 }, // Description
+      { width: 8 },  // Qty
+      { width: 10 }, // Unit Type
+      { width: 8 },  // Min Qty
+      { width: 12 }, // Purchase Price
+      { width: 10 }, // Extra Cost
+      { width: 10 }, // Cost Basis
+      { width: 12 }, // Selling Price
+      { width: 15 }, // Additional Note
+      { width: 8 }   // Status
+    ];
+    
+    XLSX.writeFile(wb, 'Products_Import_Template.xlsx');
+  };
+
+  const validateTemplate = (file) => {
+    return new Promise((resolve, reject) => {
+      console.log('=== FRONTEND TEMPLATE VALIDATION START ===');
+      console.log('File name:', file.name);
+      console.log('File size:', file.size);
+      console.log('File type:', file.type);
+      
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        try {
+          const data = new Uint8Array(e.target.result);
+          const workbook = XLSX.read(data, { type: 'array' });
+          const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+          const jsonData = XLSX.utils.sheet_to_json(firstSheet, { header: 1 });
+          
+          console.log('Raw JSON data from Excel:', jsonData);
+          console.log('First row (headers):', jsonData[0]);
+          
+          if (jsonData.length === 0) {
+            console.error('VALIDATION FAILED: File is empty');
+            reject('File is empty');
+            return;
+          }
+          
+          const rawHeaders = jsonData[0];
+          const normalizedHeaders = rawHeaders.map(header => 
+            header.toString().replace(/[\n\r]/g, '').trim().toLowerCase().replace(/[_\s]+/g, ' ')
+          );
+          console.log('Raw headers:', rawHeaders);
+          console.log('Normalized headers:', normalizedHeaders);
+          
+          // Required columns with variations
+          const requiredColumns = [
+            { variations: ['supplier'], display: 'Supplier' },
+            { variations: ['supplier code', 'suppliercode', 'supplier_code'], display: 'Supplier Code' },
+            { variations: ['brand'], display: 'Brand' },
+            { variations: ['brand code', 'brandcode', 'brand_code'], display: 'Brand Code' },
+            { variations: ['description'], display: 'Description' }
+          ];
+          
+          console.log('Required columns:', requiredColumns);
+          
+          const missingColumns = [];
+          
+          for (const required of requiredColumns) {
+            const found = required.variations.some(variation => {
+              const isFound = normalizedHeaders.includes(variation);
+              console.log(`Checking "${variation}" in headers:`, isFound);
+              return isFound;
+            });
+            
+            console.log(`Required column "${required.display}" found:`, found);
+            
+            if (!found) {
+              missingColumns.push(required.display);
+            }
+          }
+          
+          console.log('Missing columns:', missingColumns);
+          
+          if (missingColumns.length > 0) {
+            const errorMsg = `Invalid template format. Missing required columns: ${missingColumns.join(', ')}. Please download and use the provided template.`;
+            console.error('VALIDATION FAILED:', errorMsg);
+            reject(errorMsg);
+            return;
+          }
+          
+          console.log('FRONTEND VALIDATION PASSED');
+          resolve(true);
+        } catch (error) {
+          console.error('VALIDATION ERROR:', error);
+          reject('Error reading file: ' + error.message);
+        }
+      };
+      reader.readAsArrayBuffer(file);
+    });
+  };
+
+  const handleFileChange = async (event) => {
+    const file = event.target.files[0];
+    console.log('=== FILE CHANGE EVENT ===');
+    console.log('Selected file:', file);
+    
+    if (file) {
+      // Validate file type and size
+      const allowedTypes = [
+        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', 
+        'application/vnd.ms-excel', 
+        'text/csv',
+        'application/wps-office.xlsx',
+        'application/wps-office.xls'
+      ];
+      const maxSize = 10 * 1024 * 1024; // 10MB
+      
+      console.log('File validation - Type check:', file.type, 'Allowed:', allowedTypes);
+      console.log('File validation - Size check:', file.size, 'Max:', maxSize);
+      
+      if (!allowedTypes.includes(file.type)) {
+        console.error('FILE TYPE VALIDATION FAILED:', file.type);
+        setError('Please select a valid Excel (.xlsx, .xls) or CSV file.');
+        return;
+      }
+      
+      if (file.size > maxSize) {
+        console.error('FILE SIZE VALIDATION FAILED:', file.size);
+        setError('File size must be less than 10MB.');
+        return;
+      }
+      
+      console.log('File type and size validation passed');
+      
+      try {
+        console.log('Starting template validation...');
+        await validateTemplate(file);
+        
+        console.log('Template validation passed, starting file validation');
+        // Start validation process directly
+        setUploadedFile(file);
+        setGlobalUnsavedData(true);
+        if (onDataChange) {
+          onDataChange(true);
+        }
+        validateFile(file, autoCodingEnabled);
+      } catch (error) {
+        console.error('Template validation failed:', error);
+        setError(error);
+      }
+    } else {
+      console.log('No file selected');
+    }
+  };
+
+
+  const validateFile = async (file, autoCoding = false) => {
+    if (!file) return;
+    
     setLoading(true);
     setError('');
     
-    // Set global unsaved data flag
-    console.log('Products: Setting unsaved data to true');
-    setGlobalUnsavedData(true);
-    if (onDataChange) {
-      onDataChange(true);
-    }
-
     try {
       const formData = new FormData();
       formData.append('file', file);
-      formData.append('operation_type', 'products');
-
-      const response = await axios.post(
-        `${app_url}/api/fileoperation/validate-products`,
-        formData,
-        {
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'multipart/form-data',
-          },
+      formData.append('auto_coding', autoCoding ? '1' : '0');
+      
+      const response = await axios.post(`${app_url}/api/fileoperation/validate-products`, formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+          'Authorization': `Bearer ${token}`
         }
-      );
-
+      });
+      
       if (response.data.success) {
-        setUploadedFile(file);
-        setImportData(response.data.data);
         setValidationResult(response.data.validation);
+        setImportData(response.data.data);
         setShowPreview(true);
+        setToastMessage(t('File validated successfully'));
+        basicStickyNotification.current?.showToast();
       } else {
-        setError(response.data.message || 'Validation failed');
+        setError(response.data.message || t('Validation failed'));
       }
     } catch (error) {
-      console.error('Upload error:', error);
+      console.error('Validation error:', error);
       console.error('Error response:', error.response?.data);
       console.error('Error status:', error.response?.status);
-      console.error('Error headers:', error.response?.headers);
+      console.error('Detailed errors:', error.response?.data?.errors);
       
-      let errorMessage = 'Failed to upload file. Please try again.';
+      let errorMessage = 'Validation failed. Please check your file format and try again.';
       if (error.response?.data?.message) {
         errorMessage = error.response.data.message;
       } else if (error.response?.data?.error) {
         errorMessage = error.response.data.error;
-      } else if (error.message) {
-        errorMessage = error.message;
       }
       
-      console.error('Final error message:', errorMessage);
       setError(errorMessage);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleFileUpload = async (acceptedFiles) => {
+    console.log('=== DRAG & DROP FILE UPLOAD ===');
+    console.log('Accepted files:', acceptedFiles);
+    
+    if (acceptedFiles.length > 0) {
+      const file = acceptedFiles[0];
+      console.log('Dropped file:', file);
+      
+      // Validate file type and size
+      const allowedTypes = [
+        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', 
+        'application/vnd.ms-excel', 
+        'text/csv',
+        'application/wps-office.xlsx',
+        'application/wps-office.xls'
+      ];
+      const maxSize = 10 * 1024 * 1024; // 10MB
+      
+      console.log('Drag & Drop - File validation - Type check:', file.type, 'Allowed:', allowedTypes);
+      console.log('Drag & Drop - File validation - Size check:', file.size, 'Max:', maxSize);
+      
+      if (!allowedTypes.includes(file.type)) {
+        console.error('DRAG & DROP FILE TYPE VALIDATION FAILED:', file.type);
+        setError('Please select a valid Excel (.xlsx, .xls) or CSV file.');
+        return;
+      }
+      
+      if (file.size > maxSize) {
+        console.error('DRAG & DROP FILE SIZE VALIDATION FAILED:', file.size);
+        setError('File size must be less than 10MB.');
+        return;
+      }
+      
+      console.log('Drag & Drop file type and size validation passed');
+      
+      try {
+        console.log('Starting drag & drop template validation...');
+        await validateTemplate(file);
+        
+        console.log('Drag & Drop template validation passed, starting file validation');
+        // Start validation process directly
+        setUploadedFile(file);
+        setGlobalUnsavedData(true);
+        if (onDataChange) {
+          onDataChange(true);
+        }
+        validateFile(file, autoCodingEnabled);
+      } catch (error) {
+        console.error('Drag & Drop template validation failed:', error);
+        setError(error);
+      }
+    } else {
+      console.log('No files in drag & drop');
     }
   };
 
@@ -201,6 +435,47 @@ function FileoperationAddProducts({ onSuccess, onError, onRefresh, onDataChange 
     setValidationResult(updatedValidation);
   };
 
+  // Handle inline editing
+  const handleEditRow = (row) => {
+    setEditingRow(row.row);
+    setEditingData({ ...row.data });
+  };
+
+  const handleSaveEdit = (rowIndex) => {
+    if (!validationResult) return;
+    
+    // Update the row data in validation result
+    const updatedValidation = { ...validationResult };
+    
+    // Find and update the row in the appropriate array
+    ['valid_rows', 'invalid_rows', 'duplicates'].forEach(arrayName => {
+      const rowIndex = updatedValidation[arrayName].findIndex(row => row.row === editingRow);
+      if (rowIndex !== -1) {
+        updatedValidation[arrayName][rowIndex].data = Object.values(editingData);
+      }
+    });
+    
+    setValidationResult(updatedValidation);
+    setEditingRow(null);
+    setEditingData({});
+    
+    setToastMessage(t('Row updated successfully'));
+    basicStickyNotification.current?.showToast();
+  };
+
+  const handleCancelEdit = () => {
+    setEditingRow(null);
+    setEditingData({});
+  };
+
+  const handleViewRow = (row) => {
+    setViewingRow(row);
+  };
+
+  const handleCloseView = () => {
+    setViewingRow(null);
+  };
+
   // Handle upload new file when no valid rows
   const handleUploadNewFile = () => {
     const confirmed = window.confirm("There are no matching rows in the current file. Do you want to upload another file?");
@@ -287,7 +562,11 @@ function FileoperationAddProducts({ onSuccess, onError, onRefresh, onDataChange 
     return (
       <div className="mt-6">
         {/* Dashboard with counts */}
-        <div className="grid grid-cols-3 gap-4 mb-6">
+        <div className="grid grid-cols-4 gap-4 mb-6">
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+            <div className="text-blue-700 font-semibold text-sm mb-1">{t("Total Rows")}</div>
+            <div className="text-2xl font-bold text-blue-600">{allRows.length}</div>
+          </div>
           <div className="bg-green-50 border border-green-200 rounded-lg p-4">
             <div className="text-green-700 font-semibold text-sm mb-1">{t("Valid Rows")}</div>
             <div className="text-2xl font-bold text-green-600">{valid_rows.length}</div>
@@ -366,35 +645,77 @@ function FileoperationAddProducts({ onSuccess, onError, onRefresh, onDataChange 
                       {/* Dynamic columns based on Excel headers */}
                       {importData.headers.map((header, colIndex) => (
                         <td key={colIndex} className="px-4 py-3 border-r border-gray-100">
-                          <span className={hasRowErrors && row.data[colIndex] ? 'text-red-600 font-medium' : ''}>
-                            {row.data[colIndex] || ''}
-                          </span>
+                          {editingRow === row.row ? (
+                            <input
+                              type="text"
+                              value={editingData[colIndex] || ''}
+                              onChange={(e) => setEditingData({...editingData, [colIndex]: e.target.value})}
+                              className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            />
+                          ) : (
+                            <span className={hasRowErrors && row.data[colIndex] ? 'text-red-600 font-medium' : ''}>
+                              {row.data[colIndex] || ''}
+                            </span>
+                          )}
                         </td>
                       ))}
                       
                       {/* Actions column */}
                       <td className="px-4 py-3 w-32">
                         <div className="flex items-center justify-center gap-2">
-                          <button className="p-1 hover:bg-gray-100 rounded" title={t("View")}>
-                            <svg className="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                            </svg>
-                          </button>
-                          <button className="p-1 hover:bg-gray-100 rounded" title={t("Edit")}>
-                            <svg className="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                            </svg>
-                          </button>
-                          <button 
-                            className="p-1 hover:bg-gray-100 rounded" 
-                            title={t("Delete")}
-                            onClick={() => handleDeleteRow(row.row)}
-                          >
-                            <svg className="w-4 h-4 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                            </svg>
-                          </button>
+                          {editingRow === row.row ? (
+                            <>
+                              <button 
+                                className="p-1 hover:bg-gray-100 rounded" 
+                                title={t("Save")}
+                                onClick={() => handleSaveEdit(row.row)}
+                              >
+                                <svg className="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                                </svg>
+                              </button>
+                              <button 
+                                className="p-1 hover:bg-gray-100 rounded" 
+                                title={t("Cancel")}
+                                onClick={handleCancelEdit}
+                              >
+                                <svg className="w-4 h-4 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                </svg>
+                              </button>
+                            </>
+                          ) : (
+                            <>
+                              <button 
+                                className="p-1 hover:bg-gray-100 rounded" 
+                                title={t("View")}
+                                onClick={() => handleViewRow(row)}
+                              >
+                                <svg className="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                </svg>
+                              </button>
+                              <button 
+                                className="p-1 hover:bg-gray-100 rounded" 
+                                title={t("Edit")}
+                                onClick={() => handleEditRow(row)}
+                              >
+                                <svg className="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                </svg>
+                              </button>
+                              <button 
+                                className="p-1 hover:bg-gray-100 rounded" 
+                                title={t("Delete")}
+                                onClick={() => handleDeleteRow(row.row)}
+                              >
+                                <svg className="w-4 h-4 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                </svg>
+                              </button>
+                            </>
+                          )}
                         </div>
                       </td>
                     </tr>
@@ -514,6 +835,37 @@ function FileoperationAddProducts({ onSuccess, onError, onRefresh, onDataChange 
         {!showPreview ? (
           /* File Upload Area */
           <div className="border-2 border-dashed border-gray-300 rounded-lg p-16 text-center bg-gray-50">
+            <div className="flex items-center justify-between mb-4">
+              <div className="text-lg font-medium">{t("File Upload")}</div>
+              <button
+                type="button"
+                onClick={downloadTemplate}
+                className="flex items-center px-3 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-md transition-colors"
+              >
+                <Lucide icon="Download" className="w-4 h-4 mr-2" />
+                {t("Download Template")}
+              </button>
+            </div>
+            
+            {/* Auto Coding Checkbox */}
+            <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+              <div className="flex items-center justify-center">
+                <input
+                  type="checkbox"
+                  id="autoCoding"
+                  checked={autoCodingEnabled}
+                  onChange={(e) => setAutoCodingEnabled(e.target.checked)}
+                  className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded mr-3"
+                />
+                <label htmlFor="autoCoding" className="text-sm font-medium text-gray-700">
+                  <Lucide icon="Settings" className="w-4 h-4 inline mr-2" />
+                  {t("Enable Brand Code Auto Coding")}
+                </label>
+              </div>
+              <p className="text-xs text-gray-500 mt-2 text-center">
+                {t("When enabled, missing brand codes will be automatically generated based on brand names")}
+              </p>
+            </div>
             <div
               {...getRootProps()}
               className={`cursor-pointer transition-colors ${
@@ -530,8 +882,27 @@ function FileoperationAddProducts({ onSuccess, onError, onRefresh, onDataChange 
                 {isDragActive ? t("Drop the file here") : t("Drop Excel file here or click to browse")}
               </p>
               <p className="text-sm text-gray-500">
-                {t("Supports .xlsx and .xls files up to 10MB")}
+                {t("Supports .xlsx, .xls, and .csv files up to 10MB")}
               </p>
+            </div>
+
+            <div className="mt-6">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                {t("Or select Excel/CSV file manually")}
+              </label>
+              <input
+                type="file"
+                accept=".xlsx,.xls,.csv"
+                onChange={handleFileChange}
+                className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+              />
+              <div className="mt-2 text-xs text-gray-500">
+                <p className="mb-1">{t("Supported formats: .xlsx, .xls, .csv (Max: 10MB)")}</p>
+                <p className="text-amber-600">
+                  <Lucide icon="AlertTriangle" className="w-3 h-3 inline mr-1" />
+                  {t("Important: Please use the template above to ensure your file has the correct format and required columns.")}
+                </p>
+              </div>
             </div>
 
             {loading && (
@@ -552,6 +923,101 @@ function FileoperationAddProducts({ onSuccess, onError, onRefresh, onDataChange 
           renderDataGrid()
         )}
       </div>
+
+      {/* Toast Notification */}
+      <Notification
+        getRef={(el) => {
+          basicStickyNotification.current = el;
+        }}
+        options={{
+          duration: 3000,
+        }}
+        className="flex"
+      >
+        <Lucide icon="CheckCircle" className="text-success" />
+        <div className="ml-4 mr-4">
+          <div className="font-medium">{toastMessage}</div>
+        </div>
+      </Notification>
+
+      {/* View Row Modal */}
+      {viewingRow && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full mx-4 max-h-[80vh] overflow-y-auto">
+            <div className="px-6 py-4 border-b border-gray-200">
+              <div className="flex items-center justify-between">
+                <h3 className="text-lg font-medium text-gray-900">
+                  {t("View Row Details")} - {t("Row")} {viewingRow.row}
+                </h3>
+                <button
+                  onClick={handleCloseView}
+                  className="text-gray-400 hover:text-gray-600"
+                >
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+            
+            <div className="px-6 py-4">
+              <div className="grid grid-cols-1 gap-4">
+                {importData.headers.map((header, index) => (
+                  <div key={index} className="border-b border-gray-100 pb-3">
+                    <div className="text-sm font-medium text-gray-700 mb-1">
+                      {header}
+                    </div>
+                    <div className="text-gray-900 bg-gray-50 px-3 py-2 rounded">
+                      {viewingRow.data[index] || t("Empty")}
+                    </div>
+                  </div>
+                ))}
+              </div>
+              
+              {/* Row Status */}
+              <div className="mt-6 p-4 rounded-lg bg-gray-50">
+                <div className="text-sm font-medium text-gray-700 mb-2">{t("Row Status")}</div>
+                <div className="flex gap-2">
+                  {validationResult.valid_rows.some(r => r.row === viewingRow.row) && (
+                    <span className="px-2 py-1 text-xs font-medium bg-green-100 text-green-800 rounded">
+                      {t("Valid")}
+                    </span>
+                  )}
+                  {validationResult.invalid_rows.some(r => r.row === viewingRow.row) && (
+                    <span className="px-2 py-1 text-xs font-medium bg-yellow-100 text-yellow-800 rounded">
+                      {t("Invalid")}
+                    </span>
+                  )}
+                  {validationResult.duplicates.some(r => r.row === viewingRow.row) && (
+                    <span className="px-2 py-1 text-xs font-medium bg-red-100 text-red-800 rounded">
+                      {t("Duplicate")}
+                    </span>
+                  )}
+                </div>
+              </div>
+            </div>
+            
+            <div className="px-6 py-4 border-t border-gray-200 flex justify-end gap-3">
+              <Button
+                variant="outline-secondary"
+                onClick={handleCloseView}
+              >
+                {t("Close")}
+              </Button>
+              <Button
+                variant="primary"
+                onClick={() => {
+                  handleCloseView();
+                  handleEditRow(viewingRow);
+                }}
+              >
+                {t("Edit Row")}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }
