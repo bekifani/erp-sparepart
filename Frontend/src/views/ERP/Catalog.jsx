@@ -601,70 +601,11 @@ function Catalog() {
                           />
                           <div className="w-full h-full flex items-center justify-center" style={{display: 'none'}}>
                             <Lucide icon="Package" className="w-16 h-16 text-gray-400" />
-//             ) : (productDetails && selectedProduct) ? (
-//               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-//                 {/* Product Images */}
-//                 <div>
-//                   <div className="aspect-square bg-gray-100 rounded-lg overflow-hidden mb-4">
-//                     {(() => {
-//                       const productInfo = productDetails?.data?.ProductInformation || productDetails?.data?.productinformation || productDetails?.data?.product_information;
-//                       const technicalImage = productInfo?.technical_image || productInfo?.image;
-                      
-//                       return technicalImage ? (
-//                         <img
-//                           src={`${media_url}${technicalImage}`}
-//                           alt={selectedProduct?.description || 'Product'}
-//                           className="w-full h-full object-cover"
-//                           onError={(e) => {
-//                             console.log('Modal image failed to load:', e.target.src);
-//                             console.log('Product details:', productDetails);
-//                             e.target.style.display = 'none';
-//                             e.target.nextSibling.style.display = 'flex';
-//                           }}
-//                           onLoad={(e) => {
-//                             console.log('Modal image loaded successfully:', e.target.src);
-//                           }}
-//                         />
-//                       ) : null;
-//                     })()}
-//                     <div className="w-full h-full flex items-center justify-center" style={{display: (() => {
-//                       const productInfo = productDetails?.data?.ProductInformation || productDetails?.data?.productinformation || productDetails?.data?.product_information;
-//                       const technicalImage = productInfo?.technical_image || productInfo?.image;
-//                       return technicalImage ? 'none' : 'flex';
-//                     })()}}>
-//                       <Lucide icon="Package" className="w-16 h-16 text-gray-400" />
-//                     </div>
-//                   </div>
-//                 </div>
-
-//                 {/* Product Details */}
-//                 <div>
-//                   {/* Basic Product Information */}
-//                   <div className="mb-6">
-//                     <h3 className="text-lg font-semibold mb-4 text-gray-800 border-b pb-2">{t('Product Information')}</h3>
-//                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-//                       <div className="space-y-3">
-//                         <div className="flex justify-between">
-//                           <span className="font-medium text-gray-600">{t('Brand')}:</span> 
-//                           <span className="text-gray-900">{selectedProduct?.brand?.brand_name || 'N/A'}</span>
-//                         </div>
-//                         <div className="flex justify-between">
-//                           <span className="font-medium text-gray-600">{t('Brand Code')}:</span> 
-//                           <span className="text-gray-900">{selectedProduct?.brand_code || 'N/A'}</span>
-//                         </div>
-//                         <div className="flex justify-between">
-//                           <span className="font-medium text-gray-600">{t('Description')}:</span> 
-//                           <span className="text-gray-900">{selectedProduct?.description || 'N/A'}</span>
-//                         </div>
-//                         {selectedProduct?.oe_code && (
-//                           <div className="flex justify-between">
-//                             <span className="font-medium text-gray-600">{t('OE Code')}:</span> 
-//                             <span className="text-gray-900">{selectedProduct.oe_code}</span>
                           </div>
                         </div>
 
                         {/* Thumbnail Gallery */}
-                        <div className="flex space-x-2 justify-center">
+                        <div className="flex space-x-2 justify-center mt-4">
                           {images.map((image, index) => (
                             <div 
                               key={index}
@@ -805,45 +746,6 @@ function Catalog() {
                         {productCrossCodes.data.slice(0, 3).map((crosscode, index) => (
                           <div key={index} className="mb-1">
                             {crosscode.brandname?.brand_name || 'N/A'}: {crosscode.cross_code || 'N/A'}
-                  {/* Detailed Product Information */}
-//                   {productDetails?.data?.ProductInformation && (
-//                     <div className="mb-6">
-//                       <h3 className="text-lg font-semibold mb-4 text-gray-800 border-b pb-2">{t('Detailed Information')}</h3>
-//                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-//                         <div className="space-y-3">
-//                           <div className="flex justify-between">
-//                             <span className="font-medium text-gray-600">{t('Product Code')}:</span> 
-//                             <span className="text-gray-900">{productDetails.data.ProductInformation.product_code || 'N/A'}</span>
-//                           </div>
-//                           <div className="flex justify-between">
-//                             <span className="font-medium text-gray-600">{t('QR Code')}:</span> 
-//                             <span className="text-gray-900">{productDetails.data.ProductInformation.qr_code || 'N/A'}</span>
-//                           </div>
-//                           <div className="flex justify-between">
-//                             <span className="font-medium text-gray-600">{t('Net Weight')}:</span> 
-//                             <span className="text-gray-900">{productDetails.data.ProductInformation.net_weight || 'N/A'} kg</span>
-//                           </div>
-//                           <div className="flex justify-between">
-//                             <span className="font-medium text-gray-600">{t('Gross Weight')}:</span> 
-//                             <span className="text-gray-900">{productDetails.data.ProductInformation.gross_weight || 'N/A'} kg</span>
-//                           </div>
-//                         </div>
-//                         <div className="space-y-3">
-//                           <div className="flex justify-between">
-//                             <span className="font-medium text-gray-600">{t('Size A')}:</span> 
-//                             <span className="text-gray-900">{productDetails.data.ProductInformation.product_size_a || 'N/A'} cm</span>
-//                           </div>
-//                           <div className="flex justify-between">
-//                             <span className="font-medium text-gray-600">{t('Size B')}:</span> 
-//                             <span className="text-gray-900">{productDetails.data.ProductInformation.product_size_b || 'N/A'} cm</span>
-//                           </div>
-//                           <div className="flex justify-between">
-//                             <span className="font-medium text-gray-600">{t('Size C')}:</span> 
-//                             <span className="text-gray-900">{productDetails.data.ProductInformation.product_size_c || 'N/A'} cm</span>
-//                           </div>
-//                           <div className="flex justify-between">
-//                             <span className="font-medium text-gray-600">{t('Volume')}:</span> 
-//                             <span className="text-gray-900">{productDetails.data.ProductInformation.volume || 'N/A'} cm³</span>
                           </div>
                         ))}
                       </div>
@@ -851,26 +753,6 @@ function Catalog() {
                       <div className="text-sm text-gray-500">No cross references available</div>
                     )}
                   </div>
-                      
-                      {/* Properties and Additional Notes */}
-//                       {(productDetails.data.ProductInformation.properties || productDetails.data.ProductInformation.additional_note) && (
-//                         <div className="mt-4 space-y-3">
-//                           {productDetails.data.ProductInformation.properties && (
-//                             <div>
-//                               <span className="font-medium text-gray-600 block mb-2">{t('Properties')}:</span>
-//                               <p className="text-gray-900 bg-gray-50 p-3 rounded-md">{productDetails.data.ProductInformation.properties}</p>
-//                             </div>
-//                           )}
-//                           {productDetails.data.ProductInformation.additional_note && (
-//                             <div>
-//                               <span className="font-medium text-gray-600 block mb-2">{t('Additional Notes')}:</span>
-//                               <p className="text-gray-900 bg-gray-50 p-3 rounded-md">{productDetails.data.ProductInformation.additional_note}</p>
-//                             </div>
-//                           )}
-//                         </div>
-//                       )}
-//                     </div>
-//                   )}
                 </div>
               </div>
             ) : null}
