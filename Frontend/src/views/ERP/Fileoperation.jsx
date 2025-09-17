@@ -14,7 +14,8 @@ import FileoperationAddCarModels from "./FileoperationAddCarModels.jsx";
 import FileoperationAddProductNames from "./FileoperationAddProductNames.jsx";
 import FileoperationAddProducts from "./FileoperationAddProducts.jsx";
 import FileoperationAddProductInformation from "./FileoperationAddProductInformation.jsx";
-import FileoperationAddCrossCode from "./FileoperationAddCrossCode.jsx";
+import FileoperationAddCrossCode from './FileoperationAddCrossCode';
+import FileoperationAddSpecifications from './FileoperationAddSpecifications.jsx';
 import { setGlobalUnsavedData } from "@/hooks/useNavigationBlocker";
 
 function index_main() {
@@ -264,8 +265,8 @@ function index_main() {
     specifications: {
       name: 'Add New Specifications',
       description: 'Import product specifications',
-      requiredColumns: ['Brand', 'Code'],
-      validation: 'Brand/Code vs. Products'
+      requiredColumns: ['Brand', 'Code', '[Specification Headers...]'],
+      validation: 'Brand/Code vs. Products; Column headers become Specification Headnames'
     },
     car_models: {
       name: 'Add New Car Models',
@@ -823,6 +824,22 @@ function index_main() {
           }}
           onRefresh={() => setRefetch(!refetch)}
           onDataChange={(hasData) => setHasUnsavedData(hasData)}
+        />
+      ) : currentImportType === 'specifications' ? (
+        /* Add Specifications Component */
+        <FileoperationAddSpecifications
+          onSuccess={(message) => {
+            setToastMessage(message);
+            basicStickyNotification.current.showToast();
+            setHasUnsavedData(false); // Clear unsaved data flag on successful import
+          }}
+          onError={(message) => {
+            setToastMessage(message);
+            basicStickyNotification.current.showToast();
+          }}
+          onRefresh={() => setRefetch(!refetch)}
+          onDataChange={(hasData) => setHasUnsavedData(hasData)}
+          setGlobalUnsavedData={setGlobalUnsavedData}
         />
       ) : (
         /* Other Import Types - Generic Component */
