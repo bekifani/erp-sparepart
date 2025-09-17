@@ -24,6 +24,7 @@ function FileoperationAddCrossCars({ onSuccess, onError, onRefresh, onDataChange
   const [validationResult, setValidationResult] = useState(null);
   const [isValidating, setIsValidating] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [isImporting, setIsImporting] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [rowsPerPage] = useState(10);
   const [editingRow, setEditingRow] = useState(null);
@@ -526,6 +527,53 @@ function FileoperationAddCrossCars({ onSuccess, onError, onRefresh, onDataChange
     setEditFormData({});
   };
 
+  const handleImportData = async () => {
+    if (!validationResult) return;
+    
+    try {
+      setIsImporting(true);
+      
+      // Check if there are valid rows to import
+      if (!validationResult.valid_rows || validationResult.valid_rows.length === 0) {
+        onError?.(t('No valid data to import'));
+        return;
+      }
+      
+      const response = await axios.post(
+        `${app_url}/api/fileoperation/import-cross-cars`,
+        { 
+          valid_rows: validationResult.valid_rows,
+          file_name: importData?.name || 'cross_cars_import.xlsx'
+        },
+        {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
+        }
+      );
+      
+      if (response.data.success) {
+        const { imported, skipped } = response.data.data;
+        const successMessage = `${t('Cross cars imported successfully!')} ${t('Imported')}: ${imported}${skipped > 0 ? `, ${t('Skipped')}: ${skipped}` : ''}`;
+        onSuccess?.(successMessage);
+        
+        // Clear the validation result after successful import
+        setValidationResult(null);
+        setShowPreview(false);
+        setImportData(null);
+        onRefresh?.();
+      } else {
+        onError?.(response.data.message || t('Import failed'));
+      }
+    } catch (error) {
+      console.error('Import error:', error);
+      onError?.(error.response?.data?.message || error.message || t('Import failed'));
+    } finally {
+      setIsImporting(false);
+    }
+  };
+
   const handleExportInvalidRows = () => {
     if (!validationResult || !validationResult.invalid_rows.length) return;
     
@@ -797,6 +845,31 @@ function FileoperationAddCrossCars({ onSuccess, onError, onRefresh, onDataChange
           
           {/* Action buttons - matching Added Files tab */}
           <div className="flex items-center gap-2">
+            {/* Import button */}
+            <button
+              onClick={handleImportData}
+              disabled={isImporting}
+              className={`flex items-center gap-2 px-3 py-2 rounded-md transition-colors text-sm ${
+                isImporting 
+                  ? 'bg-gray-400 text-white cursor-not-allowed' 
+                  : 'bg-green-600 text-white hover:bg-green-700'
+              }`}
+            >
+              {isImporting ? (
+                <>
+                  <LoadingIcon icon="oval" className="w-4 h-4" />
+                  <span>{t('Importing...')}</span>
+                </>
+              ) : (
+                <>
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M9 19l3 3m0 0l3-3m-3 3V10" />
+                  </svg>
+                  <span>{t('Import')}</span>
+                </>
+              )}
+            </button>
+            
             {/* Filter button */}
             <button
               onClick={() => setShowFilterModal(true)}
