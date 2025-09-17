@@ -205,9 +205,41 @@ class FileoperationProductInformationController extends BaseController
                 $boxName = trim($getColumnValue($rowData, 'Box Name', ['box name', 'box_name', 'boxname', 'box']));
                 $labelName = trim($getColumnValue($rowData, 'Label', ['label', 'label_name', 'labelname']));
                 $qty = trim($getColumnValue($rowData, 'Qty', ['qty', 'quantity']));
-                $productSizeA = trim($getColumnValue($rowData, 'Product size A (cm)', ['product size a', 'size_a', 'size a']));
-                $productSizeB = trim($getColumnValue($rowData, 'Product size B (cm)', ['product size b', 'size_b', 'size b']));
-                $productSizeC = trim($getColumnValue($rowData, 'Product size C (cm)', ['product size c', 'size_c', 'size c']));
+                
+                // Handle product sizes - try individual A, B, C columns first, then combined format
+                $productSizeA = trim($getColumnValue($rowData, 'A', ['a', 'size_a', 'product size a']));
+                $productSizeB = trim($getColumnValue($rowData, 'B', ['b', 'size_b', 'product size b']));
+                $productSizeC = trim($getColumnValue($rowData, 'C', ['c', 'size_c', 'product size c']));
+                
+                // If individual columns are empty, try to parse from combined "Product size (cm)" column
+                if (empty($productSizeA) && empty($productSizeB) && empty($productSizeC)) {
+                    $combinedSize = trim($getColumnValue($rowData, 'Product size (cm)', ['product size', 'size', 'dimensions']));
+                    if (!empty($combinedSize)) {
+                        // Parse formats like "1.2 x 12 x 12" or "1.15 26.5 25"
+                        $sizePattern = '/(\d+(?:\.\d+)?)\s*[x×\s]\s*(\d+(?:\.\d+)?)\s*[x×\s]\s*(\d+(?:\.\d+)?)/i';
+                        if (preg_match($sizePattern, $combinedSize, $matches)) {
+                            $productSizeA = $matches[1];
+                            $productSizeB = $matches[2];
+                            $productSizeC = $matches[3];
+                        } else {
+                            // Try space-separated format like "1.15 26.5 25"
+                            $spaceSeparated = preg_split('/\s+/', $combinedSize);
+                            if (count($spaceSeparated) >= 3) {
+                                $productSizeA = $spaceSeparated[0];
+                                $productSizeB = $spaceSeparated[1];
+                                $productSizeC = $spaceSeparated[2];
+                            }
+                        }
+                    }
+                }
+                
+                // Handle volume calculation
+                $volume = trim($getColumnValue($rowData, 'Volume', ['volume', 'vol']));
+                if (empty($volume) && !empty($productSizeA) && !empty($productSizeB) && !empty($productSizeC)) {
+                    // Calculate volume if not provided (A × B × C / 1000000 for cm³ to m³)
+                    $volume = (floatval($productSizeA) * floatval($productSizeB) * floatval($productSizeC)) / 1000000;
+                }
+                
                 $additionalNote = trim($getColumnValue($rowData, 'Additional note', ['additional note', 'additional_note', 'note']));
 
                 $isValid = true;
@@ -432,9 +464,41 @@ class FileoperationProductInformationController extends BaseController
                     $boxName = trim($getColumnValue($data, 'Box Name', ['box name', 'box_name']));
                     $labelName = trim($getColumnValue($data, 'Label', ['label', 'label_name']));
                     $qty = trim($getColumnValue($data, 'Qty', ['qty', 'quantity']));
-                    $productSizeA = trim($getColumnValue($data, 'Product size A (cm)', ['product size a', 'size_a']));
-                    $productSizeB = trim($getColumnValue($data, 'Product size B (cm)', ['product size b', 'size_b']));
-                    $productSizeC = trim($getColumnValue($data, 'Product size C (cm)', ['product size c', 'size_c']));
+                    
+                    // Handle product sizes - try individual A, B, C columns first, then combined format
+                    $productSizeA = trim($getColumnValue($data, 'A', ['a', 'size_a', 'product size a']));
+                    $productSizeB = trim($getColumnValue($data, 'B', ['b', 'size_b', 'product size b']));
+                    $productSizeC = trim($getColumnValue($data, 'C', ['c', 'size_c', 'product size c']));
+                    
+                    // If individual columns are empty, try to parse from combined "Product size (cm)" column
+                    if (empty($productSizeA) && empty($productSizeB) && empty($productSizeC)) {
+                        $combinedSize = trim($getColumnValue($data, 'Product size (cm)', ['product size', 'size', 'dimensions']));
+                        if (!empty($combinedSize)) {
+                            // Parse formats like "1.2 x 12 x 12" or "1.15 26.5 25"
+                            $sizePattern = '/(\d+(?:\.\d+)?)\s*[x×\s]\s*(\d+(?:\.\d+)?)\s*[x×\s]\s*(\d+(?:\.\d+)?)/i';
+                            if (preg_match($sizePattern, $combinedSize, $matches)) {
+                                $productSizeA = $matches[1];
+                                $productSizeB = $matches[2];
+                                $productSizeC = $matches[3];
+                            } else {
+                                // Try space-separated format like "1.15 26.5 25"
+                                $spaceSeparated = preg_split('/\s+/', $combinedSize);
+                                if (count($spaceSeparated) >= 3) {
+                                    $productSizeA = $spaceSeparated[0];
+                                    $productSizeB = $spaceSeparated[1];
+                                    $productSizeC = $spaceSeparated[2];
+                                }
+                            }
+                        }
+                    }
+                    
+                    // Handle volume calculation
+                    $volume = trim($getColumnValue($data, 'Volume', ['volume', 'vol']));
+                    if (empty($volume) && !empty($productSizeA) && !empty($productSizeB) && !empty($productSizeC)) {
+                        // Calculate volume if not provided (A × B × C / 1000000 for cm³ to m³)
+                        $volume = (floatval($productSizeA) * floatval($productSizeB) * floatval($productSizeC)) / 1000000;
+                    }
+                    
                     $additionalNote = trim($getColumnValue($data, 'Additional note', ['additional note', 'additional_note']));
 
                     Log::info('Processing product information row', [
@@ -505,18 +569,15 @@ class FileoperationProductInformationController extends BaseController
                                 'product_id' => $product->id,
                                 'product_name_id' => $product->productname_id,
                                 'product_code' => 'PI-' . $product->id . '-' . time(),
-                                'brand_code' => $brandCode,
-                                'oe_code' => $oeCode,
-                                'description' => $product->description ?? '',
-                                'qty' => is_numeric($qty) ? (float)$qty : null,
                                 'net_weight' => is_numeric($netWeight) ? (float)$netWeight : null,
                                 'gross_weight' => is_numeric($grossWeight) ? (float)$grossWeight : null,
                                 'unit_id' => $unitId,
                                 'box_id' => $boxId,
-                                'label_id' => $labelId,
                                 'product_size_a' => is_numeric($productSizeA) ? (float)$productSizeA : null,
                                 'product_size_b' => is_numeric($productSizeB) ? (float)$productSizeB : null,
                                 'product_size_c' => is_numeric($productSizeC) ? (float)$productSizeC : null,
+                                'volume' => is_numeric($volume) ? (float)$volume : null,
+                                'label_id' => $labelId,
                                 'additional_note' => $additionalNote
                             ]);
                             
