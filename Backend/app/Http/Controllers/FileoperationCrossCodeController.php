@@ -30,7 +30,7 @@ class FileoperationCrossCodeController extends Controller
     {
         try {
             $validator = Validator::make($request->all(), [
-                'file' => 'required|file|mimes:xlsx,xls|max:10240',
+                'file' => 'required|file|mimes:xlsx,xls,csv|max:10240',
                 'operation_type' => 'string'
             ]);
 
@@ -61,8 +61,48 @@ class FileoperationCrossCodeController extends Controller
             $headers = $data->first()->toArray();
             $dataRows = $data->skip(1);
 
+            // Validate template structure with case-insensitive column matching
+            $normalizedHeaders = array_map(function($header) {
+                return strtolower(trim(str_replace([' ', '_'], ' ', $header)));
+            }, $headers);
+
+            $expectedHeaders = [
+                ['variations' => ['brand'], 'display' => 'Brand'],
+                ['variations' => ['code'], 'display' => 'Code'],
+                ['variations' => ['cross brand', 'crossbrand', 'cross_brand'], 'display' => 'Cross Brand'],
+                ['variations' => ['cross code', 'crosscode', 'cross_code'], 'display' => 'Cross Code'],
+                ['variations' => ['hide'], 'display' => 'Hide']
+            ];
+
+            $missingColumns = [];
+            $foundColumns = [];
+
+            foreach ($expectedHeaders as $expected) {
+                $found = false;
+                foreach ($expected['variations'] as $variation) {
+                    if (in_array($variation, $normalizedHeaders)) {
+                        $found = true;
+                        break;
+                    }
+                }
+                if ($found) {
+                    $foundColumns[] = $expected['display'];
+                } else {
+                    $missingColumns[] = $expected['display'];
+                }
+            }
+
+            if (!empty($missingColumns)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Invalid template format. Missing columns: ' . implode(', ', $missingColumns) . '. Please use the template and upload a valid file with the correct column structure.'
+                ], 422);
+            }
+
             Log::info('Cross code validation started', [
                 'headers' => $headers,
+                'normalized_headers' => $normalizedHeaders,
+                'found_columns' => $foundColumns,
                 'total_rows' => $dataRows->count()
             ]);
 
@@ -79,11 +119,23 @@ class FileoperationCrossCodeController extends Controller
                     continue;
                 }
 
-                $brand = trim($rowData[0] ?? '');
-                $code = trim($rowData[1] ?? '');
-                $crossBrand = trim($rowData[2] ?? '');
-                $crossCode = trim($rowData[3] ?? '');
-                $hide = trim($rowData[4] ?? '');
+                // Map columns based on header positions (case-insensitive)
+                $columnMapping = [];
+                foreach ($expectedHeaders as $expected) {
+                    foreach ($expected['variations'] as $variation) {
+                        $headerIndex = array_search($variation, $normalizedHeaders);
+                        if ($headerIndex !== false) {
+                            $columnMapping[$expected['display']] = $headerIndex;
+                            break;
+                        }
+                    }
+                }
+
+                $brand = trim($rowData[$columnMapping['Brand']] ?? '');
+                $code = trim($rowData[$columnMapping['Code']] ?? '');
+                $crossBrand = trim($rowData[$columnMapping['Cross Brand']] ?? '');
+                $crossCode = trim($rowData[$columnMapping['Cross Code']] ?? '');
+                $hide = trim($rowData[$columnMapping['Hide']] ?? '');
 
                 Log::info("Processing cross code row {$index}", [
                     'brand' => $brand,

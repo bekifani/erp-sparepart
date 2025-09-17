@@ -5,6 +5,7 @@ import { useDropzone } from "react-dropzone";
 import axios from "axios";
 import Button from "@/components/Base/Button";
 import LoadingIcon from "@/components/Base/LoadingIcon";
+import * as XLSX from 'xlsx';
 import { setGlobalUnsavedData } from "@/hooks/useNavigationBlocker";
 
 function FileoperationAddCrossCode({ onSuccess, onError, onRefresh, onDataChange }) {
@@ -22,13 +23,94 @@ function FileoperationAddCrossCode({ onSuccess, onError, onRefresh, onDataChange
   const [searchTerm, setSearchTerm] = useState('');
   const [error, setError] = useState('');
 
-  // File upload handling
+  // Download Excel Template
+  const handleDownloadTemplate = () => {
+    // Create Excel template with required columns
+    const templateData = [
+      ['Brand', 'Code', 'Cross Brand', 'Cross Code', 'Hide'],
+      ['NISSAN', 'ABC123', 'TOYOTA', 'DEF456', 'No'],
+      ['TOYOTA', 'XYZ789', 'HONDA', 'GHI012', 'Yes']
+    ];
+
+    // Create workbook and worksheet
+    const wb = XLSX.utils.book_new();
+    const ws = XLSX.utils.aoa_to_sheet(templateData);
+    
+    // Set column widths
+    ws['!cols'] = [
+      { width: 15 }, // Brand
+      { width: 15 }, // Code
+      { width: 20 }, // Cross Brand
+      { width: 20 }, // Cross Code
+      { width: 10 }  // Hide
+    ];
+
+    XLSX.utils.book_append_sheet(wb, ws, 'Cross Code Template');
+    
+    // Download the file
+    XLSX.writeFile(wb, 'cross_code_template.xlsx');
+  };
+
+  // File upload handling with strict template validation
   const handleFileUpload = async (acceptedFiles) => {
     const file = acceptedFiles[0];
     if (!file) return;
 
     setLoading(true);
     setError('');
+    
+    try {
+      // Read and validate Excel file structure first
+      const data = await file.arrayBuffer();
+      const workbook = XLSX.read(data);
+      const sheetName = workbook.SheetNames[0];
+      const worksheet = workbook.Sheets[sheetName];
+      const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+      
+      if (jsonData.length === 0) {
+        setError('The uploaded file is empty. Please use the template and upload a valid file.');
+        return;
+      }
+      
+      // Get headers and normalize them for comparison
+      const headers = jsonData[0] || [];
+      const normalizedHeaders = headers.map(h => String(h).toLowerCase().trim().replace(/\s+/g, ' '));
+      
+      // Define expected headers with variations (case insensitive)
+      const expectedHeaders = [
+        { variations: ['brand'], display: 'Brand' },
+        { variations: ['code'], display: 'Code' },
+        { variations: ['cross brand', 'crossbrand', 'cross_brand'], display: 'Cross Brand' },
+        { variations: ['cross code', 'crosscode', 'cross_code'], display: 'Cross Code' },
+        { variations: ['hide'], display: 'Hide' }
+      ];
+      
+      // Check if all required columns are present
+      const missingColumns = [];
+      const foundColumns = [];
+      
+      expectedHeaders.forEach(expected => {
+        const found = expected.variations.some(variation => 
+          normalizedHeaders.includes(variation)
+        );
+        if (found) {
+          foundColumns.push(expected.display);
+        } else {
+          missingColumns.push(expected.display);
+        }
+      });
+      
+      if (missingColumns.length > 0) {
+        setError(`Invalid template format. Missing columns: ${missingColumns.join(', ')}. Please use the template and upload a valid file with the correct column structure.`);
+        return;
+      }
+      
+      console.log('Template validation passed. Found columns:', foundColumns);
+    } catch (templateError) {
+      console.error('Template validation error:', templateError);
+      setError('Invalid file format. Please use the template and upload a valid Excel file.');
+      return;
+    }
     
     // Set global unsaved data flag
     console.log('Cross Code: Setting unsaved data to true');
@@ -208,8 +290,10 @@ function FileoperationAddCrossCode({ onSuccess, onError, onRefresh, onDataChange
     onDrop: handleFileUpload,
     accept: {
       'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': ['.xlsx'],
-      'application/vnd.ms-excel': ['.xls']
+      'application/vnd.ms-excel': ['.xls'],
+      'text/csv': ['.csv']
     },
+    maxSize: 10485760, // 10MB
     multiple: false
   });
 
@@ -590,7 +674,20 @@ function FileoperationAddCrossCode({ onSuccess, onError, onRefresh, onDataChange
         )}
 
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-          <h2 className="text-xl font-semibold text-gray-900 mb-4">Import Cross Code Data</h2>
+          <div className="flex justify-between items-center mb-4">
+            <h2 className="text-xl font-semibold text-gray-900">Import Cross Code Data</h2>
+            <Button
+              variant="outline-primary"
+              size="sm"
+              onClick={handleDownloadTemplate}
+              className="flex items-center gap-2"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              </svg>
+              Download Excel Template
+            </Button>
+          </div>
           
           <div
             {...getRootProps()}
@@ -612,7 +709,7 @@ function FileoperationAddCrossCode({ onSuccess, onError, onRefresh, onDataChange
                   {isDragActive ? 'Drop the Excel file here' : 'Drag & drop an Excel file here, or click to select'}
                 </p>
                 <p className="text-sm text-gray-500 mt-2">
-                  Supports .xlsx and .xls files
+                  Supports .xlsx, .xls, and .csv files (Max 10MB)
                 </p>
               </div>
             </div>
@@ -627,13 +724,15 @@ function FileoperationAddCrossCode({ onSuccess, onError, onRefresh, onDataChange
         </div>
 
         <div className="bg-blue-50 border border-blue-200 rounded-md p-4">
-          <h3 className="text-sm font-medium text-blue-800 mb-2">Expected Excel Format:</h3>
+          <h3 className="text-sm font-medium text-blue-800 mb-2">Template Requirements:</h3>
           <div className="text-sm text-blue-700 space-y-1">
+            <p><strong>⚠️ Important:</strong> Use the "Download Excel Template" button above to get the correct format</p>
             <p><strong>Brand:</strong> Must match existing brand in Products table</p>
             <p><strong>Code:</strong> Must match existing product code in Products table</p>
             <p><strong>Cross Brand:</strong> Name of competitor/alternate brand</p>
             <p><strong>Cross Code:</strong> Competitor's product code (will be normalized)</p>
             <p><strong>Hide:</strong> Yes/No - Controls visibility on website</p>
+            <p className="text-red-600 font-medium">📋 Column names are case-insensitive and support variations (e.g., "Cross Code", "CrossCode", "cross_code")</p>
           </div>
         </div>
       </div>
