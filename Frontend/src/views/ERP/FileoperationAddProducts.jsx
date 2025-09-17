@@ -3,13 +3,12 @@ import { useTranslation } from 'react-i18next';
 import { useSelector } from 'react-redux';
 import { useDropzone } from 'react-dropzone';
 import axios from 'axios';
-import Button from '@/components/Base/Button';
-import { Dialog } from '@headlessui/react';
-import Lucide from "@/components/Base/Lucide";
 import * as XLSX from 'xlsx';
-import LoadingIcon from '@/components/Base/LoadingIcon';
+import Button from '@/components/Base/Button';
+import Lucide from '@/components/Base/Lucide';
+import Notification from '@/components/Base/Notification';
+import TableComponent from '@/helpers/ui/TableComponent.jsx';
 import { setGlobalUnsavedData } from '@/hooks/useNavigationBlocker';
-import Notification from "@/components/Base/Notification";
 
 function FileoperationAddProducts({ onSuccess, onError, onRefresh, onDataChange }) {
   const { t } = useTranslation();
@@ -26,12 +25,17 @@ function FileoperationAddProducts({ onSuccess, onError, onRefresh, onDataChange 
   const [itemsPerPage] = useState(50);
   const [searchTerm, setSearchTerm] = useState('');
   const [error, setError] = useState('');
-  const [loading, setLoading] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
   const [toastMessage, setToastMessage] = useState('');
   const [editingRow, setEditingRow] = useState(null);
   const [editingData, setEditingData] = useState({});
   const [viewingRow, setViewingRow] = useState(null);
+  const [showViewModal, setShowViewModal] = useState(false);
+  const [showColumnControls, setShowColumnControls] = useState(false);
+  const [visibleColumns, setVisibleColumns] = useState([]);
+  const [tableColumns, setTableColumns] = useState([]);
+  const [tableData, setTableData] = useState([]);
+  const [loading, setLoading] = useState(false);
   const basicStickyNotification = useRef();
 
   // File upload handling
@@ -476,6 +480,232 @@ function FileoperationAddProducts({ onSuccess, onError, onRefresh, onDataChange 
     setViewingRow(null);
   };
 
+  // Transform validation data for TableComponent
+  const transformDataForTable = () => {
+    if (!validationResult || !importData) return;
+
+    const { valid_rows, invalid_rows, duplicates } = validationResult;
+    const allRows = [...valid_rows, ...invalid_rows, ...duplicates];
+
+    // Create dynamic columns based on Excel headers
+    const columns = importData.headers.map((header, index) => ({
+      title: header,
+      field: `col_${index}`,
+      minWidth: 150,
+      hozAlign: "left",
+      headerHozAlign: "center",
+      vertAlign: "middle",
+      print: true,
+      download: true,
+      editor: "input",
+      cellEdited: (cell) => {
+        const rowData = cell.getRow().getData();
+        const colIndex = parseInt(cell.getField().replace('col_', ''));
+        handleCellEdit(rowData.originalRowIndex, colIndex, cell.getValue());
+      },
+      formatter: (cell) => {
+        const rowData = cell.getRow().getData();
+        const value = cell.getValue();
+        const hasError = rowData.status === 'invalid' || rowData.status === 'duplicate';
+        
+        if (hasError && value) {
+          return `<span class="text-red-600 font-medium">${value || ''}</span>`;
+        }
+        return value || '';
+      }
+    }));
+
+    // Add status column
+    columns.push({
+      title: t("Status"),
+      field: "status",
+      minWidth: 100,
+      hozAlign: "center",
+      headerHozAlign: "center",
+      vertAlign: "middle",
+      print: true,
+      download: true,
+      formatter: (cell) => {
+        const status = cell.getValue();
+        let badgeClass = '';
+        let statusText = '';
+        
+        switch (status) {
+          case 'valid':
+            badgeClass = 'bg-green-100 text-green-800';
+            statusText = t('Valid');
+            break;
+          case 'invalid':
+            badgeClass = 'bg-yellow-100 text-yellow-800';
+            statusText = t('Invalid');
+            break;
+          case 'duplicate':
+            badgeClass = 'bg-red-100 text-red-800';
+            statusText = t('Duplicate');
+            break;
+          default:
+            badgeClass = 'bg-gray-100 text-gray-800';
+            statusText = status;
+        }
+        
+        return `<span class="px-2 py-1 text-xs font-medium rounded ${badgeClass}">${statusText}</span>`;
+      }
+    });
+
+    // Add actions column
+    columns.push({
+      title: t("Actions"),
+      field: "actions",
+      width: 120,
+      hozAlign: "center",
+      headerHozAlign: "center",
+      vertAlign: "middle",
+      print: false,
+      download: false,
+      headerSort: false,
+      formatter: (cell) => {
+        const rowData = cell.getRow().getData();
+        return `
+          <div class="flex items-center justify-center gap-2">
+            <button class="p-1 hover:bg-gray-100 rounded" title="${t('View')}" onclick="handleTableViewRow(${rowData.originalRowIndex})">
+              <svg class="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+              </svg>
+            </button>
+            <button class="p-1 hover:bg-gray-100 rounded" title="${t('Delete')}" onclick="handleTableDeleteRow(${rowData.originalRowIndex})">
+              <svg class="w-4 h-4 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+            </svg>
+            </button>
+          </div>
+        `;
+      }
+    });
+
+    // Transform row data
+    const transformedData = allRows.map((row) => {
+      const rowObj = { originalRowIndex: row.row };
+      
+      // Add column data
+      importData.headers.forEach((header, index) => {
+        rowObj[`col_${index}`] = row.data[index] || '';
+      });
+      
+      // Add status
+      if (valid_rows.some(r => r.row === row.row)) {
+        rowObj.status = 'valid';
+      } else if (invalid_rows.some(r => r.row === row.row)) {
+        rowObj.status = 'invalid';
+      } else if (duplicates.some(r => r.row === row.row)) {
+        rowObj.status = 'duplicate';
+      }
+      
+      return rowObj;
+    });
+
+    setTableColumns(columns);
+    setTableData(transformedData);
+  };
+
+  // Handle cell editing from table
+  const handleCellEdit = (originalRowIndex, colIndex, newValue) => {
+    if (!validationResult) return;
+    
+    const updatedValidation = { ...validationResult };
+    
+    // Find and update the row in the appropriate array
+    ['valid_rows', 'invalid_rows', 'duplicates'].forEach(arrayName => {
+      const rowIndex = updatedValidation[arrayName].findIndex(row => row.row === originalRowIndex);
+      if (rowIndex !== -1) {
+        updatedValidation[arrayName][rowIndex].data[colIndex] = newValue;
+      }
+    });
+    
+    setValidationResult(updatedValidation);
+    transformDataForTable(); // Refresh table data
+    
+    setToastMessage(t('Cell updated successfully'));
+    basicStickyNotification.current?.showToast();
+  };
+
+  // Global functions for table actions (accessible from formatter)
+  React.useEffect(() => {
+    window.handleTableViewRow = (originalRowIndex) => {
+      const { valid_rows, invalid_rows, duplicates } = validationResult;
+      const allRows = [...valid_rows, ...invalid_rows, ...duplicates];
+      const row = allRows.find(r => r.row === originalRowIndex);
+      if (row) {
+        handleViewRow(row);
+      }
+    };
+
+    window.handleTableDeleteRow = (originalRowIndex) => {
+      handleDeleteRow(originalRowIndex);
+    };
+
+    return () => {
+      delete window.handleTableViewRow;
+      delete window.handleTableDeleteRow;
+    };
+  }, [validationResult]);
+
+  // Transform data when validation result changes
+  React.useEffect(() => {
+    if (validationResult && importData) {
+      transformDataForTable();
+    }
+  }, [validationResult, importData]);
+
+  // Initialize visible columns when import data is loaded
+  React.useEffect(() => {
+    if (importData && importData.headers) {
+      setVisibleColumns(importData.headers.map((_, index) => index));
+    }
+  }, [importData]);
+
+  // Close column controls when clicking outside
+  React.useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (showColumnControls && !event.target.closest('.column-controls')) {
+        setShowColumnControls(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [showColumnControls]);
+
+  // Column control functions
+  const toggleColumnVisibility = (columnIndex) => {
+    setVisibleColumns(prev => 
+      prev.includes(columnIndex) 
+        ? prev.filter(index => index !== columnIndex)
+        : [...prev, columnIndex].sort((a, b) => a - b)
+    );
+  };
+
+  const moveColumn = (columnIndex, direction) => {
+    if (!importData || !importData.headers) return;
+    
+    const currentIndex = visibleColumns.indexOf(columnIndex);
+    if (currentIndex === -1) return;
+    
+    let newIndex;
+    if (direction === 'left') {
+      newIndex = Math.max(0, currentIndex - 1);
+    } else {
+      newIndex = Math.min(visibleColumns.length - 1, currentIndex + 1);
+    }
+    
+    if (newIndex !== currentIndex) {
+      const newVisibleColumns = [...visibleColumns];
+      [newVisibleColumns[currentIndex], newVisibleColumns[newIndex]] = 
+      [newVisibleColumns[newIndex], newVisibleColumns[currentIndex]];
+      setVisibleColumns(newVisibleColumns);
+    }
+  };
+
   // Handle upload new file when no valid rows
   const handleUploadNewFile = () => {
     const confirmed = window.confirm("There are no matching rows in the current file. Do you want to upload another file?");
@@ -543,19 +773,20 @@ function FileoperationAddProducts({ onSuccess, onError, onRefresh, onDataChange 
       );
     }
 
-    const { valid_rows, invalid_rows, duplicates } = validationResult;
+    const { valid_rows = [], invalid_rows = [], duplicates = [] } = validationResult || {};
     const allRows = [...valid_rows, ...invalid_rows, ...duplicates];
 
     // Filter rows based on search term
-    const filteredRows = allRows.filter(row => {
-      if (!searchTerm) return true;
-      return row.data.some(cell => 
-        String(cell).toLowerCase().includes(searchTerm.toLowerCase())
-      );
-    });
-
-    // Calculate pagination
-    const totalPages = Math.ceil(filteredRows.length / itemsPerPage);
+    const filteredRows = searchTerm 
+      ? allRows.filter(row => 
+          row.data.some(cell => 
+            cell && cell.toString().toLowerCase().includes(searchTerm.toLowerCase())
+          )
+        )
+      : allRows;
+    
+    const totalRows = filteredRows.length;
+    const totalPages = Math.ceil(totalRows / itemsPerPage);
     const startIndex = (currentPage - 1) * itemsPerPage;
     const paginatedRows = filteredRows.slice(startIndex, startIndex + itemsPerPage);
 
@@ -619,161 +850,240 @@ function FileoperationAddProducts({ onSuccess, onError, onRefresh, onDataChange 
           </div>
         </div>
 
-        {/* Data Table */}
-        <div className="bg-white rounded-lg shadow overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
-                <tr>
-                  {importData.headers.map((header, index) => (
-                    <th key={index} className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      {header}
-                    </th>
-                  ))}
-                  <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider w-32">
-                    {t("Actions")}
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {paginatedRows.map((row, index) => {
-                  const hasRowErrors = invalid_rows.some(invalidRow => invalidRow.row === row.row) || 
-                                     duplicates.some(duplicateRow => duplicateRow.row === row.row);
-                  
-                  return (
-                    <tr key={index} className={`border-b border-gray-100 hover:bg-gray-50 ${hasRowErrors ? 'bg-red-50' : ''}`}>
-                      {/* Dynamic columns based on Excel headers */}
-                      {importData.headers.map((header, colIndex) => (
-                        <td key={colIndex} className="px-4 py-3 border-r border-gray-100">
-                          {editingRow === row.row ? (
+        {/* Advanced Data Table with Column Controls */}
+        <div className="mt-6">
+          <div className="bg-white rounded-lg shadow overflow-hidden">
+            {/* Table Controls */}
+            <div className="px-6 py-4 border-b border-gray-200">
+              <div className="flex items-center justify-between">
+                <h3 className="text-lg font-medium text-gray-900">
+                  {t("Validation Results")} ({allRows.length} {t("rows")})
+                </h3>
+                <div className="flex items-center gap-3">
+                  {/* Column Visibility Controls */}
+                  <div className="relative column-controls">
+                    <button
+                      className="flex items-center px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50"
+                      onClick={() => setShowColumnControls(!showColumnControls)}
+                    >
+                      <Lucide icon="Columns3" className="w-4 h-4 mr-2" />
+                      {t("Columns")}
+                      <Lucide icon="ChevronDown" className="w-4 h-4 ml-2" />
+                    </button>
+                    
+                    {showColumnControls && (
+                      <div className="absolute right-0 mt-2 w-56 bg-white border border-gray-200 rounded-md shadow-lg z-10 max-h-64 overflow-y-auto">
+                        {importData.headers.map((header, index) => (
+                          <label key={index} className="flex items-center px-4 py-2 hover:bg-gray-50 cursor-pointer">
                             <input
-                              type="text"
-                              value={editingData[colIndex] || ''}
-                              onChange={(e) => setEditingData({...editingData, [colIndex]: e.target.value})}
-                              className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                              type="checkbox"
+                              checked={visibleColumns.includes(index)}
+                              onChange={() => toggleColumnVisibility(index)}
+                              className="mr-3 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
                             />
-                          ) : (
-                            <span className={hasRowErrors && row.data[colIndex] ? 'text-red-600 font-medium' : ''}>
-                              {row.data[colIndex] || ''}
+                            <span className="text-sm text-gray-700">{header}</span>
+                          </label>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                  
+                  {/* Search */}
+                  <input
+                    type="text"
+                    placeholder={t("Search in data...")}
+                    className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                  />
+                </div>
+              </div>
+            </div>
+            
+            {/* Table */}
+            <div className="overflow-x-auto">
+              <table className="min-w-full divide-y divide-gray-200">
+                <thead className="bg-gray-50">
+                  <tr>
+                    {importData.headers.map((header, index) => 
+                      visibleColumns.includes(index) && (
+                        <th 
+                          key={index} 
+                          className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                          onClick={() => moveColumn(index, 'left')}
+                          onDoubleClick={() => moveColumn(index, 'right')}
+                          title={t("Click to move left, double-click to move right")}
+                        >
+                          <div className="flex items-center justify-between">
+                            {header}
+                            <div className="flex items-center ml-2">
+                              <Lucide icon="ArrowLeft" className="w-3 h-3 text-gray-400" />
+                              <Lucide icon="ArrowRight" className="w-3 h-3 text-gray-400" />
+                            </div>
+                          </div>
+                        </th>
+                      )
+                    )}
+                    <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      {t("Status")}
+                    </th>
+                    <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider w-32">
+                      {t("Actions")}
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200">
+                  {paginatedRows.map((row, index) => {
+                    const hasRowErrors = invalid_rows.some(invalidRow => invalidRow.row === row.row) || 
+                                       duplicates.some(duplicateRow => duplicateRow.row === row.row);
+                    
+                    return (
+                      <tr key={index} className={`border-b border-gray-100 hover:bg-gray-50 ${hasRowErrors ? 'bg-red-50' : ''}`}>
+                        {/* Dynamic columns based on visibility */}
+                        {importData.headers.map((header, colIndex) => 
+                          visibleColumns.includes(colIndex) && (
+                            <td key={colIndex} className="px-4 py-3 border-r border-gray-100">
+                              {editingRow === row.row ? (
+                                <input
+                                  type="text"
+                                  value={editingData[colIndex] || ''}
+                                  onChange={(e) => setEditingData({...editingData, [colIndex]: e.target.value})}
+                                  className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                />
+                              ) : (
+                                <span className={hasRowErrors && row.data[colIndex] ? 'text-red-600 font-medium' : ''}>
+                                  {row.data[colIndex] || ''}
+                                </span>
+                              )}
+                            </td>
+                          )
+                        )}
+                        
+                        {/* Status column */}
+                        <td className="px-4 py-3 text-center">
+                          {valid_rows.some(r => r.row === row.row) && (
+                            <span className="px-2 py-1 text-xs font-medium bg-green-100 text-green-800 rounded">
+                              {t("Valid")}
+                            </span>
+                          )}
+                          {invalid_rows.some(r => r.row === row.row) && (
+                            <span className="px-2 py-1 text-xs font-medium bg-yellow-100 text-yellow-800 rounded">
+                              {t("Invalid")}
+                            </span>
+                          )}
+                          {duplicates.some(r => r.row === row.row) && (
+                            <span className="px-2 py-1 text-xs font-medium bg-red-100 text-red-800 rounded">
+                              {t("Duplicate")}
                             </span>
                           )}
                         </td>
-                      ))}
-                      
-                      {/* Actions column */}
-                      <td className="px-4 py-3 w-32">
-                        <div className="flex items-center justify-center gap-2">
-                          {editingRow === row.row ? (
-                            <>
-                              <button 
-                                className="p-1 hover:bg-gray-100 rounded" 
-                                title={t("Save")}
-                                onClick={() => handleSaveEdit(row.row)}
-                              >
-                                <svg className="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                                </svg>
-                              </button>
-                              <button 
-                                className="p-1 hover:bg-gray-100 rounded" 
-                                title={t("Cancel")}
-                                onClick={handleCancelEdit}
-                              >
-                                <svg className="w-4 h-4 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                                </svg>
-                              </button>
-                            </>
-                          ) : (
-                            <>
-                              <button 
-                                className="p-1 hover:bg-gray-100 rounded" 
-                                title={t("View")}
-                                onClick={() => handleViewRow(row)}
-                              >
-                                <svg className="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                                </svg>
-                              </button>
-                              <button 
-                                className="p-1 hover:bg-gray-100 rounded" 
-                                title={t("Edit")}
-                                onClick={() => handleEditRow(row)}
-                              >
-                                <svg className="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                                </svg>
-                              </button>
-                              <button 
-                                className="p-1 hover:bg-gray-100 rounded" 
-                                title={t("Delete")}
-                                onClick={() => handleDeleteRow(row.row)}
-                              >
-                                <svg className="w-4 h-4 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                                </svg>
-                              </button>
-                            </>
-                          )}
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
+                        
+                        {/* Actions column */}
+                        <td className="px-4 py-3 w-32">
+                          <div className="flex items-center justify-center gap-2">
+                            {editingRow === row.row ? (
+                              <>
+                                <button 
+                                  className="p-1 hover:bg-gray-100 rounded" 
+                                  title={t("Save")}
+                                  onClick={() => handleSaveEdit(row.row)}
+                                >
+                                  <svg className="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                                  </svg>
+                                </button>
+                                <button 
+                                  className="p-1 hover:bg-gray-100 rounded" 
+                                  title={t("Cancel")}
+                                  onClick={handleCancelEdit}
+                                >
+                                  <svg className="w-4 h-4 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                  </svg>
+                                </button>
+                              </>
+                            ) : (
+                              <>
+                                <button 
+                                  className="p-1 hover:bg-gray-100 rounded" 
+                                  title={t("View")}
+                                  onClick={() => handleViewRow(row)}
+                                >
+                                  <svg className="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                  </svg>
+                                </button>
+                                <button 
+                                  className="p-1 hover:bg-gray-100 rounded" 
+                                  title={t("Edit")}
+                                  onClick={() => handleEditRow(row)}
+                                >
+                                  <svg className="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                  </svg>
+                                </button>
+                                <button 
+                                  className="p-1 hover:bg-gray-100 rounded" 
+                                  title={t("Delete")}
+                                  onClick={() => handleDeleteRow(row.row)}
+                                >
+                                  <svg className="w-4 h-4 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                  </svg>
+                                </button>
+                              </>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+            
+            {/* Pagination */}
+            {totalPages > 1 && (
+              <div className="px-6 py-4 border-t border-gray-200">
+                <div className="flex justify-center items-center gap-2">
+                  <button 
+                    className="px-3 py-1 text-sm text-gray-600 hover:bg-gray-100 rounded disabled:opacity-50 disabled:cursor-not-allowed"
+                    onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
+                    disabled={currentPage === 1}
+                  >
+                    {t("Previous")}
+                  </button>
+                  
+                  {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                    const pageNum = Math.max(1, Math.min(totalPages, currentPage - 2 + i));
+                    return (
+                      <button
+                        key={pageNum}
+                        className={`px-3 py-1 text-sm rounded ${
+                          currentPage === pageNum
+                            ? 'bg-blue-500 text-white'
+                            : 'text-gray-600 hover:bg-gray-100'
+                        }`}
+                        onClick={() => setCurrentPage(pageNum)}
+                      >
+                        {pageNum}
+                      </button>
+                    );
+                  })}
+                  
+                  <button 
+                    className="px-3 py-1 text-sm text-gray-600 hover:bg-gray-100 rounded disabled:opacity-50 disabled:cursor-not-allowed"
+                    onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
+                    disabled={currentPage === totalPages}
+                  >
+                    {t("Next")}
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         </div>
-
-        {/* Pagination */}
-        {totalPages > 1 && (
-          <div className="flex justify-center items-center mt-4 gap-2">
-            <button 
-              className="px-3 py-1 text-sm text-gray-600 hover:bg-gray-100 rounded disabled:opacity-50 disabled:cursor-not-allowed"
-              onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
-              disabled={currentPage === 1}
-            >
-              {t("Previous")}
-            </button>
-            
-            {/* Page numbers */}
-            {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-              let pageNum;
-              if (totalPages <= 5) {
-                pageNum = i + 1;
-              } else if (currentPage <= 3) {
-                pageNum = i + 1;
-              } else if (currentPage >= totalPages - 2) {
-                pageNum = totalPages - 4 + i;
-              } else {
-                pageNum = currentPage - 2 + i;
-              }
-              
-              return (
-                <button
-                  key={pageNum}
-                  className={`px-3 py-1 text-sm rounded ${
-                    currentPage === pageNum
-                      ? 'bg-blue-600 text-white'
-                      : 'text-gray-600 hover:bg-gray-100'
-                  }`}
-                  onClick={() => setCurrentPage(pageNum)}
-                >
-                  {pageNum}
-                </button>
-              );
-            })}
-            
-            <button 
-              className="px-3 py-1 text-sm text-gray-600 hover:bg-gray-100 rounded disabled:opacity-50 disabled:cursor-not-allowed"
-              onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
-              disabled={currentPage === totalPages}
-            >
-              {t("Next")}
-            </button>
-          </div>
-        )}
 
         {/* Error message and action buttons */}
         {(invalid_rows.length > 0 || duplicates.length > 0) && (
@@ -907,7 +1217,7 @@ function FileoperationAddProducts({ onSuccess, onError, onRefresh, onDataChange 
 
             {loading && (
               <div className="mt-4 flex items-center justify-center">
-                <LoadingIcon icon="oval" className="w-6 h-6 mr-2" />
+                <Lucide icon="Loader2" className="w-6 h-6 mr-2 animate-spin" />
                 <span>{t("Processing file...")}</span>
               </div>
             )}
