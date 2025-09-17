@@ -735,6 +735,7 @@ function index_main() {
             refetch={refetch}
             setRefetch={setRefetch}
             permission={"fileoperation"}
+            show_create={false}
           />
         </Can>
       ) : currentImportType === 'cross_cars' ? (

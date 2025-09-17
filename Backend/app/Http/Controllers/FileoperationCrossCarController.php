@@ -22,12 +22,25 @@ class FileoperationCrossCarController extends Controller
     public function validateCrossCars(Request $request)
     {
         try {
+            Log::info('Cross cars validation request received', [
+                'files' => $request->hasFile('file'),
+                'file_info' => $request->hasFile('file') ? [
+                    'name' => $request->file('file')->getClientOriginalName(),
+                    'size' => $request->file('file')->getSize(),
+                    'mime' => $request->file('file')->getMimeType()
+                ] : null,
+                'operation_type' => $request->get('operation_type')
+            ]);
+
             $validator = Validator::make($request->all(), [
-                'file' => 'required|file|mimes:xlsx,xls|max:10240',
+                'file' => 'required|file|mimes:xlsx,xls,csv|max:10240',
                 'operation_type' => 'string'
             ]);
 
             if ($validator->fails()) {
+                Log::error('Cross cars validation failed', [
+                    'errors' => $validator->errors()->toArray()
+                ]);
                 return response()->json([
                     'success' => false,
                     'message' => 'Validation failed',
@@ -36,12 +49,16 @@ class FileoperationCrossCarController extends Controller
             }
 
             $file = $request->file('file');
+            Log::info('Processing Excel file', ['file_name' => $file->getClientOriginalName()]);
+            
             $data = Excel::toCollection(new class implements ToCollection {
                 public function collection(Collection $rows)
                 {
                     return $rows;
                 }
             }, $file)->first();
+            
+            Log::info('Excel data loaded', ['row_count' => $data->count()]);
 
             if ($data->isEmpty()) {
                 return response()->json([
@@ -53,6 +70,75 @@ class FileoperationCrossCarController extends Controller
             // Extract headers from first row
             $headers = $data->first()->toArray();
             $dataRows = $data->skip(1);
+
+            // Validate template structure - flexible matching
+            $requiredHeaders = ['Brand', 'Code', 'CarModel'];
+            $actualHeaders = array_slice($headers, 0, 3); // Only check first 3 columns
+            
+            // Clean headers (trim whitespace)
+            $actualHeaders = array_map('trim', $actualHeaders);
+            
+            // Create flexible mapping function
+            $normalizeHeader = function($header) {
+                $header = strtolower(trim($header));
+                $header = preg_replace('/[^a-z0-9]/', '', $header); // Remove spaces, hyphens, underscores
+                
+                // Handle variations for each column
+                $mappings = [
+                    // Brand variations
+                    'brand' => 'brand',
+                    'brands' => 'brand',
+                    'brandname' => 'brand',
+                    'brandnames' => 'brand',
+                    
+                    // Code variations
+                    'code' => 'code',
+                    'codes' => 'code',
+                    'productcode' => 'code',
+                    'productcodes' => 'code',
+                    'partcode' => 'code',
+                    'partnumber' => 'code',
+                    
+                    // Car Model variations
+                    'carmodel' => 'carmodel',
+                    'carmodels' => 'carmodel',
+                    'model' => 'carmodel',
+                    'models' => 'carmodel',
+                    'vehiclemodel' => 'carmodel',
+                    'automodel' => 'carmodel'
+                ];
+                
+                return $mappings[$header] ?? $header;
+            };
+            
+            // Normalize both expected and actual headers
+            $normalizedRequired = array_map($normalizeHeader, $requiredHeaders);
+            $normalizedActual = array_map($normalizeHeader, $actualHeaders);
+            
+            // Check if normalized headers match
+            $headerMismatch = false;
+            $missingColumns = [];
+            
+            foreach ($normalizedRequired as $index => $expectedCol) {
+                if (!isset($normalizedActual[$index]) || $normalizedActual[$index] !== $expectedCol) {
+                    $headerMismatch = true;
+                    $missingColumns[] = $requiredHeaders[$index];
+                }
+            }
+            
+            if ($headerMismatch) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Invalid template structure. Please ensure your file has the required columns.',
+                    'errors' => [
+                        'template' => 'File must contain Brand, Code, and Car Model columns (case insensitive)',
+                        'expected' => $requiredHeaders,
+                        'found' => $actualHeaders,
+                        'missing' => $missingColumns,
+                        'help' => 'Accepted variations: Brand/Brands, Code/Codes/Brand Number, Car Model/Model/Vehicle Model'
+                    ]
+                ], 422);
+            }
 
             Log::info('Cross cars validation started', [
                 'headers' => $headers,
@@ -308,27 +394,20 @@ class FileoperationCrossCarController extends Controller
                             ->exists();
 
                         if (!$exists) {
-                            // Generate cross_code from brand_code and car model
-                            $crossCode = $code . '-' . substr(md5($carModel), 0, 8);
-                            
                             Log::info('Creating crosscar entry', [
                                 'product_id' => $product->id,
-                                'car_model_id' => $carModelRecord->id,
-                                'cross_code' => $crossCode
+                                'car_model_id' => $carModelRecord->id
                             ]);
 
                             Crosscar::create([
                                 'product_id' => $product->id,
-                                'car_model_id' => $carModelRecord->id,
-                                'cross_code' => $crossCode,
-                                'is_visible' => 1
+                                'car_model_id' => $carModelRecord->id
                             ]);
                             
                             $imported++;
                             Log::info('Created crosscar entry successfully', [
                                 'product_id' => $product->id,
-                                'car_model_id' => $carModelRecord->id,
-                                'cross_code' => $crossCode
+                                'car_model_id' => $carModelRecord->id
                             ]);
                         } else {
                             $skipped++;

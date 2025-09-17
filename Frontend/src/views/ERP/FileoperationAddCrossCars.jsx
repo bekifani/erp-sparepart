@@ -1,26 +1,390 @@
-import React, { useState, useRef } from "react";
+import "@/assets/css/vendors/tabulator.css";
+import React, { useState, useRef, useCallback, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { useSelector } from "react-redux";
-import { useDropzone } from "react-dropzone";
-import axios from "axios";
+import { useDropzone } from 'react-dropzone';
+import axios from 'axios';
 import Button from "@/components/Base/Button";
 import LoadingIcon from "@/components/Base/LoadingIcon";
+import Notification from "@/components/Base/Notification";
+import Lucide from "@/components/Base/Lucide";
+import * as XLSX from 'xlsx';
 import { setGlobalUnsavedData } from "@/hooks/useNavigationBlocker";
+import { TabulatorFull as Tabulator } from "tabulator-tables";
+import { createIcons, icons } from "lucide";
 
 function FileoperationAddCrossCars({ onSuccess, onError, onRefresh, onDataChange }) {
   const { t } = useTranslation();
   const app_url = useSelector((state) => state.auth.app_url);
   const token = useSelector((state) => state.auth.token);
+  const tenant_id = useSelector((state) => state.auth.tenant_id);
   
   const [uploadedFile, setUploadedFile] = useState(null);
   const [importData, setImportData] = useState(null);
   const [validationResult, setValidationResult] = useState(null);
-  const [showPreview, setShowPreview] = useState(false);
-  const [loading, setLoading] = useState(false);
+  const [isValidating, setIsValidating] = useState(false);
+  const [isProcessing, setIsProcessing] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage] = useState(50);
+  const [rowsPerPage] = useState(10);
+  const [editingRow, setEditingRow] = useState(null);
+  const [editFormData, setEditFormData] = useState({});
+  const [showExportModal, setShowExportModal] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [error, setError] = useState('');
+  
+  // Tabulator refs
+  const tableRef = useRef();
+  const tabulator = useRef();
+  const [loading, setLoading] = useState(false);
+  const [showPreview, setShowPreview] = useState(false);
+  const [showFilterModal, setShowFilterModal] = useState(false);
+  const [showColumnsModal, setShowColumnsModal] = useState(false);
+  const [showViewModal, setShowViewModal] = useState(false);
+  const [selectedRowData, setSelectedRowData] = useState(null);
+  const [columnVisibility, setColumnVisibility] = useState({
+    brand: true,
+    code: true,
+    carModel: true,
+    actions: true
+  });
+  const [filters, setFilters] = useState({
+    brand: '',
+    code: '',
+    carModel: '',
+    status: 'all'
+  });
+
+  // Initialize Tabulator
+  const initTabulator = useCallback(() => {
+    if (!tableRef.current || !validationResult) return;
+
+    const { valid_rows = [], invalid_rows = [], duplicates = [] } = validationResult;
+    const allRows = [...valid_rows, ...invalid_rows, ...duplicates];
+
+    // Prepare data for Tabulator
+    const tableData = allRows.map((row, index) => {
+      const isInvalid = invalid_rows.some(invalidRow => invalidRow.row === row.row);
+      const isDuplicate = duplicates.some(dupRow => dupRow.row === row.row);
+      const status = isDuplicate ? 'Duplicate' : isInvalid ? 'Invalid' : 'Valid';
+      
+      return {
+        id: row.row,
+        row: row.row,
+        brand: row.data[0] || '',
+        code: row.data[1] || '',
+        carModel: row.data[2] || '',
+        status: status,
+        errors: row.errors ? row.errors.join(', ') : '',
+        isInvalid: isInvalid,
+        isDuplicate: isDuplicate,
+        originalData: row
+      };
+    });
+
+    // Define columns
+    const columns = [
+      {
+        title: t("Row"),
+        field: "row",
+        width: 80,
+        hozAlign: "center",
+        headerSort: false
+      },
+      {
+        title: t("Brand"),
+        field: "brand",
+        minWidth: 120,
+        editor: "input",
+        editable: function(cell) {
+          const row = cell.getRow().getData();
+          return editingRow === row.row;
+        },
+        formatter: function(cell) {
+          const row = cell.getRow().getData();
+          const value = cell.getValue();
+          const isEditable = editingRow === row.row;
+          
+          if (isEditable) {
+            return `<div style="background-color: #fef3c7; border: 2px dashed #f59e0b; padding: 4px; border-radius: 4px; cursor: text;" title="Click to edit">${value || ''}</div>`;
+          }
+          return value || '';
+        },
+        cellEdited: function(cell) {
+          const row = cell.getRow().getData();
+          const newValue = cell.getValue();
+          setEditFormData(prev => ({ ...prev, brand: newValue }));
+        }
+      },
+      {
+        title: t("Code"),
+        field: "code",
+        minWidth: 120,
+        editor: "input",
+        editable: function(cell) {
+          const row = cell.getRow().getData();
+          return editingRow === row.row;
+        },
+        formatter: function(cell) {
+          const row = cell.getRow().getData();
+          const value = cell.getValue();
+          const isEditable = editingRow === row.row;
+          
+          if (isEditable) {
+            return `<div style="background-color: #fef3c7; border: 2px dashed #f59e0b; padding: 4px; border-radius: 4px; cursor: text;" title="Click to edit">${value || ''}</div>`;
+          }
+          return value || '';
+        },
+        cellEdited: function(cell) {
+          const row = cell.getRow().getData();
+          const newValue = cell.getValue();
+          setEditFormData(prev => ({ ...prev, code: newValue }));
+        }
+      },
+      {
+        title: t("Car Model"),
+        field: "carModel",
+        minWidth: 150,
+        editor: "input",
+        editable: function(cell) {
+          const row = cell.getRow().getData();
+          return editingRow === row.row;
+        },
+        formatter: function(cell) {
+          const row = cell.getRow().getData();
+          const value = cell.getValue();
+          const isEditable = editingRow === row.row;
+          
+          if (isEditable) {
+            return `<div style="background-color: #fef3c7; border: 2px dashed #f59e0b; padding: 4px; border-radius: 4px; cursor: text;" title="Click to edit">${value || ''}</div>`;
+          }
+          return value || '';
+        },
+        cellEdited: function(cell) {
+          const row = cell.getRow().getData();
+          const newValue = cell.getValue();
+          setEditFormData(prev => ({ ...prev, carModel: newValue }));
+        }
+      },
+      {
+        title: t("Status"),
+        field: "status",
+        width: 100,
+        hozAlign: "center",
+        formatter: function(cell) {
+          const value = cell.getValue();
+          const color = value === 'Valid' ? 'green' : value === 'Invalid' ? 'red' : 'orange';
+          return `<span style="color: ${color}; font-weight: bold;">${value}</span>`;
+        }
+      },
+      {
+        title: t("Errors"),
+        field: "errors",
+        minWidth: 200,
+        formatter: function(cell) {
+          const value = cell.getValue();
+          return value ? `<span style="color: red; font-size: 12px;">${value}</span>` : '';
+        }
+      },
+      {
+        title: t("Actions"),
+        field: "actions",
+        width: 150,
+        hozAlign: "center",
+        headerSort: false,
+        formatter: function(cell) {
+          const row = cell.getRow().getData();
+          const isEditing = editingRow === row.row;
+          
+          if (isEditing) {
+            return `<div class="flex items-center justify-center gap-1">
+              <button class="save-btn text-green-600 hover:text-green-800 p-1" title="${t('Save')}" onclick="window.handleSaveEdit && window.handleSaveEdit()">
+                <i data-lucide="check" class="w-4 h-4"></i>
+              </button>
+              <button class="cancel-btn text-red-600 hover:text-red-800 p-1" title="${t('Cancel')}" onclick="window.handleCancelEdit && window.handleCancelEdit()">
+                <i data-lucide="x" class="w-4 h-4"></i>
+              </button>
+            </div>`;
+          } else {
+            return `<div class="flex items-center justify-center gap-1">
+              <button class="view-btn text-blue-600 hover:text-blue-800 p-1" title="${t('View')}" onclick="window.handleViewRow && window.handleViewRow(${JSON.stringify(row.originalData).replace(/"/g, '&quot;')})">
+                <i data-lucide="eye" class="w-4 h-4"></i>
+              </button>
+              <button class="edit-btn text-green-600 hover:text-green-800 p-1" title="${t('Edit')}" onclick="window.handleEditRow && window.handleEditRow(${JSON.stringify(row.originalData).replace(/"/g, '&quot;')})">
+                <i data-lucide="edit" class="w-4 h-4"></i>
+              </button>
+              <button class="delete-btn text-red-600 hover:text-red-800 p-1" title="${t('Delete')}" onclick="window.handleDeleteRow && window.handleDeleteRow(${row.row})">
+                <i data-lucide="trash-2" class="w-4 h-4"></i>
+              </button>
+            </div>`;
+          }
+        }
+      }
+    ];
+
+    // Initialize Tabulator
+    tabulator.current = new Tabulator(tableRef.current, {
+      data: tableData,
+      layout: "fitColumns",
+      responsiveLayout: "hide",
+      movableColumns: true, // Enable column swapping
+      pagination: "local",
+      paginationSize: 10,
+      paginationSizeSelector: [10, 20, 50, 100],
+      columns: columns,
+      rowFormatter: function(row) {
+        const data = row.getData();
+        if (data.isInvalid) {
+          row.getElement().style.backgroundColor = "#fef2f2";
+        } else if (data.isDuplicate) {
+          row.getElement().style.backgroundColor = "#fef3c7";
+        }
+      }
+    });
+
+    // Handle row actions with better event delegation
+    tabulator.current.on("cellClick", function(e, cell) {
+      const row = cell.getRow().getData();
+      const field = cell.getField();
+      
+      if (field === "actions") {
+        e.stopPropagation();
+        const target = e.target.closest('button') || e.target;
+        
+        if (target.classList.contains('view-btn') || target.closest('.view-btn')) {
+          handleViewRow(row.originalData);
+        } else if (target.classList.contains('edit-btn') || target.closest('.edit-btn')) {
+          handleEditRow(row.originalData);
+        } else if (target.classList.contains('save-btn') || target.closest('.save-btn')) {
+          handleSaveEdit();
+        } else if (target.classList.contains('cancel-btn') || target.closest('.cancel-btn')) {
+          handleCancelEdit();
+        } else if (target.classList.contains('delete-btn') || target.closest('.delete-btn')) {
+          handleDeleteRow(row.row);
+        }
+      }
+    });
+
+    // Additional event listener for button clicks
+    tabulator.current.on("renderComplete", function() {
+      const tableElement = tabulator.current.element;
+      
+      // Remove any existing event listeners to avoid duplicates
+      tableElement.removeEventListener('click', handleTableClick);
+      
+      // Add new event listener
+      tableElement.addEventListener('click', handleTableClick);
+    });
+
+    // Render icons after table is built
+    tabulator.current.on("renderComplete", () => {
+      createIcons({
+        icons,
+        attrs: {
+          "stroke-width": 1.5,
+        },
+        nameAttr: "data-lucide",
+      });
+    });
+
+    // Expose handler functions to global scope for onclick handlers
+    window.handleViewRow = handleViewRow;
+    window.handleEditRow = handleEditRow;
+    window.handleSaveEdit = handleSaveEdit;
+    window.handleCancelEdit = handleCancelEdit;
+    window.handleDeleteRow = handleDeleteRow;
+
+  }, [validationResult, t, editingRow]);
+
+  // Handle table click events for buttons
+  const handleTableClick = useCallback((e) => {
+    const target = e.target.closest('button');
+    if (!target) return;
+
+    // Find the row data
+    const rowElement = target.closest('[tabulator-row]');
+    if (!rowElement) return;
+
+    const rowIndex = rowElement.getAttribute('tabulator-row');
+    const rowData = tabulator.current?.getRow(rowIndex)?.getData();
+    if (!rowData) return;
+
+    e.preventDefault();
+    e.stopPropagation();
+
+    if (target.classList.contains('view-btn')) {
+      handleViewRow(rowData.originalData);
+    } else if (target.classList.contains('edit-btn')) {
+      handleEditRow(rowData.originalData);
+    } else if (target.classList.contains('save-btn')) {
+      handleSaveEdit();
+    } else if (target.classList.contains('cancel-btn')) {
+      handleCancelEdit();
+    } else if (target.classList.contains('delete-btn')) {
+      handleDeleteRow(rowData.row);
+    }
+  }, []);
+
+  // Handle cell editing
+  const handleCellEdit = (rowId, field, newValue) => {
+    if (!validationResult) return;
+    
+    // Update the validation result data
+    const updateRowData = (rows) => {
+      return rows.map(row => {
+        if (row.row === rowId) {
+          const newData = [...row.data];
+          const fieldIndex = field === 'brand' ? 0 : field === 'code' ? 1 : 2;
+          newData[fieldIndex] = newValue;
+          return { ...row, data: newData };
+        }
+        return row;
+      });
+    };
+
+    const updatedValidation = {
+      ...validationResult,
+      valid_rows: updateRowData(validationResult.valid_rows),
+      invalid_rows: updateRowData(validationResult.invalid_rows),
+      duplicates: updateRowData(validationResult.duplicates)
+    };
+
+    setValidationResult(updatedValidation);
+  };
+
+  // Initialize Tabulator when validation result or editing state changes
+  useEffect(() => {
+    if (validationResult && showPreview) {
+      setTimeout(() => {
+        initTabulator();
+      }, 100);
+    }
+  }, [validationResult, showPreview, editingRow, initTabulator]);
+
+  // Download Excel Template
+  const handleDownloadTemplate = () => {
+    // Create Excel template with required columns
+    const templateData = [
+      ['Brand', 'Code', 'Car Model'],
+      ['NISSAN', 'ABC123', 'INFINITI G37'],
+      ['TOYOTA', 'DEF456', 'CAMRY 2020']
+    ];
+
+    // Create workbook and worksheet
+    const wb = XLSX.utils.book_new();
+    const ws = XLSX.utils.aoa_to_sheet(templateData);
+    
+    // Set column widths
+    ws['!cols'] = [
+      { width: 15 }, // Brand
+      { width: 15 }, // Code
+      { width: 20 }  // CarModel
+    ];
+
+    XLSX.utils.book_append_sheet(wb, ws, 'Cross Cars Template');
+    
+    // Download the file
+    XLSX.writeFile(wb, 'cross_cars_template.xlsx');
+  };
 
   // File upload handling
   const handleFileUpload = async (acceptedFiles) => {
@@ -49,7 +413,8 @@ function FileoperationAddCrossCars({ onSuccess, onError, onRefresh, onDataChange
           headers: {
             'Content-Type': 'multipart/form-data',
             'Authorization': `Bearer ${token}`,
-          },
+            'X-Tenant-ID': tenant_id
+          }
         }
       );
 
@@ -62,7 +427,8 @@ function FileoperationAddCrossCars({ onSuccess, onError, onRefresh, onDataChange
       }
     } catch (error) {
       console.error('Upload error:', error);
-      setError('Failed to upload file. Please try again.');
+      console.error('Error response:', error.response?.data);
+      setError(error.response?.data?.message || 'Failed to upload file. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -119,6 +485,130 @@ function FileoperationAddCrossCars({ onSuccess, onError, onRefresh, onDataChange
     setValidationResult(updatedValidation);
   };
 
+  const handleEditRow = (row) => {
+    setEditingRow(row.row);
+    setEditFormData({
+      brand: row.data[0] || '',
+      code: row.data[1] || '',
+      carModel: row.data[2] || ''
+    });
+  };
+
+  const handleSaveEdit = () => {
+    if (!validationResult || !editingRow) return;
+    
+    const updatedData = [editFormData.brand, editFormData.code, editFormData.carModel];
+    
+    // Update the row data in all arrays
+    const updateRowData = (rows) => {
+      return rows.map(row => {
+        if (row.row === editingRow) {
+          return { ...row, data: updatedData };
+        }
+        return row;
+      });
+    };
+    
+    const updatedValidation = {
+      ...validationResult,
+      valid_rows: updateRowData(validationResult.valid_rows),
+      invalid_rows: updateRowData(validationResult.invalid_rows),
+      duplicates: updateRowData(validationResult.duplicates)
+    };
+    
+    setValidationResult(updatedValidation);
+    setEditingRow(null);
+    setEditFormData({});
+  };
+
+  const handleCancelEdit = () => {
+    setEditingRow(null);
+    setEditFormData({});
+  };
+
+  const handleExportInvalidRows = () => {
+    if (!validationResult || !validationResult.invalid_rows.length) return;
+    
+    const invalidData = [
+      ['Row', 'Brand', 'Code', 'CarModel', 'Errors'],
+      ...validationResult.invalid_rows.map(row => [
+        row.row,
+        row.data[0] || '',
+        row.data[1] || '',
+        row.data[2] || '',
+        row.errors.join(', ')
+      ])
+    ];
+    
+    const ws = XLSX.utils.aoa_to_sheet(invalidData);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Invalid Rows');
+    XLSX.writeFile(wb, 'cross_cars_invalid_rows.xlsx');
+  };
+
+  const handleViewRow = (row) => {
+    setSelectedRowData(row);
+    setShowViewModal(true);
+  };
+
+  const handleResetFilters = () => {
+    setFilters({
+      brand: '',
+      code: '',
+      carModel: '',
+      status: 'all'
+    });
+    setSearchTerm('');
+    setCurrentPage(1);
+  };
+
+  const handlePrint = () => {
+    window.print();
+  };
+
+  const handleExportData = (format) => {
+    if (!validationResult) return;
+    
+    const { valid_rows = [], invalid_rows = [], duplicates = [] } = validationResult;
+    const allRows = [...valid_rows, ...invalid_rows, ...duplicates];
+    
+    const exportData = [
+      ['Row', 'Brand', 'Code', 'Car Model', 'Status', 'Errors'],
+      ...allRows.map(row => {
+        const isInvalid = invalid_rows.some(invalidRow => invalidRow.row === row.row);
+        const isDuplicate = duplicates.some(dupRow => dupRow.row === row.row);
+        const status = isDuplicate ? 'Duplicate' : isInvalid ? 'Invalid' : 'Valid';
+        const errors = isInvalid ? invalid_rows.find(ir => ir.row === row.row)?.errors?.join(', ') || '' :
+                     isDuplicate ? 'Duplicate entry' : '';
+        
+        return [
+          row.row,
+          row.data[0] || '',
+          row.data[1] || '',
+          row.data[2] || '',
+          status,
+          errors
+        ];
+      })
+    ];
+    
+    if (format === 'xlsx') {
+      const ws = XLSX.utils.aoa_to_sheet(exportData);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, 'Cross Cars Data');
+      XLSX.writeFile(wb, 'cross_cars_data.xlsx');
+    } else if (format === 'csv') {
+      const csvContent = exportData.map(row => row.join(',')).join('\n');
+      const blob = new Blob([csvContent], { type: 'text/csv' });
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'cross_cars_data.csv';
+      a.click();
+      window.URL.revokeObjectURL(url);
+    }
+  };
+
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop: handleFileUpload,
     accept: {
@@ -173,21 +663,6 @@ function FileoperationAddCrossCars({ onSuccess, onError, onRefresh, onDataChange
     }
   };
 
-  // Handle export invalid rows
-  const handleExportInvalidRows = () => {
-    if (!validationResult || !validationResult.invalid_rows.length) return;
-
-    const csvContent = "data:text/csv;charset=utf-8," 
-      + validationResult.invalid_rows.map(row => row.data.join(",")).join("\n");
-    
-    const encodedUri = encodeURI(csvContent);
-    const link = document.createElement("a");
-    link.setAttribute("href", encodedUri);
-    link.setAttribute("download", "invalid_cross_cars.csv");
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-  };
 
   // Handle upload new file when no valid rows
   const handleUploadNewFile = () => {
@@ -236,18 +711,48 @@ function FileoperationAddCrossCars({ onSuccess, onError, onRefresh, onDataChange
     const hasDuplicates = duplicates.length > 0;
     const hasNoValidRows = valid_rows.length === 0 && allRows.length > 0;
 
-    // Filter rows based on search term
+    // Filter rows based on search term and filters
     const filteredRows = allRows.filter(row => {
-      if (!searchTerm) return true;
-      return row.data.some(cell => 
+      // Search term filter
+      if (searchTerm && !row.data.some(cell => 
         String(cell).toLowerCase().includes(searchTerm.toLowerCase())
-      );
+      )) {
+        return false;
+      }
+      
+      // Brand filter
+      if (filters.brand && !String(row.data[0] || '').toLowerCase().includes(filters.brand.toLowerCase())) {
+        return false;
+      }
+      
+      // Code filter
+      if (filters.code && !String(row.data[1] || '').toLowerCase().includes(filters.code.toLowerCase())) {
+        return false;
+      }
+      
+      // Car Model filter
+      if (filters.carModel && !String(row.data[2] || '').toLowerCase().includes(filters.carModel.toLowerCase())) {
+        return false;
+      }
+      
+      // Status filter
+      if (filters.status !== 'all') {
+        const isInvalid = invalid_rows.some(invalidRow => invalidRow.row === row.row);
+        const isDuplicate = duplicates.some(dupRow => dupRow.row === row.row);
+        const isValid = !isInvalid && !isDuplicate;
+        
+        if (filters.status === 'valid' && !isValid) return false;
+        if (filters.status === 'invalid' && !isInvalid) return false;
+        if (filters.status === 'duplicate' && !isDuplicate) return false;
+      }
+      
+      return true;
     });
 
     // Calculate pagination
-    const totalPages = Math.ceil(filteredRows.length / itemsPerPage);
-    const startIndex = (currentPage - 1) * itemsPerPage;
-    const endIndex = startIndex + itemsPerPage;
+    const totalPages = Math.ceil(filteredRows.length / rowsPerPage);
+    const startIndex = (currentPage - 1) * rowsPerPage;
+    const endIndex = startIndex + rowsPerPage;
     const currentRows = filteredRows.slice(startIndex, endIndex);
 
     return (
@@ -286,206 +791,105 @@ function FileoperationAddCrossCars({ onSuccess, onError, onRefresh, onDataChange
               className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
             <span className="text-sm text-gray-600">
-              Showing {startIndex + 1} to {Math.min(startIndex + itemsPerPage, filteredRows.length)} of {filteredRows.length} entries
+              Showing {startIndex + 1} to {Math.min(startIndex + rowsPerPage, filteredRows.length)} of {filteredRows.length} entries
             </span>
           </div>
           
-          <div className="flex gap-2">
-            <Button
-              variant="outline-secondary"
-              size="sm"
-              onClick={handleUploadNewFile}
-              disabled={loading}
+          {/* Action buttons - matching Added Files tab */}
+          <div className="flex items-center gap-2">
+            {/* Filter button */}
+            <button
+              onClick={() => setShowFilterModal(true)}
+              className="flex items-center gap-2 px-3 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 transition-colors"
             >
-              Upload New File
-            </Button>
-            
-            {duplicates.length > 0 && (
-              <Button
-                variant="outline-primary"
-                size="sm"
-                onClick={handleRemoveDuplicates}
-                disabled={loading}
-              >
-                Remove duplicate lines
-              </Button>
-            )}
-            
-            {invalid_rows.length > 0 && (
-              <>
-                <Button
-                  variant="outline-danger"
-                  size="sm"
-                  onClick={handleRemoveMismatchedRows}
-                  disabled={loading}
-                >
-                  Remove mismatched rows
-                </Button>
-                <Button
-                  variant="outline-secondary"
-                  size="sm"
-                  onClick={handleExportInvalidRows}
-                  disabled={loading}
-                >
-                  Export invalid rows
-                </Button>
-              </>
-            )}
-            
-            {valid_rows.length > 0 && (
-              <Button
-                variant="primary"
-                size="sm"
-                onClick={() => handleProcessImport(false)}
-                disabled={loading || valid_rows.length === 0}
-              >
-                {loading ? 'Importing...' : 'Import xls/xlsx'}
-              </Button>
-            )}
-          </div>
-        </div>
-
-        {/* Column headers with dropdowns */}
-        <div className="flex items-center gap-0 mb-4 bg-gray-50 border border-gray-200 rounded-t-lg">
-          <div className="relative flex-none w-32 px-4 py-3 border-r border-gray-200">
-            <select className="form-select w-full text-sm border-0 bg-transparent p-0 focus:ring-0">
-              <option value="">{t("Brand")}</option>
-            </select>
-          </div>
-          
-          <div className="relative flex-none w-32 px-4 py-3 border-r border-gray-200">
-            <select className="form-select w-full text-sm border-0 bg-transparent p-0 focus:ring-0">
-              <option value="">{t("Code")}</option>
-            </select>
-          </div>
-          
-          <div className="relative flex-1 px-4 py-3 border-r border-gray-200">
-            <select className="form-select w-full text-sm border-0 bg-transparent p-0 focus:ring-0">
-              <option value="">{t("Car model")}</option>
-            </select>
-          </div>
-          
-          <div className="flex-none w-32 px-4 py-3 text-center">
-            <span className="text-sm font-medium text-gray-700">{t("Actions")}</span>
-          </div>
-        </div>
-
-        {/* Data table */}
-        <div className="border border-gray-200 border-t-0 rounded-b-lg">
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <tbody>
-                {currentRows.map((row, index) => {
-                  const isInvalid = invalid_rows.some(invalidRow => invalidRow.row === row.row);
-                  const isDuplicate = duplicates.some(dupRow => dupRow.row === row.row);
-                  const hasRowErrors = isInvalid || isDuplicate;
-                  
-                  return (
-                    <tr key={index} className={`border-b border-gray-100 hover:bg-gray-50 ${hasRowErrors ? 'bg-red-50' : ''}`}>
-                      {/* Brand column */}
-                      <td className="px-4 py-3 w-32 border-r border-gray-100">
-                        <span className={hasRowErrors && row.data[0] ? 'text-red-600 font-medium' : ''}>
-                          {row.data[0] || ''}
-                        </span>
-                      </td>
-                      
-                      {/* Code column */}
-                      <td className="px-4 py-3 w-32 border-r border-gray-100">
-                        <span className={hasRowErrors && row.data[1] ? 'text-red-600 font-medium' : ''}>
-                          {row.data[1] || ''}
-                        </span>
-                      </td>
-                      
-                      {/* Car model column */}
-                      <td className="px-4 py-3 flex-1 border-r border-gray-100">
-                        <span className={hasRowErrors && row.data[2] ? 'text-red-600 font-medium' : ''}>
-                          {row.data[2] || ''}
-                        </span>
-                      </td>
-                      
-                      {/* Actions column */}
-                      <td className="px-4 py-3 w-32">
-                        <div className="flex items-center justify-center gap-2">
-                          <button className="p-1 hover:bg-gray-100 rounded" title={t("View")}>
-                            <svg className="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                            </svg>
-                          </button>
-                          <button className="p-1 hover:bg-gray-100 rounded" title={t("Edit")}>
-                            <svg className="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                            </svg>
-                          </button>
-                          <button 
-                            className="p-1 hover:bg-gray-100 rounded" 
-                            title={t("Delete")}
-                            onClick={() => handleDeleteRow(row.row)}
-                          >
-                            <svg className="w-4 h-4 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                            </svg>
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        </div>
-
-        {/* Pagination */}
-        {totalPages > 1 && (
-          <div className="flex justify-center items-center mt-4 gap-2">
-            <button 
-              className="px-3 py-1 text-sm text-gray-600 hover:bg-gray-100 rounded disabled:opacity-50 disabled:cursor-not-allowed"
-              onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
-              disabled={currentPage === 1}
-            >
-              {t("Previous")}
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
+              </svg>
             </button>
             
-            {/* Page numbers */}
-            {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-              let pageNum;
-              if (totalPages <= 5) {
-                pageNum = i + 1;
-              } else if (currentPage <= 3) {
-                pageNum = i + 1;
-              } else if (currentPage >= totalPages - 2) {
-                pageNum = totalPages - 4 + i;
-              } else {
-                pageNum = currentPage - 2 + i;
-              }
+            {/* Columns button */}
+            <button
+              onClick={() => setShowColumnsModal(true)}
+              className="flex items-center gap-2 px-3 py-2 border border-gray-300 rounded-md hover:bg-gray-50 transition-colors"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 17V7m0 10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h2a2 2 0 012 2m0 10a2 2 0 002 2h2a2 2 0 002-2M9 7a2 2 0 012-2h2a2 2 0 012 2m0 10V7m0 10a2 2 0 002 2h2a2 2 0 002-2V7a2 2 0 00-2-2h-2a2 2 0 00-2 2" />
+              </svg>
+              <span className="text-sm">Columns</span>
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+              </svg>
+            </button>
+            
+            {/* Reset button */}
+            <button
+              onClick={handleResetFilters}
+              className="flex items-center gap-2 px-3 py-2 border border-gray-300 rounded-md hover:bg-gray-50 transition-colors"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M1 4v6h6m16 10v-6h-6M7.05 3.05A9 9 0 0119 12h-2a7 7 0 00-10.95-5.95L7.05 3.05z" />
+              </svg>
+              <span className="text-sm">Reset</span>
+            </button>
+            
+            {/* Print button */}
+            <button
+              onClick={handlePrint}
+              className="flex items-center gap-2 px-3 py-2 border border-gray-300 rounded-md hover:bg-gray-50 transition-colors"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
+              </svg>
+              <span className="text-sm">Print</span>
+            </button>
+            
+            {/* Export dropdown */}
+            <div className="relative">
+              <button
+                onClick={() => setShowExportModal(!showExportModal)}
+                className="flex items-center gap-2 px-3 py-2 border border-gray-300 rounded-md hover:bg-gray-50 transition-colors"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+                <span className="text-sm">Export</span>
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+              </svg>
+              </button>
               
-              return (
-                <button
-                  key={pageNum}
-                  className={`px-3 py-1 text-sm rounded ${
-                    currentPage === pageNum
-                      ? 'bg-blue-600 text-white'
-                      : 'text-gray-600 hover:bg-gray-100'
-                  }`}
-                  onClick={() => setCurrentPage(pageNum)}
-                >
-                  {pageNum}
-                </button>
-              );
-            })}
-            
-            <button 
-              className="px-3 py-1 text-sm text-gray-600 hover:bg-gray-100 rounded disabled:opacity-50 disabled:cursor-not-allowed"
-              onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
-              disabled={currentPage === totalPages}
-            >
-              {t("Next")}
-            </button>
+              {showExportModal && (
+                <div className="absolute right-0 mt-2 w-48 bg-white border border-gray-200 rounded-md shadow-lg z-10">
+                  <div className="py-1">
+                    <button
+                      onClick={() => {
+                        handleExportData('xlsx');
+                        setShowExportModal(false);
+                      }}
+                      className="block w-full text-left px-4 py-2 text-sm hover:bg-gray-100"
+                    >
+                      Export as Excel (.xlsx)
+                    </button>
+                    <button
+                      onClick={() => {
+                        handleExportData('csv');
+                        setShowExportModal(false);
+                      }}
+                      className="block w-full text-left px-4 py-2 text-sm hover:bg-gray-100"
+                    >
+                      Export as CSV (.csv)
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
-        )}
+        </div>
 
-        {/* Error message and action buttons */}
+        {/* Tabulator Table */}
+        <div ref={tableRef} className="border border-gray-200 rounded-lg"></div>
+
+        {/* Action buttons for errors */}
         {hasErrors && (
           <div className="mt-4 flex justify-between items-center">
             <div className="text-red-600 text-sm">
@@ -507,11 +911,7 @@ function FileoperationAddCrossCars({ onSuccess, onError, onRefresh, onDataChange
                 disabled={loading}
                 className="whitespace-nowrap"
               >
-                Remove mismatched rows <br />
-                and complete data import
-                <svg className="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                </svg>
+                Remove mismatched rows and complete data import
               </Button>
             </div>
           </div>
@@ -538,6 +938,19 @@ function FileoperationAddCrossCars({ onSuccess, onError, onRefresh, onDataChange
             <div className="text-sm text-blue-600">
               <strong>{t("Validation")}:</strong> {t("Brand/Code vs. Products; Car Model vs. Car Models")}
             </div>
+          </div>
+
+          {/* Download Template Button */}
+          <div className="mb-4">
+            <Button
+              variant="outline-primary"
+              size="sm"
+              onClick={handleDownloadTemplate}
+              className="flex items-center gap-2"
+            >
+              <Lucide icon="Download" className="w-4 h-4" />
+              {t("Download Excel Template")}
+            </Button>
           </div>
         </div>
 
@@ -574,6 +987,211 @@ function FileoperationAddCrossCars({ onSuccess, onError, onRefresh, onDataChange
         ) : (
           /* Preview and Validation Results */
           renderDataGrid()
+        )}
+
+        {/* Filter Modal */}
+        {showFilterModal && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div className="bg-white rounded-lg p-6 w-96 max-w-full">
+              <div className="flex justify-between items-center mb-4">
+                <h3 className="text-lg font-semibold">{t("Filter Data")}</h3>
+                <button onClick={() => setShowFilterModal(false)}>
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+              
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium mb-1">{t("Brand")}</label>
+                  <input
+                    type="text"
+                    value={filters.brand}
+                    onChange={(e) => setFilters({...filters, brand: e.target.value})}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                    placeholder={t("Filter by brand...")}
+                  />
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium mb-1">{t("Code")}</label>
+                  <input
+                    type="text"
+                    value={filters.code}
+                    onChange={(e) => setFilters({...filters, code: e.target.value})}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                    placeholder={t("Filter by code...")}
+                  />
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium mb-1">{t("Car Model")}</label>
+                  <input
+                    type="text"
+                    value={filters.carModel}
+                    onChange={(e) => setFilters({...filters, carModel: e.target.value})}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                    placeholder={t("Filter by car model...")}
+                  />
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium mb-1">{t("Status")}</label>
+                  <select
+                    value={filters.status}
+                    onChange={(e) => setFilters({...filters, status: e.target.value})}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                  >
+                    <option value="all">{t("All")}</option>
+                    <option value="valid">{t("Valid")}</option>
+                    <option value="invalid">{t("Invalid")}</option>
+                    <option value="duplicate">{t("Duplicate")}</option>
+                  </select>
+                </div>
+              </div>
+              
+              <div className="flex justify-end gap-2 mt-6">
+                <Button variant="outline-secondary" onClick={() => setShowFilterModal(false)}>
+                  {t("Cancel")}
+                </Button>
+                <Button variant="primary" onClick={() => setShowFilterModal(false)}>
+                  {t("Apply Filters")}
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Columns Modal */}
+        {showColumnsModal && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div className="bg-white rounded-lg p-6 w-80 max-w-full">
+              <div className="flex justify-between items-center mb-4">
+                <h3 className="text-lg font-semibold">{t("Show/Hide Columns")}</h3>
+                <button onClick={() => setShowColumnsModal(false)}>
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+              
+              <div className="space-y-3">
+                <label className="flex items-center">
+                  <input
+                    type="checkbox"
+                    checked={columnVisibility.brand}
+                    onChange={(e) => setColumnVisibility({...columnVisibility, brand: e.target.checked})}
+                    className="mr-2"
+                  />
+                  {t("Brand")}
+                </label>
+                
+                <label className="flex items-center">
+                  <input
+                    type="checkbox"
+                    checked={columnVisibility.code}
+                    onChange={(e) => setColumnVisibility({...columnVisibility, code: e.target.checked})}
+                    className="mr-2"
+                  />
+                  {t("Code")}
+                </label>
+                
+                <label className="flex items-center">
+                  <input
+                    type="checkbox"
+                    checked={columnVisibility.carModel}
+                    onChange={(e) => setColumnVisibility({...columnVisibility, carModel: e.target.checked})}
+                    className="mr-2"
+                  />
+                  {t("Car Model")}
+                </label>
+                
+                <label className="flex items-center">
+                  <input
+                    type="checkbox"
+                    checked={columnVisibility.actions}
+                    onChange={(e) => setColumnVisibility({...columnVisibility, actions: e.target.checked})}
+                    className="mr-2"
+                  />
+                  {t("Actions")}
+                </label>
+              </div>
+              
+              <div className="flex justify-end gap-2 mt-6">
+                <Button variant="outline-secondary" onClick={() => setShowColumnsModal(false)}>
+                  {t("Close")}
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* View Row Modal */}
+        {showViewModal && selectedRowData && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div className="bg-white rounded-lg p-6 w-96 max-w-full">
+              <div className="flex justify-between items-center mb-4">
+                <h3 className="text-lg font-semibold">{t("Row Details")}</h3>
+                <button onClick={() => setShowViewModal(false)}>
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+              
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">{t("Row Number")}</label>
+                  <div className="px-3 py-2 bg-gray-50 border border-gray-200 rounded-md">
+                    {selectedRowData.row}
+                  </div>
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">{t("Brand")}</label>
+                  <div className="px-3 py-2 bg-gray-50 border border-gray-200 rounded-md">
+                    {selectedRowData.data[0] || t("Empty")}
+                  </div>
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">{t("Code")}</label>
+                  <div className="px-3 py-2 bg-gray-50 border border-gray-200 rounded-md">
+                    {selectedRowData.data[1] || t("Empty")}
+                  </div>
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">{t("Car Model")}</label>
+                  <div className="px-3 py-2 bg-gray-50 border border-gray-200 rounded-md">
+                    {selectedRowData.data[2] || t("Empty")}
+                  </div>
+                </div>
+                
+                {selectedRowData.errors && selectedRowData.errors.length > 0 && (
+                  <div>
+                    <label className="block text-sm font-medium text-red-700 mb-1">{t("Errors")}</label>
+                    <div className="px-3 py-2 bg-red-50 border border-red-200 rounded-md text-red-700">
+                      {selectedRowData.errors.join(', ')}
+                    </div>
+                  </div>
+                )}
+              </div>
+              
+              <div className="flex justify-end gap-2 mt-6">
+                <Button variant="outline-secondary" onClick={() => setShowViewModal(false)}>
+                  {t("Close")}
+                </Button>
+                <Button variant="primary" onClick={() => {
+                  setShowViewModal(false);
+                  handleEditRow(selectedRowData);
+                }}>
+                  {t("Edit")}
+                </Button>
+              </div>
+            </div>
+          </div>
         )}
       </div>
     </div>
