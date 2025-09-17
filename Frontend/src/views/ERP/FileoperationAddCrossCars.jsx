@@ -253,83 +253,94 @@ function FileoperationAddCrossCars({ onSuccess, onError, onRefresh, onDataChange
     return (
       <div className="mt-6">
         {/* Dashboard with counts */}
-        <div className="grid grid-cols-3 gap-4 mb-6">
+        <div className="grid grid-cols-4 gap-4 mb-6">
           <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-            <div className="text-green-700 font-semibold text-sm mb-1">{t("Valid Rows")}</div>
+            <div className="text-green-700 font-semibold text-sm mb-1">Valid Rows</div>
             <div className="text-2xl font-bold text-green-600">{valid_rows.length}</div>
           </div>
-          <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-            <div className="text-yellow-700 font-semibold text-sm mb-1">{t("Invalid Rows")}</div>
-            <div className="text-2xl font-bold text-yellow-600">{invalid_rows.length}</div>
-          </div>
           <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-            <div className="text-red-700 font-semibold text-sm mb-1">{t("Duplicates")}</div>
-            <div className="text-2xl font-bold text-red-600">{duplicates.length}</div>
+            <div className="text-red-700 font-semibold text-sm mb-1">Invalid Rows</div>
+            <div className="text-2xl font-bold text-red-600">{invalid_rows.length}</div>
+          </div>
+          <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+            <div className="text-yellow-700 font-semibold text-sm mb-1">Duplicate Rows</div>
+            <div className="text-2xl font-bold text-yellow-600">{duplicates.length}</div>
+          </div>
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+            <div className="text-blue-700 font-semibold text-sm mb-1">Total Rows</div>
+            <div className="text-2xl font-bold text-blue-600">{allRows.length}</div>
           </div>
         </div>
 
         {/* Header with search and actions */}
         <div className="flex justify-between items-center mb-4">
           <div className="flex items-center gap-4">
-            <div className="relative">
-              <input
-                type="text"
-                placeholder={t("Search")}
-                className="form-control w-64 pl-10"
-                value={searchTerm}
-                onChange={(e) => {
-                  setSearchTerm(e.target.value);
-                  setCurrentPage(1); // Reset to first page when searching
-                }}
-              />
-              <svg className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-              </svg>
-            </div>
+            <input
+              type="text"
+              placeholder="Search in data..."
+              value={searchTerm}
+              onChange={(e) => {
+                setSearchTerm(e.target.value);
+                setCurrentPage(1);
+              }}
+              className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
             <span className="text-sm text-gray-600">
-              {t("Showing")} {((currentPage - 1) * itemsPerPage) + 1}-{Math.min(currentPage * itemsPerPage, filteredRows.length)} {t("of")} {filteredRows.length} {t("rows")}
+              Showing {startIndex + 1} to {Math.min(startIndex + itemsPerPage, filteredRows.length)} of {filteredRows.length} entries
             </span>
           </div>
           
           <div className="flex gap-2">
-            {hasNoValidRows ? (
+            <Button
+              variant="outline-secondary"
+              size="sm"
+              onClick={handleUploadNewFile}
+              disabled={loading}
+            >
+              Upload New File
+            </Button>
+            
+            {duplicates.length > 0 && (
               <Button
                 variant="outline-primary"
                 size="sm"
-                onClick={handleUploadNewFile}
+                onClick={handleRemoveDuplicates}
                 disabled={loading}
               >
-                {t("Upload New File")}
+                Remove duplicate lines
               </Button>
-            ) : (
+            )}
+            
+            {invalid_rows.length > 0 && (
               <>
                 <Button
-                  variant="outline-primary"
+                  variant="outline-danger"
                   size="sm"
-                  onClick={handleUploadNewFile}
+                  onClick={handleRemoveMismatchedRows}
                   disabled={loading}
                 >
-                  {t("Upload New File")}
+                  Remove mismatched rows
                 </Button>
-                {hasDuplicates && (
-                  <Button
-                    variant="outline-primary"
-                    size="sm"
-                    onClick={handleRemoveDuplicates}
-                    disabled={loading}
-                  >
-                    {t("Remove duplicate lines")}
-                  </Button>
-                )}
                 <Button
-                  variant="primary"
+                  variant="outline-secondary"
                   size="sm"
-                  onClick={() => handleProcessImport(false)}
-                  disabled={loading || valid_rows.length === 0}
+                  onClick={handleExportInvalidRows}
+                  disabled={loading}
                 >
-                  {t("Import xls/xlsx")}
+                  Export invalid rows
                 </Button>
               </>
+            )}
+            
+            {valid_rows.length > 0 && (
+              <Button
+                variant="primary"
+                size="sm"
+                onClick={() => handleProcessImport(false)}
+                disabled={loading || valid_rows.length === 0}
+              >
+                {loading ? 'Importing...' : 'Import xls/xlsx'}
+              </Button>
             )}
           </div>
         </div>
@@ -478,7 +489,7 @@ function FileoperationAddCrossCars({ onSuccess, onError, onRefresh, onDataChange
         {hasErrors && (
           <div className="mt-4 flex justify-between items-center">
             <div className="text-red-600 text-sm">
-              * {t("The data in")} {invalid_rows.length + duplicates.length} {t("lines does not match the system data. Please edit or delete these lines.")}
+              * The data in {invalid_rows.length + duplicates.length} lines does not match the system data. Please edit or delete these lines.
             </div>
             
             <div className="flex gap-2">
@@ -487,7 +498,7 @@ function FileoperationAddCrossCars({ onSuccess, onError, onRefresh, onDataChange
                 size="sm"
                 onClick={handleExportInvalidRows}
               >
-                {t("Export xls/xlsx")}
+                Export xls/xlsx
               </Button>
               <Button
                 variant="primary"
@@ -496,8 +507,8 @@ function FileoperationAddCrossCars({ onSuccess, onError, onRefresh, onDataChange
                 disabled={loading}
                 className="whitespace-nowrap"
               >
-                {t("Remove mismatched rows")} <br />
-                {t("and complete data import")}
+                Remove mismatched rows <br />
+                and complete data import
                 <svg className="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                 </svg>
