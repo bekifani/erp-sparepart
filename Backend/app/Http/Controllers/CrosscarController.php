@@ -100,8 +100,6 @@ class CrosscarController extends BaseController
         $validationRules = [
           "product_id"=>"required|exists:products,id",
           "car_model_id"=>"required|exists:carmodels,id",
-          "cross_code"=>"required|string|max:255",
-          "is_visible"=>"required|boolean",
         ];
 
         $validation = Validator::make($request->all() , $validationRules);
@@ -142,8 +140,6 @@ class CrosscarController extends BaseController
          $validationRules = [
           "product_id"=>"required|exists:products,id",
           "car_model_id"=>"required|exists:carmodels,id",
-          "cross_code"=>"required|string|max:255",
-          "is_visible"=>"required|boolean",
         ];
 
         $validation = Validator::make($request->all() , $validationRules);

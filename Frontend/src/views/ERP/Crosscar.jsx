@@ -154,8 +154,6 @@ function index_main() {
     .object({
      product_id : yup.string().required(t('The Product field is required')), 
      car_model_id : yup.string().required(t('The Car Model field is required')), 
-     cross_code : yup.string().required(t('The Cross Code field is required')), 
-     is_visible : yup.string().required(t('The Is Visible field is required')), 
     })
     .required();
 
@@ -339,62 +337,8 @@ return (
       )}
     </div>
 
-<div className="mt-3 input-form">
-                      <FormLabel
-                        htmlFor="validation-form-1"
-                        className="flex justify-start items-start flex-col w-full sm:flex-row"
-                      >
-                        {t("Cross Code")}
-                      </FormLabel>
-                      <FormInput
-                        {...register("cross_code")}
-                        id="validation-form-1"
-                        type="text"
-                        name="cross_code"
-                        className={clsx({
-                          "border-danger": errors.cross_code,
-                        })}
-                        placeholder={t("Enter cross_code")}
-                      />
-                      {errors.cross_code && (
-                        <div className="mt-2 text-danger">
-                          {typeof errors.cross_code.message === "string" &&
-                            errors.cross_code.message}
-                        </div>
-                      )}
-                    </div>
 
 
- <div className="mt-3 input-form">
-      <FormLabel
-        htmlFor="validation-form-1"
-        className="flex flex-col w-full sm:flex-row"
-      >
-        {t("Is Visible")}
-      </FormLabel>
-          <div className="flex flex-col mt-2 sm:flex-row">
-              <div>
-            <input
-              {...register('is_visible')}
-              type="radio"
-              value={1}
-              className="mx-2"
-            /> Visible
-            <input
-              {...register('is_visible')}
-              type="radio"
-              value={0}
-              className="mx-2"
-            /> Hidden
-      </div>
-          </div>
-      {errors.is_visible && (
-        <div className="mt-2 text-danger">
-          {typeof errors.is_visible.message === "string" &&
-            errors.is_visible.message}
-        </div>
-      )}
-    </div>
     
 
 
@@ -477,62 +421,8 @@ return (
       )}
     </div>
 
-<div className="mt-3 input-form">
-                      <FormLabel
-                        htmlFor="validation-form-1"
-                        className="flex justify-start items-start flex-col w-full sm:flex-row"
-                      >
-                        {t("Cross Code")}
-                      </FormLabel>
-                      <FormInput
-                        {...register("cross_code")}
-                        id="validation-form-1"
-                        type="text"
-                        name="cross_code"
-                        className={clsx({
-                          "border-danger": errors.cross_code,
-                        })}
-                        placeholder={t("Enter cross_code")}
-                      />
-                      {errors.cross_code && (
-                        <div className="mt-2 text-danger">
-                          {typeof errors.cross_code.message === "string" &&
-                            errors.cross_code.message}
-                        </div>
-                      )}
-                    </div>
 
 
- <div className="mt-3 input-form">
-      <FormLabel
-        htmlFor="validation-form-1"
-        className="flex flex-col w-full sm:flex-row"
-      >
-        {t("Is Visible")}
-      </FormLabel>
-          <div className="flex flex-col mt-2 sm:flex-row">
-              <div>
-            <input
-              {...register('is_visible')}
-              type="radio"
-              value={1}
-              className="mx-2"
-            /> Visible
-            <input
-              {...register('is_visible')}
-              type="radio"
-              value={0}
-              className="mx-2"
-            /> Hidden
-      </div>
-          </div>
-      {errors.is_visible && (
-        <div className="mt-2 text-danger">
-          {typeof errors.is_visible.message === "string" &&
-            errors.is_visible.message}
-        </div>
-      )}
-    </div>
     
 
 

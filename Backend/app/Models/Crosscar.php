@@ -13,7 +13,7 @@ use Illuminate\Notifications\Notifiable;
 class Crosscar extends Model
 {
     use HasFactory, LogsActivity, Notifiable;
-    public $fillable = ['product_id', 'car_model_id', 'cross_code', 'is_visible', 'created_at', 'updated_at'];
+    public $fillable = ['product_id', 'car_model_id', 'created_at', 'updated_at'];
     protected static $logAttributes = ['*'];
     public $guarded = [];
 
