@@ -264,8 +264,8 @@ class FileoperationController extends BaseController
                 'success' => true,
                 'file_id' => $fileOperation->id,
                 'headers' => $headers,
-                'data' => $rows->take(100)->toArray(), // Limit preview to 100 rows
-                'total_rows' => $rows->count(),
+                'data' => $dataRows->take(100)->toArray(), // Limit preview to 100 rows
+                'total_rows' => $dataRows->count(),
                 'validation' => $validationResult
             ]);
 
