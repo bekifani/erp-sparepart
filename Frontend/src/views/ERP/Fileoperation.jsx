@@ -16,6 +16,8 @@ import FileoperationAddProducts from "./FileoperationAddProducts.jsx";
 import FileoperationAddProductInformation from "./FileoperationAddProductInformation.jsx";
 import FileoperationAddCrossCode from './FileoperationAddCrossCode';
 import FileoperationAddSpecifications from './FileoperationAddSpecifications.jsx';
+import FileoperationAddOtherSuppliersPrices from './FileoperationAddOtherSuppliersPrices.jsx';
+import FileoperationAddCustomersSpecialPrice from './FileoperationAddCustomersSpecialPrice.jsx';
 import { setGlobalUnsavedData } from "@/hooks/useNavigationBlocker";
 
 function index_main() {
@@ -268,6 +270,18 @@ function index_main() {
       requiredColumns: ['Brand', 'Code', '[Specification Headers...]'],
       validation: 'Brand/Code vs. Products; Column headers become Specification Headnames'
     },
+    other_suppliers_prices: {
+      name: 'Other Suppliers Prices',
+      description: 'Import alternative supplier pricing data',
+      requiredColumns: ['Supplier', 'Brand', 'Code', 'Purchase Price', 'Extra Cost', 'Supplier Position'],
+      validation: 'Supplier vs. Suppliers; Brand/Code vs. Products'
+    },
+    customers_special_price: {
+      name: 'Customers Special Price',
+      description: 'Import customer-specific pricing data',
+      requiredColumns: ['Customer', 'Brand', 'Code', 'Min. Qty', 'Price'],
+      validation: 'Customer vs. Customers; Brand/Code vs. Products'
+    },
     car_models: {
       name: 'Add New Car Models',
       description: 'Import new car models',
@@ -279,18 +293,6 @@ function index_main() {
       description: 'Import product names',
       requiredColumns: ['Description', 'Categories'],
       validation: 'Category vs. Categories; Name must NOT already exist'
-    },
-    supplier_prices: {
-      name: 'Other Suppliers Prices',
-      description: 'Import supplier pricing data',
-      requiredColumns: ['Supplier', 'Brand', 'Code', 'Price'],
-      validation: 'Supplier vs. Suppliers; Brand/Code vs. Products'
-    },
-    customer_prices: {
-      name: 'Customers Special Price',
-      description: 'Import customer special pricing',
-      requiredColumns: ['Customer', 'Brand', 'Code', 'Price'],
-      validation: 'Customer vs. Customers; Brand/Code vs. Products'
     }
   };
 
@@ -828,6 +830,38 @@ function index_main() {
       ) : currentImportType === 'specifications' ? (
         /* Add Specifications Component */
         <FileoperationAddSpecifications
+          onSuccess={(message) => {
+            setToastMessage(message);
+            basicStickyNotification.current.showToast();
+            setHasUnsavedData(false); // Clear unsaved data flag on successful import
+          }}
+          onError={(message) => {
+            setToastMessage(message);
+            basicStickyNotification.current.showToast();
+          }}
+          onRefresh={() => setRefetch(!refetch)}
+          onDataChange={(hasData) => setHasUnsavedData(hasData)}
+          setGlobalUnsavedData={setGlobalUnsavedData}
+        />
+      ) : currentImportType === 'other_suppliers_prices' ? (
+        /* Add Other Suppliers Prices Component */
+        <FileoperationAddOtherSuppliersPrices
+          onSuccess={(message) => {
+            setToastMessage(message);
+            basicStickyNotification.current.showToast();
+            setHasUnsavedData(false); // Clear unsaved data flag on successful import
+          }}
+          onError={(message) => {
+            setToastMessage(message);
+            basicStickyNotification.current.showToast();
+          }}
+          onRefresh={() => setRefetch(!refetch)}
+          onDataChange={(hasData) => setHasUnsavedData(hasData)}
+          setGlobalUnsavedData={setGlobalUnsavedData}
+        />
+      ) : currentImportType === 'customers_special_price' ? (
+        /* Add Customers Special Price Component */
+        <FileoperationAddCustomersSpecialPrice
           onSuccess={(message) => {
             setToastMessage(message);
             basicStickyNotification.current.showToast();

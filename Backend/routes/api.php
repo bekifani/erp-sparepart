@@ -478,6 +478,10 @@ Route::post('/fileoperation/validate-cross-code', [App\Http\Controllers\Fileoper
 Route::post('/fileoperation/import-cross-code', [App\Http\Controllers\FileoperationCrossCodeController::class, 'processCrossCodeImport'])->middleware('permission:fileoperation-create');
 Route::post('/fileoperation/validate-specifications', [App\Http\Controllers\FileoperationSpecificationController::class, 'validateSpecification'])->middleware('permission:fileoperation-create');
 Route::post('/fileoperation/import-specifications', [App\Http\Controllers\FileoperationSpecificationController::class, 'processSpecificationImport'])->middleware('permission:fileoperation-create');
+Route::post('/fileoperation/validate-other-suppliers-prices', [App\Http\Controllers\FileoperationOtherSuppliersPricesController::class, 'validateOtherSuppliersPrices'])->middleware('permission:fileoperation-create');
+Route::post('/fileoperation/import-other-suppliers-prices', [App\Http\Controllers\FileoperationOtherSuppliersPricesController::class, 'importOtherSuppliersPrices'])->middleware('permission:fileoperation-create');
+Route::post('/fileoperation/validate-customers-special-price', [App\Http\Controllers\FileoperationCustomersSpecialPriceController::class, 'validateCustomersSpecialPrice'])->middleware('permission:fileoperation-create');
+Route::post('/fileoperation/import-customers-special-price', [App\Http\Controllers\FileoperationCustomersSpecialPriceController::class, 'importCustomersSpecialPrice'])->middleware('permission:fileoperation-create');
 
 
 Route::get('/customerbrandvisibilit', [App\Http\Controllers\CustomerbrandvisibilitController::class, 'index'])->middleware('permission:customerbrandvisibilit-list|customerbrandvisibilit-create|customerbrandvisibilit-edit|customerbrandvisibilit-delete');
