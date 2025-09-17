@@ -26,12 +26,11 @@ class CrosscarController extends BaseController
         $perPage = $request->query('size', 10); 
         $filters = $request['filter'];
         $query = Crosscar::leftJoin('products', 'crosscars.product_id', '=', 'products.id')
-            ->leftJoin('product_information', 'products.product_information_id', '=', 'product_information.id')
-            ->leftJoin('brandnames', 'product_information.brand_code', '=', 'brandnames.id')
+            ->leftJoin('brandnames', 'products.brand_id', '=', 'brandnames.id')
             ->leftJoin('carmodels', 'crosscars.car_model_id', '=', 'carmodels.id')
             ->select(
                 'brandnames.brand_name',
-                'brandnames.brand_code',
+                'products.brand_code',
                 'carmodels.car_model as car_model_name'
             )
             ->distinct()
@@ -59,12 +58,11 @@ class CrosscarController extends BaseController
 
     public function all_crosscars(){
         $data = Crosscar::leftJoin('products', 'crosscars.product_id', '=', 'products.id')
-            ->leftJoin('product_information', 'products.product_information_id', '=', 'product_information.id')
-            ->leftJoin('brandnames', 'product_information.brand_code', '=', 'brandnames.id')
+            ->leftJoin('brandnames', 'products.brand_id', '=', 'brandnames.id')
             ->leftJoin('carmodels', 'crosscars.car_model_id', '=', 'carmodels.id')
             ->select(
                 'brandnames.brand_name',
-                'brandnames.brand_code',
+                'products.brand_code',
                 'carmodels.car_model as car_model_name'
             )
             ->distinct()
@@ -80,12 +78,11 @@ class CrosscarController extends BaseController
             ], 400);
         }
         $results = Crosscar::leftJoin('products', 'crosscars.product_id', '=', 'products.id')
-            ->leftJoin('product_information', 'products.product_information_id', '=', 'product_information.id')
-            ->leftJoin('brandnames', 'product_information.brand_code', '=', 'brandnames.id')
+            ->leftJoin('brandnames', 'products.brand_id', '=', 'brandnames.id')
             ->leftJoin('carmodels', 'crosscars.car_model_id', '=', 'carmodels.id')
             ->select(
                 'brandnames.brand_name',
-                'brandnames.brand_code',
+                'products.brand_code',
                 'carmodels.car_model as car_model_name'
             )
             ->distinct()
@@ -125,13 +122,12 @@ class CrosscarController extends BaseController
     public function show($id)
     {
         $crosscar = Crosscar::leftJoin('products', 'crosscars.product_id', '=', 'products.id')
-            ->leftJoin('product_information', 'products.product_information_id', '=', 'product_information.id')
-            ->leftJoin('brandnames', 'product_information.brand_code', '=', 'brandnames.id')
+            ->leftJoin('brandnames', 'products.brand_id', '=', 'brandnames.id')
             ->leftJoin('carmodels', 'crosscars.car_model_id', '=', 'carmodels.id')
             ->select(
                 'crosscars.*',
                 'brandnames.brand_name',
-                'brandnames.brand_code',
+                'products.brand_code',
                 'carmodels.car_model as car_model_name'
             )
             ->where('crosscars.id', $id)

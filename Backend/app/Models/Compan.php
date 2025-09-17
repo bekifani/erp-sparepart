@@ -13,7 +13,30 @@ use Illuminate\Notifications\Notifiable;
 class Compan extends Model
 {
     use HasFactory, LogsActivity, Notifiable;
-    public $fillable = ['logo', 'company_name', 'website', 'address', 'email', 'phone_number', 'our_ref', 'origin', 'payment_terms', 'shipping_terms', 'tax_number', 'mobile_number', 'bank_details', 'additional_note'];
+    public $fillable = [
+        'logo', 
+        'company_name', 
+        'trading_name',
+        'website', 
+        'address', 
+        'street_address',
+        'city',
+        'state_region',
+        'postal_code',
+        'country',
+        'email', 
+        'phone_number', 
+        'mobile_number',
+        'our_ref', 
+        'origin', 
+        'payment_terms', 
+        'shipping_terms', 
+        'tax_id', 
+        'vat_number',
+        'business_registration_number',
+        'bank_details', 
+        'additional_note'
+    ];
     protected static $logAttributes = ['*'];
     public $guarded = [];
 

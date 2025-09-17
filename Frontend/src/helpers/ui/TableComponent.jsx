@@ -20,7 +20,7 @@ import { useSelector } from "react-redux";
 import { useTranslation } from "react-i18next";
 
 
-function Main({setShowCreateModal, show_create=true, endpoint, data, searchColumns, refetch, setRefetch, permission, page_name, transformResponse, enableColumnControls=true}) {
+function Main({setShowCreateModal, show_create=true, endpoint, data, searchColumns, refetch, setRefetch, permission, page_name, transformResponse, enableColumnControls=true, customFilters=[]}) {
   const token = useSelector((state) => state.auth.token)
   const tenant = useSelector((state) => state.auth.tenant)
   const { t, i18n } = useTranslation();
@@ -48,6 +48,17 @@ function Main({setShowCreateModal, show_create=true, endpoint, data, searchColum
       setRefetch(false)
     }
   },[refetch])
+
+  // Apply custom filters when they change
+  useEffect(() => {
+    if (tabulator.current && customFilters) {
+      if (customFilters.length > 0) {
+        tabulator.current.setFilter(customFilters);
+      } else {
+        tabulator.current.clearFilter();
+      }
+    }
+  }, [customFilters])
 
   const updateFilter = (index, key, newValue) => {
     setFilters((prevFilters) => {
@@ -137,6 +148,11 @@ function Main({setShowCreateModal, show_create=true, endpoint, data, searchColum
         nameAttr: "data-lucide",
       });
     });
+
+    // Apply custom filters if provided
+    if (customFilters && customFilters.length > 0) {
+      tabulator.current?.setFilter(customFilters);
+    }
   };
 
   // Redraw table onresize

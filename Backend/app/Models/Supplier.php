@@ -11,11 +11,12 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Notifications\Notifiable;
 use App\Models\Product;
 use App\Models\SupplierImage;
+use App\Models\Supplierproduct;
 
 class Supplier extends Model
 {
     use HasFactory, LogsActivity, Notifiable;
-    public $fillable = ['supplier', 'name_surname', 'occupation', 'code', 'address', 'email', 'phone_number', 'whatsapp', 'wechat_id', 'image', 'number_of_products', 'category_of_products', 'name_of_products', 'additional_note'];
+    public $fillable = ['supplier', 'name_surname', 'occupation', 'code', 'address', 'email', 'phone_number', 'whatsapp', 'wechat_id', 'image', 'additional_note', 'price_adjustment_type', 'price_adjustment_percent'];
     protected static $logAttributes = ['*'];
     public $guarded = [];
 
@@ -38,6 +39,13 @@ class Supplier extends Model
     {
         return $this->hasMany(Product::class, 'supplier_id', 'id');
     }
+    
+    // A supplier has many supplier-product relationships
+    public function supplierProducts()
+    {
+        return $this->hasMany(Supplierproduct::class, 'supplier_id', 'id');
+    }
+    
     public function images()
 {
     return $this->hasMany(SupplierImage::class, 'supplier_id', 'id');

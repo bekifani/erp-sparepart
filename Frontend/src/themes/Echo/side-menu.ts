@@ -3,6 +3,7 @@ import { Menu } from "@/stores/sideMenuSlice";
 import { slideUp, slideDown } from "@/utils/helper";
 import { useSelector } from "react-redux";
 import { RootState } from "@/stores/store";
+import { getGlobalUnsavedData } from "@/hooks/useNavigationBlocker";
 
 interface Location {
   pathname: string;
@@ -83,6 +84,24 @@ const linkTo = (menu: FormattedMenu, navigate: NavigateFunction) => {
     menu.activeDropdown = !menu.activeDropdown;
   } else {
     if (menu.pathname !== undefined) {
+      // Check for unsaved data before navigation
+      const hasUnsavedData = getGlobalUnsavedData();
+      console.log('Sidebar navigation attempt, unsaved data:', hasUnsavedData);
+      
+      if (hasUnsavedData) {
+        const confirmed = window.confirm(
+          "You have an uploaded file that hasn't been imported. If you leave this page, the upload will be lost. Do you want to continue?"
+        );
+        
+        if (!confirmed) {
+          console.log('Sidebar navigation blocked by user');
+          return;
+        }
+        
+        console.log('Sidebar navigation confirmed by user');
+        // Note: We don't clear the flag here as the target component should handle it
+      }
+      
       navigate(menu.pathname);
     }
   }

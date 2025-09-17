@@ -1,10 +1,9 @@
-
 import "@/assets/css/vendors/tabulator.css";
 import Lucide from "@/components/Base/Lucide";
 import ReactDOMServer from 'react-dom/server';
 import { Slideover } from "@/components/Base/Headless";
 import Button from "@/components/Base/Button";
-import React, { useRef, useState } from "react";
+import React, { useRef, useState, useEffect } from "react";
 import { yupResolver } from "@hookform/resolvers/yup";
 import Notification from "@/components/Base/Notification";
 import TableComponent from "@/helpers/ui/TableComponent.jsx";
@@ -16,6 +15,10 @@ import {
   useCreateExchangerateMutation,
   useDeleteExchangerateMutation,
   useEditExchangerateMutation,
+} from "@/stores/apiSlice";
+import {
+  useGetAllCurrenciesQuery,
+  useCreateCurrencyMutation,
 } from "@/stores/apiSlice";
 import clsx from "clsx";
 import { Dialog } from "@/components/Base/Headless";
@@ -36,12 +39,22 @@ function index_main() {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showUpdateModal, setShowUpdateModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [showAddCurrencyModal, setShowAddCurrencyModal] = useState(false);
+  const [selectedExchangerate, setSelectedExchangerate] = useState({});
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [editorData, setEditorData] = useState("")
   const [confirmationMessage, setConfirmationMessage] =
-    useState(t("Are you Sure Do You want to Delete Exchangerate"));
+    useState(t("Are you Sure Do You want to Delete Exchange Rate"));
 
-  
- const [
+  // Currency form state
+  const [currencyForm, setCurrencyForm] = useState({
+    code: '',
+    name: '',
+    symbol: ''
+  });
+  const [currencyErrors, setCurrencyErrors] = useState({});
+
+  const [
     createExchangerate,
     { isLoading: loading, isSuccess: success, error: successError },
   ] = useCreateExchangerateMutation();
@@ -52,7 +65,14 @@ function index_main() {
   const [
     deleteExchangerate,
     { isLoading: deleting, isSuccess: deleted, error: deleteError },
-  ] = useDeleteExchangerateMutation()
+  ] = useDeleteExchangerateMutation();
+  
+  const [
+    createCurrency,
+    { isLoading: currencyLoading, isSuccess: currencySuccess, error: currencyError },
+  ] = useCreateCurrencyMutation();
+  
+  const { data: currenciesData, isLoading: currenciesLoading, refetch: refetchCurrencies } = useGetAllCurrenciesQuery();
 
 
   const [toastMessage, setToastMessage] = useState("");
@@ -61,6 +81,45 @@ function index_main() {
   const hasPermission = (permission) => {
     return user.permissions.includes(permission)
   }
+  
+  // Get currencies from API
+  const supportedCurrencies = currenciesData?.data ? 
+    currenciesData.data.map(currency => ({
+      value: currency.code,
+      label: `${currency.code} - ${currency.name}`
+    })) : [];
+
+  // Form validation schema
+  const schema = yup.object({
+    date: yup.string().required(t("Date is required")),
+    currency: yup.string().required(t("Currency is required")),
+    rate: yup.number()
+      .required(t("Rate is required"))
+      .positive(t("Rate must be positive"))
+      .test('decimal-places', t('Rate can have maximum 6 decimal places'), (value) => {
+        if (value === undefined) return true;
+        const decimalPlaces = (value.toString().split('.')[1] || '').length;
+        return decimalPlaces <= 6;
+      }),
+    base_currency: yup.string().required(t("Base currency is required")),
+  });
+
+  // Initialize useForm hook
+  const {
+    register,
+    handleSubmit,
+    formState: { errors: formErrors },
+    reset,
+    setValue,
+    getValues,
+    watch,
+  } = useForm({
+    resolver: yupResolver(schema),
+    defaultValues: {
+      base_currency: 'RMB'
+    }
+  });
+
   const [data, setData] = useState([
     {
       title: t("Id"),
@@ -99,15 +158,18 @@ function index_main() {
     
 
     {
-      title: t("Price"),
+      title: t("Rate"),
       minWidth: 200,
-      field: "price",
+      field: "rate",
       hozAlign: "center",
       headerHozAlign: "center",
       vertAlign: "middle",
       print: true,
       download: true,
-      
+      formatter: function(cell) {
+        const value = cell.getValue();
+        return value ? parseFloat(value).toFixed(6) : '0.000000';
+      }
     },
     
 
@@ -174,31 +236,66 @@ function index_main() {
       },
     },
 ]);
-  const [searchColumns, setSearchColumns] = useState(['date', 'currency', 'price', 'base_currency', ]);
+  const [searchColumns, setSearchColumns] = useState(['date', 'currency', 'rate', 'base_currency']);
 
-  // schema
-  const schema = yup
-    .object({
-     currency : yup.string().required(t('The Currency field is required')), 
-base_currency : yup.string().required(t('The Base Currency field is required')), 
+  // Using the schema defined above
 
-    })
-    .required();
+  useEffect(() => {
+    if (success) {
+      setToastMessage(t("Exchange Rate Created Successfully"));
+      basicStickyNotification.current.showToast();
+      setShowCreateModal(false);
+      setSelectedExchangerate({});
+      setIsSubmitting(false);
+      reset();
+    }
+    if (successError) {
+      setIsSubmitting(false);
+    }
+  }, [success, successError, reset, t]);
 
-  const {
-    register,
-    trigger,
-    getValues,
-    setValue,
-    handleSubmit,
-    formState: { errors },
-  } = useForm({
-    mode: "onChange",
-    resolver: yupResolver(schema),
-  });
+  useEffect(() => {
+    if (updated) {
+      setToastMessage(t("Exchange Rate Updated Successfully"));
+      basicStickyNotification.current.showToast();
+      setShowUpdateModal(false);
+      setSelectedExchangerate({});
+      setIsSubmitting(false);
+      reset();
+    }
+    if (updateError) {
+      setIsSubmitting(false);
+    }
+  }, [updated, updateError, reset, t]);
+
+  useEffect(() => {
+    if (deleted) {
+      setToastMessage(t("Exchange Rate Deleted Successfully"));
+      basicStickyNotification.current.showToast();
+      setShowDeleteModal(false);
+      setSelectedExchangerate({});
+    }
+    if (deleteError) {
+      setToastMessage(t("Error deleting exchange rate"));
+      basicStickyNotification.current.showToast();
+    }
+  }, [deleted, deleteError, t]);
+
+  useEffect(() => {
+    if (currencySuccess) {
+      setToastMessage(t("Currency Added Successfully"));
+      basicStickyNotification.current.showToast();
+      setShowAddCurrencyModal(false);
+      setCurrencyForm({ code: '', name: '', symbol: '' });
+      setCurrencyErrors({});
+      refetchCurrencies(); // Refresh currency list
+    }
+    if (currencyError) {
+      setCurrencyErrors(currencyError?.data?.data?.errors || {});
+    }
+  }, [currencySuccess, currencyError, refetchCurrencies, t]);
 
    
-
 
   const [refetch, setRefetch] = useState(false);
   const getMiniDisplay = (url) => {
@@ -230,10 +327,12 @@ base_currency : yup.string().required(t('The Base Currency field is required')),
 
   const onCreate = async (data) => {
     try {
+      // Set base currency to RMB by default
+      data.base_currency = 'RMB';
       const response = await createExchangerate(data);
-      setToastMessage(t("Exchangerate created successfully."));
+      setToastMessage(t("Exchange rate created successfully."));
     } catch (error) {
-      setToastMessage(t("Error creating Exchangerate."));
+      setToastMessage(t("Error creating exchange rate."));
     }
     basicStickyNotification.current?.showToast();
     setRefetch(true);
@@ -241,31 +340,55 @@ base_currency : yup.string().required(t('The Base Currency field is required')),
   };
 
   const onUpdate = async (data) => {
-    setShowUpdateModal(false)
+    setShowUpdateModal(false);
     try {
+      // Ensure base currency is RMB
+      data.base_currency = 'RMB';
+      
       const response = await updateExchangerate(data);
-      setToastMessage(t('Exchangerate updated successfully'));
-      setRefetch(true)
+      setToastMessage(t("Exchange rate updated successfully."));
+      setRefetch(true);
     } catch (error) {
-      setShowUpdateModal(true)
-      setToastMessage(t('Exchangerate deletion failed'));
+      setToastMessage(t("Error updating exchange rate."));
     }
     basicStickyNotification.current?.showToast();
   };
 
   const onDelete = async () => {
     let id = getValues("id");
-    setShowDeleteModal(false)
+    setShowDeleteModal(false);
     try {
-        const response = deleteExchangerate(id);
-        setToastMessage(t("Exchangerate deleted successfully."));
-        setRefetch(true);
-      }
-    catch (error) {
-      setToastMessage(t("Error deleting Exchangerate."));
+      const response = await deleteExchangerate(id);
+      setToastMessage(t("Exchange rate deleted successfully."));
+      setRefetch(true);
+    } catch (error) {
+      setToastMessage(t("Error deleting exchange rate."));
     }
     basicStickyNotification.current?.showToast();
-  };    
+  };
+
+  // Currency management handlers
+  const handleAddCurrency = async () => {
+    try {
+      await createCurrency(currencyForm);
+    } catch (error) {
+      console.error('Error adding currency:', error);
+    }
+  };
+
+  const handleCurrencyFormChange = (field, value) => {
+    setCurrencyForm(prev => ({
+      ...prev,
+      [field]: value
+    }));
+    // Clear error for this field
+    if (currencyErrors[field]) {
+      setCurrencyErrors(prev => ({
+        ...prev,
+        [field]: undefined
+      }));
+    }
+  };
 
 return (
     <div>
@@ -320,7 +443,7 @@ return (
         <Slideover.Panel className="  text-center overflow-y-auto max-h-[110vh]">
           <form onSubmit={handleSubmit(onCreate)}>
             <Slideover.Title>
-              <h2 className="mr-auto text-base font-medium">{t("Add New Exchangerate")}</h2>
+              <h2 className="mr-auto text-base font-medium">{t("Add New Exchange Rate")}</h2>
             </Slideover.Title>
             <Slideover.Description className="relative">
               <div className="relative">
@@ -346,14 +469,14 @@ return (
                         type="date"
                         name="date"
                         className={clsx({
-                          "border-danger": errors.date,
+                          "border-danger": formErrors.date,
                         })}
                         placeholder={t("Enter date")}
                       />
-                      {errors.date && (
+                      {formErrors.date && (
                         <div className="mt-2 text-danger">
-                          {typeof errors.date.message === "string" &&
-                            errors.date.message}
+                          {typeof formErrors.date.message === "string" &&
+                            formErrors.date.message}
                         </div>
                       )}
                     </div>
@@ -361,25 +484,42 @@ return (
 
 <div className="mt-3 input-form">
                       <FormLabel
-                        htmlFor="validation-form-1"
+                        htmlFor="validation-form-2"
                         className="flex justify-start items-start flex-col w-full sm:flex-row"
                       >
                         {t("Currency")}
                       </FormLabel>
-                      <FormInput
-                        {...register("currency")}
-                        id="validation-form-1"
-                        type="text"
-                        name="currency"
-                        className={clsx({
-                          "border-danger": errors.currency,
-                        })}
-                        placeholder={t("Enter currency")}
-                      />
-                      {errors.currency && (
+                      <div className="flex gap-2 items-center">
+                        <select
+                          {...register("currency")}
+                          id="validation-form-2"
+                          name="currency"
+                          className={clsx("form-select flex-1", {
+                            "border-danger": formErrors.currency,
+                          })}
+                        >
+                          <option value="">{t("Select Currency")}</option>
+                          {supportedCurrencies.map((curr) => (
+                            <option key={curr.value} value={curr.value}>
+                              {curr.label}
+                            </option>
+                          ))}
+                        </select>
+                        <Button
+                          type="button"
+                          variant="outline-primary"
+                          size="md"
+                          onClick={() => setShowAddCurrencyModal(true)}
+                          className="px-4 py-2 whitespace-nowrap"
+                        >
+                          <Lucide icon="Plus" className="w-4 h-4 mr-2" />
+                          {t("Add New Currency")}
+                        </Button>
+                      </div>
+                      {formErrors.currency && (
                         <div className="mt-2 text-danger">
-                          {typeof errors.currency.message === "string" &&
-                            errors.currency.message}
+                          {typeof formErrors.currency.message === "string" &&
+                            formErrors.currency.message}
                         </div>
                       )}
                     </div>
@@ -387,25 +527,26 @@ return (
 
 <div className="mt-3 input-form">
                       <FormLabel
-                        htmlFor="validation-form-1"
+                        htmlFor="validation-form-3"
                         className="flex justify-start items-start flex-col w-full sm:flex-row"
                       >
-                        {t("Price")}
+                        {t("Rate")} <span className="text-xs text-slate-500 ml-2">(1 RMB = Rate Currency)</span>
                       </FormLabel>
                       <FormInput
-                        {...register("price")}
-                        id="validation-form-1"
+                        {...register("rate")}
+                        id="validation-form-3"
                         type="number"
-                        name="price"
+                        step="0.000001"
+                        name="rate"
                         className={clsx({
-                          "border-danger": errors.price,
+                          "border-danger": formErrors.rate,
                         })}
-                        placeholder={t("Enter price")}
+                        placeholder={t("Enter rate (e.g., 0.140250)")}
                       />
-                      {errors.price && (
+                      {formErrors.rate && (
                         <div className="mt-2 text-danger">
-                          {typeof errors.price.message === "string" &&
-                            errors.price.message}
+                          {typeof formErrors.rate.message === "string" &&
+                            formErrors.rate.message}
                         </div>
                       )}
                     </div>
@@ -413,25 +554,25 @@ return (
 
 <div className="mt-3 input-form">
                       <FormLabel
-                        htmlFor="validation-form-1"
+                        htmlFor="validation-form-4"
                         className="flex justify-start items-start flex-col w-full sm:flex-row"
                       >
                         {t("Base Currency")}
                       </FormLabel>
                       <FormInput
                         {...register("base_currency")}
-                        id="validation-form-1"
+                        id="validation-form-4"
                         type="text"
                         name="base_currency"
-                        className={clsx({
-                          "border-danger": errors.base_currency,
-                        })}
-                        placeholder={t("Enter base_currency")}
+                        value="RMB"
+                        readOnly
+                        className="bg-slate-100 cursor-not-allowed"
+                        placeholder="RMB (Chinese Yuan)"
                       />
-                      {errors.base_currency && (
+                      {formErrors.base_currency && (
                         <div className="mt-2 text-danger">
-                          {typeof errors.base_currency.message === "string" &&
-                            errors.base_currency.message}
+                          {typeof formErrors.base_currency.message === "string" &&
+                            formErrors.base_currency.message}
                         </div>
                       )}
                     </div>
@@ -470,7 +611,7 @@ return (
         <Slideover.Panel className="  text-center overflow-y-auto max-h-[110vh]">
           <form onSubmit={handleSubmit(onUpdate)}>
             <Slideover.Title>
-              <h2 className="mr-auto text-base font-medium">{t("Edit Exchangerate")}</h2>
+              <h2 className="mr-auto text-base font-medium">{t("Edit Exchange Rate")}</h2>
             </Slideover.Title>
             <Slideover.Description className="relative">
               <div className="relative">
@@ -485,25 +626,25 @@ return (
                     
 <div className="mt-3 input-form">
                       <FormLabel
-                        htmlFor="validation-form-1"
+                        htmlFor="validation-form-5"
                         className="flex justify-start items-start flex-col w-full sm:flex-row"
                       >
                         {t("Date")}
                       </FormLabel>
                       <FormInput
                         {...register("date")}
-                        id="validation-form-1"
+                        id="validation-form-5"
                         type="date"
                         name="date"
                         className={clsx({
-                          "border-danger": errors.date,
+                          "border-danger": formErrors.date,
                         })}
                         placeholder={t("Enter date")}
                       />
-                      {errors.date && (
+                      {formErrors.date && (
                         <div className="mt-2 text-danger">
-                          {typeof errors.date.message === "string" &&
-                            errors.date.message}
+                          {typeof formErrors.date.message === "string" &&
+                            formErrors.date.message}
                         </div>
                       )}
                     </div>
@@ -511,25 +652,42 @@ return (
 
 <div className="mt-3 input-form">
                       <FormLabel
-                        htmlFor="validation-form-1"
+                        htmlFor="validation-form-6"
                         className="flex justify-start items-start flex-col w-full sm:flex-row"
                       >
                         {t("Currency")}
                       </FormLabel>
-                      <FormInput
-                        {...register("currency")}
-                        id="validation-form-1"
-                        type="text"
-                        name="currency"
-                        className={clsx({
-                          "border-danger": errors.currency,
-                        })}
-                        placeholder={t("Enter currency")}
-                      />
-                      {errors.currency && (
+                      <div className="flex gap-2 items-center">
+                        <select
+                          {...register("currency")}
+                          id="validation-form-6"
+                          name="currency"
+                          className={clsx("form-select flex-1", {
+                            "border-danger": formErrors.currency,
+                          })}
+                        >
+                          <option value="">{t("Select Currency")}</option>
+                          {supportedCurrencies.map((curr) => (
+                            <option key={curr.value} value={curr.value}>
+                              {curr.label}
+                            </option>
+                          ))}
+                        </select>
+                        <Button
+                          type="button"
+                          variant="outline-primary"
+                          size="md"
+                          onClick={() => setShowAddCurrencyModal(true)}
+                          className="px-4 py-2 whitespace-nowrap"
+                        >
+                          <Lucide icon="Plus" className="w-4 h-4 mr-2" />
+                          {t("Add New Currency")}
+                        </Button>
+                      </div>
+                      {formErrors.currency && (
                         <div className="mt-2 text-danger">
-                          {typeof errors.currency.message === "string" &&
-                            errors.currency.message}
+                          {typeof formErrors.currency.message === "string" &&
+                            formErrors.currency.message}
                         </div>
                       )}
                     </div>
@@ -537,25 +695,26 @@ return (
 
 <div className="mt-3 input-form">
                       <FormLabel
-                        htmlFor="validation-form-1"
+                        htmlFor="validation-form-7"
                         className="flex justify-start items-start flex-col w-full sm:flex-row"
                       >
-                        {t("Price")}
+                        {t("Rate")} <span className="text-xs text-slate-500 ml-2">(1 RMB = Rate Currency)</span>
                       </FormLabel>
                       <FormInput
-                        {...register("price")}
-                        id="validation-form-1"
+                        {...register("rate")}
+                        id="validation-form-7"
                         type="number"
-                        name="price"
+                        step="0.000001"
+                        name="rate"
                         className={clsx({
-                          "border-danger": errors.price,
+                          "border-danger": formErrors.rate,
                         })}
-                        placeholder={t("Enter price")}
+                        placeholder={t("Enter rate (e.g., 0.140250)")}
                       />
-                      {errors.price && (
+                      {formErrors.rate && (
                         <div className="mt-2 text-danger">
-                          {typeof errors.price.message === "string" &&
-                            errors.price.message}
+                          {typeof formErrors.rate.message === "string" &&
+                            formErrors.rate.message}
                         </div>
                       )}
                     </div>
@@ -563,25 +722,25 @@ return (
 
 <div className="mt-3 input-form">
                       <FormLabel
-                        htmlFor="validation-form-1"
+                        htmlFor="validation-form-8"
                         className="flex justify-start items-start flex-col w-full sm:flex-row"
                       >
                         {t("Base Currency")}
                       </FormLabel>
                       <FormInput
                         {...register("base_currency")}
-                        id="validation-form-1"
+                        id="validation-form-8"
                         type="text"
                         name="base_currency"
-                        className={clsx({
-                          "border-danger": errors.base_currency,
-                        })}
-                        placeholder={t("Enter base_currency")}
+                        value="RMB"
+                        readOnly
+                        className="bg-slate-100 cursor-not-allowed"
+                        placeholder="RMB (Chinese Yuan)"
                       />
-                      {errors.base_currency && (
+                      {formErrors.base_currency && (
                         <div className="mt-2 text-danger">
-                          {typeof errors.base_currency.message === "string" &&
-                            errors.base_currency.message}
+                          {typeof formErrors.base_currency.message === "string" &&
+                            formErrors.base_currency.message}
                         </div>
                       )}
                     </div>
@@ -609,6 +768,136 @@ return (
           </form>
         </Slideover.Panel>
       </Slideover>
+
+      {/* Add Currency Modal */}
+      <Slideover
+        open={showAddCurrencyModal}
+        onClose={() => {
+          setShowAddCurrencyModal(false);
+          setCurrencyForm({ code: '', name: '', symbol: '' });
+          setCurrencyErrors({});
+        }}
+        size="xl"
+      >
+        <Slideover.Panel className="text-center overflow-y-auto max-h-[110vh]">
+          <Slideover.Title>
+            <h2 className="mr-auto text-base font-medium">{t("Add New Currency")}</h2>
+          </Slideover.Title>
+          <Slideover.Description className="relative">
+            <div className="relative">
+              {currencyLoading ? (
+                <div className="w-full h-full z-[99999px] absolute backdrop-blur-md bg-gray-600">
+                  <div className="w-full h-full flex justify-center items-center">
+                    <LoadingIcon icon="tail-spin" className="w-8 h-8" />
+                  </div>
+                </div>
+              ) : (
+                <div className="w-full grid grid-cols-1 gap-4 gap-y-3">
+                  
+                  <div className="mt-3 input-form">
+                    <FormLabel
+                      htmlFor="currency-code"
+                      className="flex justify-start items-start flex-col w-full sm:flex-row"
+                    >
+                      {t("Currency Code")} <span className="text-danger">*</span>
+                    </FormLabel>
+                    <FormInput
+                      id="currency-code"
+                      type="text"
+                      value={currencyForm.code}
+                      onChange={(e) => handleCurrencyFormChange('code', e.target.value.toUpperCase())}
+                      className={clsx({
+                        "border-danger": currencyErrors.code,
+                      })}
+                      placeholder={t("Enter 3-letter currency code (e.g., USD)")}
+                      maxLength={3}
+                    />
+                    {currencyErrors.code && (
+                      <div className="mt-2 text-danger">
+                        {typeof currencyErrors.code === 'string' ? currencyErrors.code : currencyErrors.code[0]}
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="mt-3 input-form">
+                    <FormLabel
+                      htmlFor="currency-name"
+                      className="flex justify-start items-start flex-col w-full sm:flex-row"
+                    >
+                      {t("Currency Name")} <span className="text-danger">*</span>
+                    </FormLabel>
+                    <FormInput
+                      id="currency-name"
+                      type="text"
+                      value={currencyForm.name}
+                      onChange={(e) => handleCurrencyFormChange('name', e.target.value)}
+                      className={clsx({
+                        "border-danger": currencyErrors.name,
+                      })}
+                      placeholder={t("Enter currency name (e.g., US Dollar)")}
+                    />
+                    {currencyErrors.name && (
+                      <div className="mt-2 text-danger">
+                        {typeof currencyErrors.name === 'string' ? currencyErrors.name : currencyErrors.name[0]}
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="mt-3 input-form">
+                    <FormLabel
+                      htmlFor="currency-symbol"
+                      className="flex justify-start items-start flex-col w-full sm:flex-row"
+                    >
+                      {t("Currency Symbol")} <span className="text-danger">*</span>
+                    </FormLabel>
+                    <FormInput
+                      id="currency-symbol"
+                      type="text"
+                      value={currencyForm.symbol}
+                      onChange={(e) => handleCurrencyFormChange('symbol', e.target.value)}
+                      className={clsx({
+                        "border-danger": currencyErrors.symbol,
+                      })}
+                      placeholder={t("Enter currency symbol (e.g., $)")}
+                      maxLength={5}
+                    />
+                    {currencyErrors.symbol && (
+                      <div className="mt-2 text-danger">
+                        {typeof currencyErrors.symbol === 'string' ? currencyErrors.symbol : currencyErrors.symbol[0]}
+                      </div>
+                    )}
+                  </div>
+
+                </div>
+              )}
+            </div>
+          </Slideover.Description>
+          <Slideover.Footer>
+            <Button
+              variant="outline-secondary"
+              type="button"
+              onClick={() => {
+                setShowAddCurrencyModal(false);
+                setCurrencyForm({ code: '', name: '', symbol: '' });
+                setCurrencyErrors({});
+              }}
+              className="w-20 mr-1"
+            >
+              {t("Cancel")}
+            </Button>
+            <Button
+              variant="primary"
+              type="button"
+              onClick={handleAddCurrency}
+              className="w-20"
+              disabled={currencyLoading || !currencyForm.code || !currencyForm.name || !currencyForm.symbol}
+            >
+              {t("Save")}
+            </Button>
+          </Slideover.Footer>
+        </Slideover.Panel>
+      </Slideover>
+
       <Notification
         getRef={(el) => {
           basicStickyNotification.current = el;
@@ -617,6 +906,21 @@ return (
       >
         <div className="font-medium">{toastMessage}</div>
       </Notification>
+      <div className="flex justify-between items-center mb-4">
+        <h2 className="text-lg font-medium">{t("Exchange Rate Management")}</h2>
+        <Can permission="currency-create">
+          <Button
+            variant="primary"
+            size="sm"
+            onClick={() => setShowAddCurrencyModal(true)}
+            className="ml-2"
+          >
+            <Lucide icon="Plus" className="w-4 h-4 mr-2" />
+            {t("Add Currency")}
+          </Button>
+        </Can>
+      </div>
+      
       <Can permission="exchangerate-list">
         <TableComponent
           setShowCreateModal={setShowCreateModal}

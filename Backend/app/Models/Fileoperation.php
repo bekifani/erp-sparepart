@@ -13,7 +13,7 @@ use Illuminate\Notifications\Notifiable;
 class Fileoperation extends Model
 {
     use HasFactory, LogsActivity, Notifiable;
-    public $fillable = ['user_id', 'product_id', 'file_path', 'operation_type', 'status'];
+    public $fillable = ['user_id', 'product_id', 'file_path', 'file_name', 'operation_type', 'status', 'records_processed', 'records_imported', 'records_skipped', 'error_count'];
     protected static $logAttributes = ['*'];
     public $guarded = [];
 

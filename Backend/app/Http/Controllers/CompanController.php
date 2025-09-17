@@ -9,7 +9,7 @@ use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
 class CompanController extends BaseController
 {
-    protected $searchableColumns = ['company_name', 'website', 'address', 'email', 'phone_number', 'our_ref', 'origin', 'payment_terms', 'shipping_terms', 'tax_number', 'mobile_number', 'bank_details', 'additional_note'];
+    protected $searchableColumns = ['company_name', 'trading_name', 'website', 'address', 'street_address', 'city', 'state_region', 'postal_code', 'country', 'email', 'phone_number', 'mobile_number', 'our_ref', 'origin', 'payment_terms', 'shipping_terms', 'tax_id', 'vat_number', 'business_registration_number', 'bank_details', 'additional_note'];
 
     public function index(Request $request)
     {
@@ -69,16 +69,24 @@ class CompanController extends BaseController
         $validationRules = [
           "logo"=>"nullable|string",
           "company_name"=>"required|string|max:255",
+          "trading_name"=>"nullable|string|max:255",
           "website"=>"nullable|string|max:255",
-          "address"=>"required|string|max:500",
+          "address"=>"nullable|string|max:500",
+          "street_address"=>"nullable|string|max:255",
+          "city"=>"nullable|string|max:100",
+          "state_region"=>"nullable|string|max:100",
+          "postal_code"=>"nullable|string|max:20",
+          "country"=>"nullable|string|max:100",
           "email"=>"nullable|email|unique:compans,email",
           "phone_number"=>"nullable|string|max:20",
+          "mobile_number"=>"nullable|string|max:20",
           "our_ref"=>"required|string|max:255",
           "origin"=>"nullable|string|max:255",
           "payment_terms"=>"nullable|string",
           "shipping_terms"=>"nullable|string",
-          "tax_number"=>"nullable|string|max:255",
-          "mobile_number"=>"nullable|string|max:20",
+          "tax_id"=>"nullable|string|max:255",
+          "vat_number"=>"nullable|string|max:255",
+          "business_registration_number"=>"nullable|string|max:255",
           "bank_details"=>"nullable|string",
           "additional_note"=>"nullable|string",
         ];
@@ -111,16 +119,24 @@ class CompanController extends BaseController
          $validationRules = [
           "logo"=>"nullable|string",
           "company_name"=>"required|string|max:255",
+          "trading_name"=>"nullable|string|max:255",
           "website"=>"nullable|string|max:255",
-          "address"=>"required|string|max:500",
+          "address"=>"nullable|string|max:500",
+          "street_address"=>"nullable|string|max:255",
+          "city"=>"nullable|string|max:100",
+          "state_region"=>"nullable|string|max:100",
+          "postal_code"=>"nullable|string|max:20",
+          "country"=>"nullable|string|max:100",
           "email"=>"nullable|email|unique:compans,email,".$id,
           "phone_number"=>"nullable|string|max:20",
+          "mobile_number"=>"nullable|string|max:20",
           "our_ref"=>"required|string|max:255",
           "origin"=>"nullable|string|max:255",
           "payment_terms"=>"nullable|string",
           "shipping_terms"=>"nullable|string",
-          "tax_number"=>"nullable|string|max:255",
-          "mobile_number"=>"nullable|string|max:20",
+          "tax_id"=>"nullable|string|max:255",
+          "vat_number"=>"nullable|string|max:255",
+          "business_registration_number"=>"nullable|string|max:255",
           "bank_details"=>"nullable|string",
           "additional_note"=>"nullable|string",
         ];

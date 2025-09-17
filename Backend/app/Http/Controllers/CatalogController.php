@@ -20,6 +20,7 @@ class CatalogController extends Controller
         try {
             // Build query based on filters
             $query = Product::with(['brand', 'productinformation', 'productname.category']);
+
             
             // Apply filters
             if ($request->has('search') && !empty($request->search)) {
@@ -143,6 +144,7 @@ class CatalogController extends Controller
         try {
             // Build query with necessary relationships for catalog display
             $query = Product::with(['brand', 'productinformation', 'productname.category']);
+
             
             // Simplified search functionality to avoid relationship errors
             if ($request->has('search') && !empty($request->search)) {
@@ -226,6 +228,7 @@ class CatalogController extends Controller
                 'brand', 
                 'productinformation',
                 'productname.category',
+
                 'productspecifications.specificationheadname',
                 'crosscars.carmodel',
                 'crosscodes.brandname'

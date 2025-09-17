@@ -16,6 +16,7 @@ import {
   useCreateCustomerinvoiceMutation,
   useDeleteCustomerinvoiceMutation,
   useEditCustomerinvoiceMutation,
+  useGetCompansQuery,
 } from "@/stores/apiSlice";
 import clsx from "clsx";
 import Can from "@/helpers/PermissionChecker/index.js";
@@ -25,6 +26,7 @@ import FileUpload from "@/helpers/ui/FileUpload.jsx";
 import TomSelectSearch from "@/helpers/ui/TomSelector.jsx";
 import { useSelector } from "react-redux";
 import { ClassicEditor } from "@/components/Base/Ckeditor";
+import CompanyProfileSelector from "@/components/CompanyProfileSelector.jsx";
 
 
 function index_main() {
@@ -38,6 +40,8 @@ function index_main() {
   const [editorData, setEditorData] = useState("")
   const [confirmationMessage, setConfirmationMessage] =
     useState(t("Are you Sure Do You want to Delete Customerinvoice"));
+  const [selectedCompany, setSelectedCompany] = useState('');
+  const [selectedCompanyData, setSelectedCompanyData] = useState(null);
 
   
  const [
@@ -53,6 +57,9 @@ function index_main() {
     { isLoading: deleting, isSuccess: deleted, error: deleteError },
   ] = useDeleteCustomerinvoiceMutation()
 
+  // Company profiles query
+  const { data: companiesData } = useGetCompansQuery();
+
 
   const [toastMessage, setToastMessage] = useState("");
   const basicStickyNotification = useRef();
@@ -60,6 +67,31 @@ function index_main() {
   const hasPermission = (permission) => {
     return user.permissions.includes(permission)
   }
+
+  // Company selection handler
+  const handleCompanyChange = (companyId) => {
+    setSelectedCompany(companyId);
+    if (companyId && companiesData?.data?.data) {
+      const company = companiesData.data.data.find(c => c.id == companyId);
+      setSelectedCompanyData(company);
+      // Auto-populate company fields
+      if (company) {
+        setValue('company_name', company.company_name || '');
+        setValue('address', company.address || '');
+        setValue('tax_id', company.tax_id || '');
+        setValue('phone_number', company.phone_number || '');
+        setValue('email', company.email || '');
+      }
+    } else {
+      setSelectedCompanyData(null);
+      // Clear company fields
+      setValue('company_name', '');
+      setValue('address', '');
+      setValue('tax_id', '');
+      setValue('phone_number', '');
+      setValue('email', '');
+    }
+  };
   const [data, setData] = useState([
     {
       title: t("Id"),

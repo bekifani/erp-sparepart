@@ -24,6 +24,7 @@ import { crosscodeEndpoints } from "./endpoints/crosscodeEndpoints"
 import { crosscarEndpoints } from "./endpoints/crosscarEndpoints"
 import { productspecificationEndpoints } from "./endpoints/productspecificationEndpoints"
 import { exchangerateEndpoints } from "./endpoints/exchangerateEndpoints"
+import { currencyEndpoints } from "./endpoints/currencyEndpoints"
 import { companEndpoints } from "./endpoints/companEndpoints"
 import { basketEndpoints } from "./endpoints/basketEndpoints"
 import { basketfileEndpoints } from "./endpoints/basketfileEndpoints"
@@ -66,6 +67,7 @@ import { catalogEndpoints } from "./endpoints/catalogEndpoints"
 export const apiSlice = createApi({
     reducerPath: "user",
     baseQuery: fetchBaseQuery({
+      // baseUrl: "https://erp-backend.learnica.net/api/",
       baseUrl: "http://localhost:8000/api/",
       credentials: "include",
       prepareHeaders: (headers, { getState }) => {
@@ -107,6 +109,7 @@ export const apiSlice = createApi({
 ...crosscarEndpoints(builder),
 ...productspecificationEndpoints(builder),
 ...exchangerateEndpoints(builder),
+...currencyEndpoints(builder),
 ...companEndpoints(builder),
 ...basketEndpoints(builder),
 ...basketfileEndpoints(builder),
@@ -338,6 +341,16 @@ export const {
     useLazyGetExchangerateDetailQuery,
     useDeleteExchangerateMutation,
     useGetExchangeratesQuery,
+
+    // Currency endpoints
+    useCreateCurrencyMutation,
+    useEditCurrencyMutation,
+    useGetCurrenciesQuery,
+    useGetCurrencyDetailQuery,
+    useDeleteCurrencyMutation,
+    useGetAllCurrenciesQuery,
+    useToggleCurrencyMutation,
+    useSearchCurrencyQuery,
 
 
     useCreateCompanMutation,

@@ -119,9 +119,9 @@ const initialState: SideMenuState = {
               permission: "order-list"
             },
             {
-              icon: "FileText",
-              pathname: "/menu/orderdetail",
-              title: "Order Details",
+              icon: "Eye",
+              pathname: "/menu/orderview",
+              title: "Order View",
               permission: "orderdetail-list"
             }
           ]
@@ -281,9 +281,40 @@ const initialState: SideMenuState = {
 
     {
       icon: "Image",
-      pathname: "/menu/productimage",
-      title: "Product Images",
-      permission: "productimage-list"
+      title: "Images",
+      permission: "view-hr-menu",
+      subMenu: [
+        {
+          icon: "Camera",
+          pathname: "/menu/productpictures",
+          title: "Product Pictures",
+          permission: "productinformation-list"
+        },
+        {
+          icon: "FileImage",
+          pathname: "/menu/technicalimages",
+          title: "Technical Images",
+          permission: "productinformation-list"
+        },
+        {
+          icon: "Package",
+          pathname: "/menu/boximages",
+          title: "Boxes",
+          permission: "boxe-list"
+        },
+        {
+          icon: "Tag",
+          pathname: "/menu/labelimages",
+          title: "Labels",
+          permission: "label-list"
+        },
+        {
+          icon: "FolderOpen",
+          pathname: "/menu/otherimages",
+          title: "Others",
+          permission: "view-hr-menu"
+        }
+      ]
     },
     {
       icon: "Package",

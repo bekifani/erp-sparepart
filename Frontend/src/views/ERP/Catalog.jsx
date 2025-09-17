@@ -109,10 +109,20 @@ function Catalog() {
     if (products.length > 0) {
       console.log('First product data:', products[0]);
       console.log('Available fields:', Object.keys(products[0]));
-      console.log('Product information:', products[0].productinformation);
-      console.log('Image field:', products[0].productinformation?.image);
+      console.log('ProductInformation (capital):', products[0].ProductInformation);
+      console.log('productinformation (lowercase):', products[0].productinformation);
+      console.log('product_information (underscore):', products[0].product_information);
+      
+      // Check all possible image fields
+      const productInfo = products[0].ProductInformation || products[0].productinformation || products[0].product_information;
+      console.log('Resolved product info:', productInfo);
+      console.log('Technical image field:', productInfo?.technical_image);
+      console.log('Image field:', productInfo?.image);
       console.log('Media URL:', media_url);
-      console.log('Full image path:', `${media_url}${products[0].productinformation?.image}`);
+      
+      if (productInfo?.technical_image) {
+        console.log('Full technical image path:', `${media_url}${productInfo.technical_image}`);
+      }
     }
   }, [products]);
 
@@ -452,7 +462,33 @@ function Catalog() {
               <div className="flex gap-4">
                 {/* Product Image */}
                 <div className="w-32 h-32 bg-gray-100 rounded-lg overflow-hidden flex-shrink-0 flex items-center justify-center">
-                  <Lucide icon="Package" className="w-16 h-16 text-gray-400" />
+                  {(() => {
+                    const productInfo = product.ProductInformation || product.productinformation || product.product_information;
+                    const technicalImage = productInfo?.technical_image || productInfo?.image;
+                    
+                    return technicalImage ? (
+                      <img
+                        src={`${media_url}${technicalImage}`}
+                        alt={product.description || 'Product'}
+                        className="w-full h-full object-cover"
+                        onError={(e) => {
+                          console.log('Image failed to load:', e.target.src);
+                          e.target.style.display = 'none';
+                          e.target.nextSibling.style.display = 'flex';
+                        }}
+                        onLoad={(e) => {
+                          console.log('Image loaded successfully:', e.target.src);
+                        }}
+                      />
+                    ) : null;
+                  })()}
+                  <div className="w-full h-full flex items-center justify-center" style={{display: (() => {
+                    const productInfo = product.ProductInformation || product.productinformation || product.product_information;
+                    const technicalImage = productInfo?.technical_image || productInfo?.image;
+                    return technicalImage ? 'none' : 'flex';
+                  })()}}>
+                    <Lucide icon="Package" className="w-16 h-16 text-gray-400" />
+                  </div>
                 </div>
 
                 {/* Product Details */}
@@ -519,7 +555,7 @@ function Catalog() {
         <Dialog.Panel>
           <Dialog.Title>
             <h2 className="mr-auto text-base font-medium">
-              {selectedProduct?.description}
+              {selectedProduct?.description || 'Product Details'}
             </h2>
           </Dialog.Title>
           <Dialog.Description>
@@ -565,6 +601,65 @@ function Catalog() {
                           />
                           <div className="w-full h-full flex items-center justify-center" style={{display: 'none'}}>
                             <Lucide icon="Package" className="w-16 h-16 text-gray-400" />
+//             ) : (productDetails && selectedProduct) ? (
+//               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+//                 {/* Product Images */}
+//                 <div>
+//                   <div className="aspect-square bg-gray-100 rounded-lg overflow-hidden mb-4">
+//                     {(() => {
+//                       const productInfo = productDetails?.data?.ProductInformation || productDetails?.data?.productinformation || productDetails?.data?.product_information;
+//                       const technicalImage = productInfo?.technical_image || productInfo?.image;
+                      
+//                       return technicalImage ? (
+//                         <img
+//                           src={`${media_url}${technicalImage}`}
+//                           alt={selectedProduct?.description || 'Product'}
+//                           className="w-full h-full object-cover"
+//                           onError={(e) => {
+//                             console.log('Modal image failed to load:', e.target.src);
+//                             console.log('Product details:', productDetails);
+//                             e.target.style.display = 'none';
+//                             e.target.nextSibling.style.display = 'flex';
+//                           }}
+//                           onLoad={(e) => {
+//                             console.log('Modal image loaded successfully:', e.target.src);
+//                           }}
+//                         />
+//                       ) : null;
+//                     })()}
+//                     <div className="w-full h-full flex items-center justify-center" style={{display: (() => {
+//                       const productInfo = productDetails?.data?.ProductInformation || productDetails?.data?.productinformation || productDetails?.data?.product_information;
+//                       const technicalImage = productInfo?.technical_image || productInfo?.image;
+//                       return technicalImage ? 'none' : 'flex';
+//                     })()}}>
+//                       <Lucide icon="Package" className="w-16 h-16 text-gray-400" />
+//                     </div>
+//                   </div>
+//                 </div>
+
+//                 {/* Product Details */}
+//                 <div>
+//                   {/* Basic Product Information */}
+//                   <div className="mb-6">
+//                     <h3 className="text-lg font-semibold mb-4 text-gray-800 border-b pb-2">{t('Product Information')}</h3>
+//                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+//                       <div className="space-y-3">
+//                         <div className="flex justify-between">
+//                           <span className="font-medium text-gray-600">{t('Brand')}:</span> 
+//                           <span className="text-gray-900">{selectedProduct?.brand?.brand_name || 'N/A'}</span>
+//                         </div>
+//                         <div className="flex justify-between">
+//                           <span className="font-medium text-gray-600">{t('Brand Code')}:</span> 
+//                           <span className="text-gray-900">{selectedProduct?.brand_code || 'N/A'}</span>
+//                         </div>
+//                         <div className="flex justify-between">
+//                           <span className="font-medium text-gray-600">{t('Description')}:</span> 
+//                           <span className="text-gray-900">{selectedProduct?.description || 'N/A'}</span>
+//                         </div>
+//                         {selectedProduct?.oe_code && (
+//                           <div className="flex justify-between">
+//                             <span className="font-medium text-gray-600">{t('OE Code')}:</span> 
+//                             <span className="text-gray-900">{selectedProduct.oe_code}</span>
                           </div>
                         </div>
 
@@ -710,6 +805,45 @@ function Catalog() {
                         {productCrossCodes.data.slice(0, 3).map((crosscode, index) => (
                           <div key={index} className="mb-1">
                             {crosscode.brandname?.brand_name || 'N/A'}: {crosscode.cross_code || 'N/A'}
+                  {/* Detailed Product Information */}
+//                   {productDetails?.data?.ProductInformation && (
+//                     <div className="mb-6">
+//                       <h3 className="text-lg font-semibold mb-4 text-gray-800 border-b pb-2">{t('Detailed Information')}</h3>
+//                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+//                         <div className="space-y-3">
+//                           <div className="flex justify-between">
+//                             <span className="font-medium text-gray-600">{t('Product Code')}:</span> 
+//                             <span className="text-gray-900">{productDetails.data.ProductInformation.product_code || 'N/A'}</span>
+//                           </div>
+//                           <div className="flex justify-between">
+//                             <span className="font-medium text-gray-600">{t('QR Code')}:</span> 
+//                             <span className="text-gray-900">{productDetails.data.ProductInformation.qr_code || 'N/A'}</span>
+//                           </div>
+//                           <div className="flex justify-between">
+//                             <span className="font-medium text-gray-600">{t('Net Weight')}:</span> 
+//                             <span className="text-gray-900">{productDetails.data.ProductInformation.net_weight || 'N/A'} kg</span>
+//                           </div>
+//                           <div className="flex justify-between">
+//                             <span className="font-medium text-gray-600">{t('Gross Weight')}:</span> 
+//                             <span className="text-gray-900">{productDetails.data.ProductInformation.gross_weight || 'N/A'} kg</span>
+//                           </div>
+//                         </div>
+//                         <div className="space-y-3">
+//                           <div className="flex justify-between">
+//                             <span className="font-medium text-gray-600">{t('Size A')}:</span> 
+//                             <span className="text-gray-900">{productDetails.data.ProductInformation.product_size_a || 'N/A'} cm</span>
+//                           </div>
+//                           <div className="flex justify-between">
+//                             <span className="font-medium text-gray-600">{t('Size B')}:</span> 
+//                             <span className="text-gray-900">{productDetails.data.ProductInformation.product_size_b || 'N/A'} cm</span>
+//                           </div>
+//                           <div className="flex justify-between">
+//                             <span className="font-medium text-gray-600">{t('Size C')}:</span> 
+//                             <span className="text-gray-900">{productDetails.data.ProductInformation.product_size_c || 'N/A'} cm</span>
+//                           </div>
+//                           <div className="flex justify-between">
+//                             <span className="font-medium text-gray-600">{t('Volume')}:</span> 
+//                             <span className="text-gray-900">{productDetails.data.ProductInformation.volume || 'N/A'} cm³</span>
                           </div>
                         ))}
                       </div>
@@ -717,6 +851,26 @@ function Catalog() {
                       <div className="text-sm text-gray-500">No cross references available</div>
                     )}
                   </div>
+                      
+                      {/* Properties and Additional Notes */}
+//                       {(productDetails.data.ProductInformation.properties || productDetails.data.ProductInformation.additional_note) && (
+//                         <div className="mt-4 space-y-3">
+//                           {productDetails.data.ProductInformation.properties && (
+//                             <div>
+//                               <span className="font-medium text-gray-600 block mb-2">{t('Properties')}:</span>
+//                               <p className="text-gray-900 bg-gray-50 p-3 rounded-md">{productDetails.data.ProductInformation.properties}</p>
+//                             </div>
+//                           )}
+//                           {productDetails.data.ProductInformation.additional_note && (
+//                             <div>
+//                               <span className="font-medium text-gray-600 block mb-2">{t('Additional Notes')}:</span>
+//                               <p className="text-gray-900 bg-gray-50 p-3 rounded-md">{productDetails.data.ProductInformation.additional_note}</p>
+//                             </div>
+//                           )}
+//                         </div>
+//                       )}
+//                     </div>
+//                   )}
                 </div>
               </div>
             ) : null}

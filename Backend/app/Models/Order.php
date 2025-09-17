@@ -40,4 +40,10 @@ class Order extends Model
  public function compan() { 
  return $this->belongsTo(Compan::class, 'company_id', 'id');
  }
+ public function orderDetails() { 
+ return $this->hasMany(Orderdetail::class, 'order_id', 'id');
+ }
+ public function user() { 
+ return $this->belongsTo(User::class, 'created_by', 'id');
+ }
 }

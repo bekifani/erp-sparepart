@@ -4,12 +4,21 @@ namespace App\Http\Controllers;
 
 use App\Http\Controllers\BaseController;
 use App\Models\Exchangerate;
+use App\Models\Currency;
+use App\Services\CurrencyConversionService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Facades\Log;
 class ExchangerateController extends BaseController
 {
-    protected $searchableColumns = ['date', 'currency', 'price', 'base_currency'];
+    protected $searchableColumns = ['date', 'currency', 'rate', 'base_currency'];
+    
+    // Get supported currency codes dynamically from database
+    protected function getSupportedCurrencies()
+    {
+        return Currency::getActiveCurrencyCodes();
+    }
 
     public function index(Request $request)
     {
@@ -66,29 +75,36 @@ class ExchangerateController extends BaseController
 
     public function store(Request $request)
     {
-        $validationRules = [
-          
-          "date"=>"required|date",
-          "currency"=>"required|string|max:255",
-          "price"=>"required|numeric",
-          "base_currency"=>"required|string|max:255",
-          
+        try {
+            $validationRules = [
+                "date" => "required|date",
+                "currency" => "required|string|size:3|in:" . implode(',', $this->getSupportedCurrencies()),
+                "rate" => "required|numeric|min:0|regex:/^\d+(\.\d{1,6})?$/",
+                "base_currency" => "required|string|size:3|in:RMB",
+            ];
 
-        ];
+            // Add unique validation for date + currency combination
+            $validationRules['date'] .= '|unique:exchangerates,date,NULL,id,currency,' . $request->currency;
 
-        $validation = Validator::make($request->all() , $validationRules);
-        if($validation->fails()){
-            return $this->sendError("Invalid Values", ['errors' => $validation->errors()]);
+            $validation = Validator::make($request->all(), $validationRules);
+            if ($validation->fails()) {
+                return $this->sendError("Invalid Values", ['errors' => $validation->errors()]);
+            }
+            $validated = $validation->validated();
+
+            // Set default base currency to RMB
+            $validated['base_currency'] = 'RMB';
+
+            $exchangerate = Exchangerate::create($validated);
+            
+            // Clear cache for this currency
+            CurrencyConversionService::clearCache($validated['currency']);
+            
+            return $this->sendResponse($exchangerate, "Exchange rate created successfully");
+        } catch (\Exception $e) {
+            Log::error('Exchange rate creation failed: ' . $e->getMessage());
+            return $this->sendError("Failed to create exchange rate", ['error' => $e->getMessage()]);
         }
-        $validated=$validation->validated();
-
-
-
-        
-        //file uploads
-
-        $exchangerate = Exchangerate::create($validated);
-        return $this->sendResponse($exchangerate, "exchangerate created succesfully");
     }
 
     public function show($id)
@@ -100,44 +116,110 @@ class ExchangerateController extends BaseController
 
     public function update(Request $request, $id)
     {
-        $exchangerate = Exchangerate::findOrFail($id);
-         $validationRules = [
-            //for update
+        try {
+            $exchangerate = Exchangerate::findOrFail($id);
+            $validationRules = [
+                "date" => "required|date",
+                "currency" => "required|string|size:3|in:" . implode(',', $this->getSupportedCurrencies()),
+                "rate" => "required|numeric|min:0|regex:/^\d+(\.\d{1,6})?$/",
+                "base_currency" => "required|string|size:3|in:RMB",
+            ];
 
-          
-          "date"=>"required|date",
-          "currency"=>"required|string|max:255",
-          "price"=>"required|numeric",
-          "base_currency"=>"required|string|max:255",
-          
-        ];
+            // Add unique validation for date + currency combination (excluding current record)
+            $validationRules['date'] .= '|unique:exchangerates,date,' . $id . ',id,currency,' . $request->currency;
 
-        $validation = Validator::make($request->all() , $validationRules);
-        if($validation->fails()){
-            return $this->sendError("Invalid Values", ['errors' => $validation->errors()]);
+            $validation = Validator::make($request->all(), $validationRules);
+            if ($validation->fails()) {
+                return $this->sendError("Invalid Values", ['errors' => $validation->errors()]);
+            }
+            $validated = $validation->validated();
+
+            // Ensure base currency is RMB
+            $validated['base_currency'] = 'RMB';
+
+            $exchangerate->update($validated);
+            
+            // Clear cache for this currency
+            CurrencyConversionService::clearCache($validated['currency']);
+            
+            return $this->sendResponse($exchangerate, "Exchange rate updated successfully");
+        } catch (\Exception $e) {
+            Log::error('Exchange rate update failed: ' . $e->getMessage());
+            return $this->sendError("Failed to update exchange rate", ['error' => $e->getMessage()]);
         }
-        $validated=$validation->validated();
-
-
-
-
-        //file uploads update
-
-        $exchangerate->update($validated);
-        return $this->sendResponse($exchangerate, "exchangerate updated successfully");
     }
 
     public function destroy($id)
     {
-        $exchangerate = Exchangerate::findOrFail($id);
-        $exchangerate->delete();
+        try {
+            $exchangerate = Exchangerate::findOrFail($id);
+            $currency = $exchangerate->currency;
+            $exchangerate->delete();
+            
+            // Clear cache for this currency
+            CurrencyConversionService::clearCache($currency);
+            
+            return $this->sendResponse(1, "Exchange rate deleted successfully");
+        } catch (\Exception $e) {
+            Log::error('Exchange rate deletion failed: ' . $e->getMessage());
+            return $this->sendError("Failed to delete exchange rate", ['error' => $e->getMessage()]);
+        }
+    }
 
+    /**
+     * Get available currencies with their latest rates
+     */
+    public function getAvailableCurrencies()
+    {
+        try {
+            $currencies = CurrencyConversionService::getAvailableCurrencies();
+            return $this->sendResponse($currencies, "Available currencies retrieved successfully");
+        } catch (\Exception $e) {
+            Log::error('Failed to get available currencies: ' . $e->getMessage());
+            return $this->sendError("Failed to get available currencies", ['error' => $e->getMessage()]);
+        }
+    }
 
+    /**
+     * Convert amount from RMB to target currency
+     */
+    public function convertCurrency(Request $request)
+    {
+        try {
+            $validationRules = [
+                'amount' => 'required|numeric|min:0',
+                'target_currency' => 'required|string|size:3|in:' . implode(',', $this->getSupportedCurrencies()),
+            ];
 
+            $validation = Validator::make($request->all(), $validationRules);
+            if ($validation->fails()) {
+                return $this->sendError("Invalid Values", ['errors' => $validation->errors()]);
+            }
 
+            $amount = $request->amount;
+            $targetCurrency = $request->target_currency;
 
-        //delete files uploaded
-        return $this->sendResponse(1, "exchangerate deleted succesfully");
+            $convertedAmount = CurrencyConversionService::convertFromRMB($amount, $targetCurrency);
+            
+            if ($convertedAmount === null) {
+                return $this->sendError("Exchange rate not found for currency: {$targetCurrency}");
+            }
+
+            $rate = CurrencyConversionService::getLatestRate($targetCurrency);
+
+            return $this->sendResponse([
+                'original_amount' => $amount,
+                'original_currency' => 'RMB',
+                'converted_amount' => $convertedAmount,
+                'target_currency' => $targetCurrency,
+                'exchange_rate' => $rate->rate,
+                'rate_date' => $rate->date,
+                'formatted_amount' => CurrencyConversionService::formatPrice($convertedAmount, $targetCurrency)
+            ], "Currency conversion completed successfully");
+        } catch (\Exception $e) {
+            Log::error('Currency conversion failed: ' . $e->getMessage());
+            return $this->sendError("Currency conversion failed", ['error' => $e->getMessage()]);
+        }
     }
 
     public function deleteFile($filePath) {

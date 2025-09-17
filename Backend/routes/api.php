@@ -65,6 +65,7 @@ Route::post('/supplier', [App\Http\Controllers\SupplierController::class, 'store
 Route::put('/supplier/{id}', [App\Http\Controllers\SupplierController::class, 'update'])->middleware('permission:supplier-edit');
 Route::delete('/supplier/{id}', [App\Http\Controllers\SupplierController::class, 'destroy'])->middleware('permission:supplier-delete');
 Route::get('/all_suppliers', [App\Http\Controllers\SupplierController::class,'all_suppliers']);
+Route::post('/check_existing_main_suppliers', [App\Http\Controllers\SupplierController::class, 'checkExistingMainSuppliers'])->middleware('permission:supplier-edit');
 
 
 Route::get('/categor', [App\Http\Controllers\CategorController::class, 'index'])->middleware('permission:categor-list|categor-create|categor-edit|categor-delete');
@@ -201,6 +202,18 @@ Route::post('/exchangerate', [App\Http\Controllers\ExchangerateController::class
 Route::put('/exchangerate/{id}', [App\Http\Controllers\ExchangerateController::class, 'update'])->middleware('permission:exchangerate-edit');
 Route::delete('/exchangerate/{id}', [App\Http\Controllers\ExchangerateController::class, 'destroy'])->middleware('permission:exchangerate-delete');
 Route::get('/all_exchangerates', [App\Http\Controllers\ExchangerateController::class,'all_exchangerates']);
+Route::get('/available_currencies', [App\Http\Controllers\ExchangerateController::class, 'getAvailableCurrencies']);
+Route::post('/convert_currency', [App\Http\Controllers\ExchangerateController::class, 'convertCurrency']);
+
+// Currency management routes
+Route::get('/currency', [App\Http\Controllers\CurrencyController::class, 'index'])->middleware('permission:currency-list|currency-create|currency-edit|currency-delete');
+Route::get('/currency/{id}', [App\Http\Controllers\CurrencyController::class, 'show'])->middleware('permission:currency-list|currency-create|currency-edit|currency-delete');
+Route::get('/search_currency/{search_term}', [App\Http\Controllers\CurrencyController::class, 'search'])->middleware('permission:currency-list|currency-create|currency-edit|currency-delete');
+Route::post('/currency', [App\Http\Controllers\CurrencyController::class, 'store'])->middleware('permission:currency-create');
+Route::put('/currency/{id}', [App\Http\Controllers\CurrencyController::class, 'update'])->middleware('permission:currency-edit');
+Route::delete('/currency/{id}', [App\Http\Controllers\CurrencyController::class, 'destroy'])->middleware('permission:currency-delete');
+Route::post('/currency/{id}/toggle', [App\Http\Controllers\CurrencyController::class, 'toggle'])->middleware('permission:currency-edit');
+Route::get('/all_currencies', [App\Http\Controllers\CurrencyController::class, 'all_currencies']);
 
 
 Route::get('/compan', [App\Http\Controllers\CompanController::class, 'index'])->middleware('permission:compan-list|compan-create|compan-edit|compan-delete');
@@ -445,6 +458,31 @@ Route::put('/fileoperation/{id}', [App\Http\Controllers\FileoperationController:
 Route::delete('/fileoperation/{id}', [App\Http\Controllers\FileoperationController::class, 'destroy'])->middleware('permission:fileoperation-delete');
 Route::get('/all_fileoperations', [App\Http\Controllers\FileoperationController::class,'all_fileoperations']);
 
+// Excel Import Routes
+Route::post('/upload-excel', [App\Http\Controllers\FileoperationController::class, 'uploadExcel'])->middleware('permission:fileoperation-create');
+Route::post('/process-import', [App\Http\Controllers\FileoperationController::class, 'processImport'])->middleware('permission:fileoperation-create');
+Route::post('/export-invalid-rows', [App\Http\Controllers\FileoperationController::class, 'exportInvalidRows'])->middleware('permission:fileoperation-create');
+Route::get('/import-history', [App\Http\Controllers\FileoperationController::class, 'getImportHistory'])->middleware('permission:fileoperation-list');
+Route::get('/download-file/{id}', [App\Http\Controllers\FileoperationController::class, 'downloadFile'])->middleware('permission:fileoperation-list');
+Route::post('/fileoperation/validate-cross-cars', [App\Http\Controllers\FileoperationCrossCarController::class, 'validateCrossCars'])->middleware('permission:fileoperation-create');
+Route::post('/fileoperation/import-cross-cars', [App\Http\Controllers\FileoperationCrossCarController::class, 'processCrossCarsImport'])->middleware('permission:fileoperation-create');
+Route::post('/fileoperation/validate-car-models', [App\Http\Controllers\FileoperationCarModelController::class, 'validateCarModels'])->middleware('permission:fileoperation-create');
+Route::post('/fileoperation/import-car-models', [App\Http\Controllers\FileoperationCarModelController::class, 'processCarModelsImport'])->middleware('permission:fileoperation-create');
+Route::post('/fileoperation/validate-product-names', [App\Http\Controllers\FileoperationProductnameController::class, 'validateProductNames'])->middleware('permission:fileoperation-create');
+Route::post('/fileoperation/import-product-names', [App\Http\Controllers\FileoperationProductnameController::class, 'processProductNamesImport'])->middleware('permission:fileoperation-create');
+Route::post('/fileoperation/validate-products', [App\Http\Controllers\FileoperationProductController::class, 'validateProducts'])->middleware('permission:fileoperation-create');
+Route::post('/fileoperation/import-products', [App\Http\Controllers\FileoperationProductController::class, 'processProductsImport'])->middleware('permission:fileoperation-create');
+Route::post('/fileoperation/validate-product-information', [App\Http\Controllers\FileoperationProductInformationController::class, 'validateProductInformation'])->middleware('permission:fileoperation-create');
+Route::post('/fileoperation/import-product-information', [App\Http\Controllers\FileoperationProductInformationController::class, 'processProductInformationImport'])->middleware('permission:fileoperation-create');
+Route::post('/fileoperation/validate-cross-code', [App\Http\Controllers\FileoperationCrossCodeController::class, 'validateCrossCode'])->middleware('permission:fileoperation-create');
+Route::post('/fileoperation/import-cross-code', [App\Http\Controllers\FileoperationCrossCodeController::class, 'processCrossCodeImport'])->middleware('permission:fileoperation-create');
+Route::post('/fileoperation/validate-specifications', [App\Http\Controllers\FileoperationSpecificationController::class, 'validateSpecification'])->middleware('permission:fileoperation-create');
+Route::post('/fileoperation/import-specifications', [App\Http\Controllers\FileoperationSpecificationController::class, 'processSpecificationImport'])->middleware('permission:fileoperation-create');
+Route::post('/fileoperation/validate-other-suppliers-prices', [App\Http\Controllers\FileoperationOtherSuppliersPricesController::class, 'validateOtherSuppliersPrices'])->middleware('permission:fileoperation-create');
+Route::post('/fileoperation/import-other-suppliers-prices', [App\Http\Controllers\FileoperationOtherSuppliersPricesController::class, 'importOtherSuppliersPrices'])->middleware('permission:fileoperation-create');
+Route::post('/fileoperation/validate-customers-special-price', [App\Http\Controllers\FileoperationCustomersSpecialPriceController::class, 'validateCustomersSpecialPrice'])->middleware('permission:fileoperation-create');
+Route::post('/fileoperation/import-customers-special-price', [App\Http\Controllers\FileoperationCustomersSpecialPriceController::class, 'importCustomersSpecialPrice'])->middleware('permission:fileoperation-create');
+
 
 Route::get('/customerbrandvisibilit', [App\Http\Controllers\CustomerbrandvisibilitController::class, 'index'])->middleware('permission:customerbrandvisibilit-list|customerbrandvisibilit-create|customerbrandvisibilit-edit|customerbrandvisibilit-delete');
 Route::get('/customerbrandvisibilit/{id}', [App\Http\Controllers\CustomerbrandvisibilitController::class, 'show'])->middleware('permission:customerbrandvisibilit-list|customerbrandvisibilit-create|customerbrandvisibilit-edit|customerbrandvisibilit-delete');
@@ -546,5 +584,13 @@ Route::get('/catalog/product/{id}/cross-codes', [App\Http\Controllers\CatalogCon
 //add here
 
     Route::post('notifications/mark-as-read', [App\Http\Controllers\NotificationController::class, 'markAsRead']);
+    
+    // Image endpoints
+    Route::get('/images/product-pictures', [App\Http\Controllers\ImageController::class, 'getProductPictures'])->middleware('permission:productinformation-list');
+    Route::get('/images/technical-images', [App\Http\Controllers\ImageController::class, 'getTechnicalImages'])->middleware('permission:productinformation-list');
+    Route::get('/images/box-images', [App\Http\Controllers\ImageController::class, 'getBoxImages'])->middleware('permission:boxe-list');
+    Route::get('/images/label-images', [App\Http\Controllers\ImageController::class, 'getLabelImages'])->middleware('permission:label-list');
+    Route::get('/images/other-images', [App\Http\Controllers\ImageController::class, 'getOtherImages'])->middleware('permission:view-hr-menu');
+    
     // API END
 });
