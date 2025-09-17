@@ -653,6 +653,9 @@ export const {
     // Catalog endpoints
     useGetCatalogProductsQuery,
     useGetProductDetailsQuery,
+    useGetProductSpecificationsQuery,
+    useGetProductCrossCarsQuery,
+    useGetProductCrossCodesQuery,
     useExportCatalogPdfMutation,
 
     //add here

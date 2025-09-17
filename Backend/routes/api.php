@@ -74,7 +74,7 @@ Route::get('/search_categor/{search_term}', [App\Http\Controllers\CategorControl
 Route::post('/categor', [App\Http\Controllers\CategorController::class, 'store'])->middleware('permission:categor-create');
 Route::put('/categor/{id}', [App\Http\Controllers\CategorController::class, 'update'])->middleware('permission:categor-edit');
 Route::delete('/categor/{id}', [App\Http\Controllers\CategorController::class, 'destroy'])->middleware('permission:categor-delete');
-Route::get('/all_categors', [App\Http\Controllers\CategorController::class,'all_categors']);
+Route::get('/all_categors', [App\Http\Controllers\CategorController::class,'all_categors'])->withoutMiddleware('auth.api');
 
 
 Route::get('/productname', [App\Http\Controllers\ProductnameController::class, 'index'])->middleware('permission:productname-list|productname-create|productname-edit|productname-delete');
@@ -574,9 +574,12 @@ Route::delete('/producthistor/{id}', [App\Http\Controllers\ProducthistorControll
 Route::get('/all_producthistors', [App\Http\Controllers\ProducthistorController::class,'all_producthistors']);
 
 // Catalog routes
-Route::get('/catalog/products', [App\Http\Controllers\CatalogController::class, 'getCatalogProducts']);
-Route::get('/catalog/export-pdf', [App\Http\Controllers\CatalogController::class, 'exportPdf']);
-Route::get('/catalog/product/{id}', [App\Http\Controllers\CatalogController::class, 'getProduct']);
+Route::get('/catalog/products', [App\Http\Controllers\CatalogController::class, 'getCatalogProducts'])->withoutMiddleware('auth.api');
+Route::get('/catalog/export-pdf', [App\Http\Controllers\CatalogController::class, 'exportPdf'])->withoutMiddleware('auth.api');
+Route::get('/catalog/product/{id}', [App\Http\Controllers\CatalogController::class, 'getProduct'])->withoutMiddleware('auth.api');
+Route::get('/catalog/product/{id}/specifications', [App\Http\Controllers\CatalogController::class, 'getProductSpecifications'])->withoutMiddleware('auth.api');
+Route::get('/catalog/product/{id}/cross-cars', [App\Http\Controllers\CatalogController::class, 'getProductCrossCars'])->withoutMiddleware('auth.api');
+Route::get('/catalog/product/{id}/cross-codes', [App\Http\Controllers\CatalogController::class, 'getProductCrossCodes'])->withoutMiddleware('auth.api');
 
 //add here
 

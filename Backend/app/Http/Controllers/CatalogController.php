@@ -11,6 +11,7 @@ use App\Models\Crosscar;
 use App\Models\Crosscode;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Support\Facades\Storage;
+use Log;
 
 class CatalogController extends Controller
 {
@@ -18,7 +19,8 @@ class CatalogController extends Controller
     {
         try {
             // Build query based on filters
-            $query = Product::with(['brand', 'categor', 'ProductInformation']);
+            $query = Product::with(['brand', 'productinformation', 'productname.category']);
+
             
             // Apply filters
             if ($request->has('search') && !empty($request->search)) {
@@ -26,7 +28,10 @@ class CatalogController extends Controller
             }
             
             if ($request->has('category') && !empty($request->category)) {
-                $query->where('category_id', $request->category);
+                // Filter by category through productnames relationship
+                $query->whereHas('productname', function ($q) use ($request) {
+                    $q->where('category_id', $request->category);
+                });
             }
             
             if ($request->has('cross_code') && !empty($request->cross_code)) {
@@ -138,15 +143,31 @@ class CatalogController extends Controller
     {
         try {
             // Build query with necessary relationships for catalog display
-            $query = Product::with(['brand', 'categor', 'ProductInformation']);
+            $query = Product::with(['brand', 'productinformation', 'productname.category']);
+
             
-            // Apply filters
+            // Simplified search functionality to avoid relationship errors
             if ($request->has('search') && !empty($request->search)) {
-                $query->where('description', 'like', '%' . $request->search . '%');
+                $searchTerm = $request->search;
+                \Log::info('Catalog search initiated', ['search_term' => $searchTerm]);
+                
+                $query->where(function ($q) use ($searchTerm) {
+                    // Search in basic product fields first
+                    $q->where('description', 'like', '%' . $searchTerm . '%')
+                      ->orWhere('brand_code', 'like', '%' . $searchTerm . '%');
+                      
+                    // Add OE code search if column exists
+                    if (\Schema::hasColumn('products', 'oe_code')) {
+                        $q->orWhere('oe_code', 'like', '%' . $searchTerm . '%');
+                    }
+                });
             }
             
             if ($request->has('category') && !empty($request->category)) {
-                $query->where('category_id', $request->category);
+                // Filter by category through productnames relationship
+                $query->whereHas('productname', function ($q) use ($request) {
+                    $q->where('category_id', $request->category);
+                });
             }
             
             if ($request->has('cross_code') && !empty($request->cross_code)) {
@@ -154,17 +175,31 @@ class CatalogController extends Controller
             }
             
             if ($request->has('car_model') && !empty($request->car_model)) {
-                $query->whereHas('crosscars', function ($q) use ($request) {
-                    $q->where('carmodel_id', $request->car_model);
-                });
+                // Only use this if crosscars relationship exists
+                try {
+                    $query->whereHas('crosscars', function ($q) use ($request) {
+                        $q->where('carmodel_id', $request->car_model);
+                    });
+                } catch (\Exception $e) {
+                    \Log::warning('Crosscars relationship not available', ['error' => $e->getMessage()]);
+                }
             }
             
             // Pagination
             $page = $request->get('page', 1);
             $size = $request->get('size', 8);
             
+            \Log::info('Executing catalog query', [
+                'page' => $page,
+                'size' => $size,
+                'has_search' => $request->has('search'),
+                'has_category' => $request->has('category')
+            ]);
+            
             $products = $query->orderBy('description')
                 ->paginate($size, ['*'], 'page', $page);
+            
+            \Log::info('Catalog query successful', ['count' => $products->count()]);
             
             return response()->json([
                 'success' => true,
@@ -172,9 +207,16 @@ class CatalogController extends Controller
             ]);
             
         } catch (\Exception $e) {
+            \Log::error('Catalog search error', [
+                'message' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+                'request_params' => $request->all()
+            ]);
+            
             return response()->json([
                 'success' => false,
-                'message' => 'Error fetching catalog products: ' . $e->getMessage()
+                'message' => 'Error fetching catalog products: ' . $e->getMessage(),
+                'debug' => config('app.debug') ? $e->getTraceAsString() : null
             ], 500);
         }
     }
@@ -184,11 +226,12 @@ class CatalogController extends Controller
         try {
             $product = Product::with([
                 'brand', 
-                'categor', 
-                'ProductInformation',
+                'productinformation',
+                'productname.category',
+
                 'productspecifications.specificationheadname',
                 'crosscars.carmodel',
-                'crosscodes.brand'
+                'crosscodes.brandname'
             ])->find($id);
             
             if (!$product) {
@@ -207,6 +250,102 @@ class CatalogController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'Error fetching product: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    public function getProductSpecifications($id)
+    {
+        try {
+            $product = Product::find($id);
+            
+            if (!$product) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Product not found'
+                ], 404);
+            }
+
+            $specifications = Productspecification::with([
+                'specificationheadname'
+            ])
+            ->where('product_id', $id)
+            ->orderBy('id')
+            ->get();
+            
+            return response()->json([
+                'success' => true,
+                'data' => $specifications
+            ]);
+            
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error fetching product specifications: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    public function getProductCrossCars($id)
+    {
+        try {
+            $product = Product::find($id);
+            
+            if (!$product) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Product not found'
+                ], 404);
+            }
+
+            $crossCars = Crosscar::with([
+                'carmodel'
+            ])
+            ->where('product_id', $id)
+            ->orderBy('id')
+            ->get();
+            
+            return response()->json([
+                'success' => true,
+                'data' => $crossCars
+            ]);
+            
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error fetching product cross cars: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    public function getProductCrossCodes($id)
+    {
+        try {
+            $product = Product::find($id);
+            
+            if (!$product) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Product not found'
+                ], 404);
+            }
+
+            $crossCodes = Crosscode::with([
+                'brandname'
+            ])
+            ->where('product_id', $id)
+            ->orderBy('id')
+            ->get();
+            
+            return response()->json([
+                'success' => true,
+                'data' => $crossCodes
+            ]);
+            
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error fetching product cross codes: ' . $e->getMessage()
             ], 500);
         }
     }
