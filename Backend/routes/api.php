@@ -474,6 +474,8 @@ Route::post('/fileoperation/validate-products', [App\Http\Controllers\Fileoperat
 Route::post('/fileoperation/import-products', [App\Http\Controllers\FileoperationProductController::class, 'processProductsImport'])->middleware('permission:fileoperation-create');
 Route::post('/fileoperation/validate-product-information', [App\Http\Controllers\FileoperationProductInformationController::class, 'validateProductInformation'])->middleware('permission:fileoperation-create');
 Route::post('/fileoperation/import-product-information', [App\Http\Controllers\FileoperationProductInformationController::class, 'processProductInformationImport'])->middleware('permission:fileoperation-create');
+Route::post('/fileoperation/validate-cross-code', [App\Http\Controllers\FileoperationCrossCodeController::class, 'validateCrossCode'])->middleware('permission:fileoperation-create');
+Route::post('/fileoperation/import-cross-code', [App\Http\Controllers\FileoperationCrossCodeController::class, 'processCrossCodeImport'])->middleware('permission:fileoperation-create');
 
 
 Route::get('/customerbrandvisibilit', [App\Http\Controllers\CustomerbrandvisibilitController::class, 'index'])->middleware('permission:customerbrandvisibilit-list|customerbrandvisibilit-create|customerbrandvisibilit-edit|customerbrandvisibilit-delete');

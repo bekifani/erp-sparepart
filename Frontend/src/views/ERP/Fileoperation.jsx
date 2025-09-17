@@ -14,6 +14,7 @@ import FileoperationAddCarModels from "./FileoperationAddCarModels.jsx";
 import FileoperationAddProductNames from "./FileoperationAddProductNames.jsx";
 import FileoperationAddProducts from "./FileoperationAddProducts.jsx";
 import FileoperationAddProductInformation from "./FileoperationAddProductInformation.jsx";
+import FileoperationAddCrossCode from "./FileoperationAddCrossCode.jsx";
 import { setGlobalUnsavedData } from "@/hooks/useNavigationBlocker";
 
 function index_main() {
@@ -796,6 +797,21 @@ function index_main() {
       ) : currentImportType === 'information' ? (
         /* Add Product Information Component */
         <FileoperationAddProductInformation
+          onSuccess={(message) => {
+            setToastMessage(message);
+            basicStickyNotification.current.showToast();
+            setHasUnsavedData(false); // Clear unsaved data flag on successful import
+          }}
+          onError={(message) => {
+            setToastMessage(message);
+            basicStickyNotification.current.showToast();
+          }}
+          onRefresh={() => setRefetch(!refetch)}
+          onDataChange={(hasData) => setHasUnsavedData(hasData)}
+        />
+      ) : currentImportType === 'cross_code' ? (
+        /* Add Cross Code Component */
+        <FileoperationAddCrossCode
           onSuccess={(message) => {
             setToastMessage(message);
             basicStickyNotification.current.showToast();
