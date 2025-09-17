@@ -63,6 +63,7 @@ import { warehouseaccountEndpoints } from "./endpoints/warehouseaccountEndpoints
 import { supplieraccountEndpoints } from "./endpoints/supplieraccountEndpoints"
 import { producthistorEndpoints } from "./endpoints/producthistorEndpoints"
 import { catalogEndpoints } from "./endpoints/catalogEndpoints"
+import { transactionEndpoints } from "./endpoints/transactionEndpoints"
 //import here
 export const apiSlice = createApi({
     reducerPath: "user",
@@ -148,6 +149,7 @@ export const apiSlice = createApi({
 ...supplieraccountEndpoints(builder),
 ...producthistorEndpoints(builder),
 ...catalogEndpoints(builder),
+...transactionEndpoints(builder),
         //disperse here
     }),
 });
@@ -657,6 +659,10 @@ export const {
     useGetProductCrossCarsQuery,
     useGetProductCrossCodesQuery,
     useExportCatalogPdfMutation,
+
+    // Transaction endpoints
+    useGetAllTransactionsQuery,
+    useGetTransactionStatisticsQuery,
 
     //add here
 } = apiSlice

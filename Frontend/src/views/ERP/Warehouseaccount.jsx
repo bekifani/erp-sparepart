@@ -25,6 +25,7 @@ import FileUpload from "@/helpers/ui/FileUpload.jsx";
 import TomSelectSearch from "@/helpers/ui/Tomselect.jsx";
 import { useSelector } from "react-redux";
 import { ClassicEditor } from "@/components/Base/Ckeditor";
+import AddPaymentModal from "@/components/AddPaymentModal";
 
 
 function index_main() {
@@ -35,6 +36,8 @@ function index_main() {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showUpdateModal, setShowUpdateModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [showAddPaymentModal, setShowAddPaymentModal] = useState(false);
+  const [selectedEntity, setSelectedEntity] = useState(null);
   const [editorData, setEditorData] = useState("")
   const [confirmationMessage, setConfirmationMessage] =
     useState(t("Are you Sure Do You want to Delete Warehouseaccount"));
@@ -244,11 +247,15 @@ function index_main() {
         );
         const a =
           stringToHTML(`<div class="flex items-center lg:justify-center">
-              <a class="delete-btn flex items-center mr-3" href="javascript:;">
+              <a class="edit-btn flex items-center mr-3" href="javascript:;">
                 <i data-lucide="check-square" class="w-3.5 h-3.5 stroke-[1.7] mr-1.5"></i> Edit
               </a>`);
+        const addPayment = stringToHTML(`
+              <a class="add-payment-btn flex items-center mr-3 text-success" href="javascript:;">
+                <i data-lucide="plus-circle" class="w-3.5 h-3.5 stroke-[1.7] mr-1.5"></i> Add Payment
+              </a>`);
         const b = stringToHTML(`
-              <a class="edit-btn flex items-center text-danger" href="javascript:;">
+              <a class="delete-btn flex items-center text-danger" href="javascript:;">
                 <i data-lucide="trash-2" class="w-3.5 h-3.5 stroke-[1.7] mr-1.5"></i> Delete
               </a>
             </div>`);
@@ -258,6 +265,15 @@ function index_main() {
             setValue(key, data[key]);
           });
           setShowUpdateModal(true);
+        });
+        addPayment.addEventListener("click", function () {
+          const data = cell.getData();
+          setSelectedEntity({
+            customer_id: data.customer_id,
+            supplier_id: data.supplier_id,
+            name: data.customer_name || data.supplier_name || 'Warehouse Transaction'
+          });
+          setShowAddPaymentModal(true);
         });
         b.addEventListener("click", function () {
           const data = cell.getData();
@@ -269,6 +285,9 @@ function index_main() {
         let permission = "warehouseaccount";
         if(hasPermission(permission+'-edit')){
           element.append(a)
+        }
+        if(hasPermission(permission+'-create')){
+          element.append(addPayment)
         }
         if(hasPermission(permission+'-delete')){
           element.append(b)
@@ -1417,6 +1436,23 @@ return (
           permission={"Warehouseaccount"}
         />
       </Can>
+      
+      {/* Add Payment Modal */}
+      <AddPaymentModal
+        isOpen={showAddPaymentModal}
+        onClose={() => {
+          setShowAddPaymentModal(false);
+          setSelectedEntity(null);
+        }}
+        accountType="warehouse"
+        entityId={selectedEntity?.customer_id || selectedEntity?.supplier_id}
+        entityName={selectedEntity?.name}
+        onPaymentAdded={(newPayment) => {
+          setRefetch(!refetch);
+          setShowAddPaymentModal(false);
+          setSelectedEntity(null);
+        }}
+      />
     </div>
   );
 }

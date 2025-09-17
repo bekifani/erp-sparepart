@@ -592,5 +592,9 @@ Route::get('/catalog/product/{id}/cross-codes', [App\Http\Controllers\CatalogCon
     Route::get('/images/label-images', [App\Http\Controllers\ImageController::class, 'getLabelImages'])->middleware('permission:label-list');
     Route::get('/images/other-images', [App\Http\Controllers\ImageController::class, 'getOtherImages'])->middleware('permission:view-hr-menu');
     
+    // Transactions (General Journal) Routes
+    Route::get('/transactions', [App\Http\Controllers\TransactionController::class, 'index'])->middleware('permission:view-hr-menu');
+    Route::get('/transactions/statistics', [App\Http\Controllers\TransactionController::class, 'getStatistics'])->middleware('permission:view-hr-menu');
+    
     // API END
 });

@@ -399,46 +399,9 @@ const initialState: SideMenuState = {
       subMenu: [
         {
           icon: "Wallet",
+          pathname: "/menu/cashier",
           title: "Cashier",
-          permission: "view-hr-menu",
-          subMenu: [
-            {
-              icon: "CreditCard",
-              pathname: "/menu/accounttype",
-              title: "Account Type",
-              permission: "accounttype-list"
-            },
-            {
-              icon: "FileText",
-              pathname: "/menu/paymentnote",
-              title: "Payment Note",
-              permission: "paymentnote-list"
-            },
-            {
-              icon: "User",
-              pathname: "/menu/customeraccount",
-              title: "Customer Account",
-              permission: "customeraccount-list"
-            },
-            {
-              icon: "Truck",
-              pathname: "/menu/supplieraccount",
-              title: "Supplier Account",
-              permission: "supplieraccount-list"
-            },
-            {
-              icon: "Building",
-              pathname: "/menu/companyaccount",
-              title: "Company Account",
-              permission: "companyaccount-list"
-            },
-            {
-              icon: "Warehouse",
-              pathname: "/menu/warehouseaccount",
-              title: "Warehouse Account",
-              permission: "warehouseaccount-list"
-            }
-          ]
+          permission: "view-hr-menu"
         },
         {
           icon: "Warehouse",
