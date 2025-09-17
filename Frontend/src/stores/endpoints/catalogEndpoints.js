@@ -25,6 +25,30 @@ export const catalogEndpoints = (builder) => ({
     providesTags: (result, error, productId) => [{ type: 'ProductDetails', id: productId }],
   }),
 
+  getProductSpecifications: builder.query({
+    query: (productId) => ({
+      url: `catalog/product/${productId}/specifications`,
+      method: 'GET',
+    }),
+    providesTags: (result, error, productId) => [{ type: 'ProductSpecifications', id: productId }],
+  }),
+
+  getProductCrossCars: builder.query({
+    query: (productId) => ({
+      url: `catalog/product/${productId}/cross-cars`,
+      method: 'GET',
+    }),
+    providesTags: (result, error, productId) => [{ type: 'ProductCrossCars', id: productId }],
+  }),
+
+  getProductCrossCodes: builder.query({
+    query: (productId) => ({
+      url: `catalog/product/${productId}/cross-codes`,
+      method: 'GET',
+    }),
+    providesTags: (result, error, productId) => [{ type: 'ProductCrossCodes', id: productId }],
+  }),
+
   exportCatalogPdf: builder.mutation({
     query: (filters = {}) => {
       const params = new URLSearchParams();
