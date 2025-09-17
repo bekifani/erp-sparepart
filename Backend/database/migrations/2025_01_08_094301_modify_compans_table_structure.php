@@ -9,29 +9,50 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('compans', function (Blueprint $table) {
-            // Remove existing fields that are not needed
-            $table->dropColumn([
-                'name_cn',
-                'company_address_cn', 
-                'bank_details_cn',
-                'contact_person',
-                'tax_id',
-                'registration_number',
-                'status'
-            ]);
+            // Remove existing fields that are not needed (check if they exist first)
+            $columnsToCheck = ['name_cn', 'company_address_cn', 'bank_details_cn', 'contact_person', 'tax_id', 'registration_number', 'status'];
+            $columnsToRemove = [];
             
-            // Rename existing fields
-            $table->renameColumn('name', 'company_name');
-            $table->renameColumn('company_address', 'address');
+            foreach ($columnsToCheck as $column) {
+                if (Schema::hasColumn('compans', $column)) {
+                    $columnsToRemove[] = $column;
+                }
+            }
             
-            // Add new required fields
-            $table->string('our_ref')->after('email');
-            $table->string('origin')->nullable()->after('our_ref');
-            $table->text('payment_terms')->nullable()->after('origin');
-            $table->text('shipping_terms')->nullable()->after('payment_terms');
-            $table->string('tax_number')->nullable()->after('shipping_terms');
-            $table->string('mobile_number')->nullable()->after('tax_number');
-            $table->text('additional_note')->nullable()->after('bank_details');
+            if (!empty($columnsToRemove)) {
+                $table->dropColumn($columnsToRemove);
+            }
+            
+            // Rename existing fields (check if they exist first)
+            if (Schema::hasColumn('compans', 'name') && !Schema::hasColumn('compans', 'company_name')) {
+                $table->renameColumn('name', 'company_name');
+            }
+            if (Schema::hasColumn('compans', 'company_address') && !Schema::hasColumn('compans', 'address')) {
+                $table->renameColumn('company_address', 'address');
+            }
+            
+            // Add new required fields (check if they don't exist first)
+            if (!Schema::hasColumn('compans', 'our_ref')) {
+                $table->string('our_ref')->after('email');
+            }
+            if (!Schema::hasColumn('compans', 'origin')) {
+                $table->string('origin')->nullable()->after('our_ref');
+            }
+            if (!Schema::hasColumn('compans', 'payment_terms')) {
+                $table->text('payment_terms')->nullable()->after('origin');
+            }
+            if (!Schema::hasColumn('compans', 'shipping_terms')) {
+                $table->text('shipping_terms')->nullable()->after('payment_terms');
+            }
+            if (!Schema::hasColumn('compans', 'tax_number')) {
+                $table->string('tax_number')->nullable()->after('shipping_terms');
+            }
+            if (!Schema::hasColumn('compans', 'mobile_number')) {
+                $table->string('mobile_number')->nullable()->after('tax_number');
+            }
+            if (!Schema::hasColumn('compans', 'additional_note')) {
+                $table->text('additional_note')->nullable()->after('bank_details');
+            }
         });
     }
 

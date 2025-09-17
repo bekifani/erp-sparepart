@@ -12,7 +12,9 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('boxes', function (Blueprint $table) {
-            // $table->dropColumn('is_factory_supplied');
+            if (Schema::hasColumn('boxes', 'is_factory_supplied')) {
+                $table->dropColumn('is_factory_supplied');
+            }
         });
     }
 

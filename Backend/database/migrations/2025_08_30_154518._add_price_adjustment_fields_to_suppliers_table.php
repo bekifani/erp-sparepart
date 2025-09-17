@@ -12,8 +12,12 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('suppliers', function (Blueprint $table) {
-            $table->enum('price_adjustment_type', ['increase', 'decrease'])->nullable()->after('additional_note');
-            $table->decimal('price_adjustment_percent', 5, 2)->nullable()->after('price_adjustment_type');
+            if (!Schema::hasColumn('suppliers', 'price_adjustment_type')) {
+                $table->enum('price_adjustment_type', ['increase', 'decrease'])->nullable()->after('additional_note');
+            }
+            if (!Schema::hasColumn('suppliers', 'price_adjustment_percent')) {
+                $table->decimal('price_adjustment_percent', 5, 2)->nullable()->after('price_adjustment_type');
+            }
         });
     }
 

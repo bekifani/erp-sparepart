@@ -9,7 +9,9 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('boxes', function (Blueprint $table) {
-            $table->enum('package_type', ['3D', '2D'])->default('3D')->after('operation_mode');
+            if (!Schema::hasColumn('boxes', 'package_type')) {
+                $table->enum('package_type', ['3D', '2D'])->default('3D')->after('operation_mode');
+            }
         });
     }
 
