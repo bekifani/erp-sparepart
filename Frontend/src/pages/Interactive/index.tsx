@@ -55,7 +55,7 @@ function Main() {
                 <div className="mt-5">
                   <div className="w-28 h-28 overflow-hidden rounded-full image-fit border-[3px] border-slate-200/70">
                     <img
-                      alt="NIBDET"
+                      alt="ERP"
                       src={users.fakeUsers()[0].photo}
                     />
                   </div>
@@ -117,28 +117,28 @@ function Main() {
                 <div className="flex items-center w-full">
                   <div className="w-11 h-11 -ml-3.5 first:ml-0 image-fit zoom-in">
                     <img
-                      alt="NIBDET"
+                      alt="ERP"
                       className="border-[3px] border-slate-50 rounded-full cursor-pointer"
                       src={users.fakeUsers()[0].photo}
                     />
                   </div>
                   <div className="w-11 h-11 -ml-3.5 first:ml-0 image-fit zoom-in">
                     <img
-                      alt="NIBDET"
+                      alt="ERP"
                       className="border-[3px] border-slate-50 rounded-full cursor-pointer"
                       src={users.fakeUsers()[0].photo}
                     />
                   </div>
                   <div className="w-11 h-11 -ml-3.5 first:ml-0 image-fit zoom-in">
                     <img
-                      alt="NIBDET"
+                      alt="ERP"
                       className="border-[3px] border-slate-50 rounded-full cursor-pointer"
                       src={users.fakeUsers()[0].photo}
                     />
                   </div>
                   <div className="w-11 h-11 -ml-3.5 first:ml-0 image-fit zoom-in">
                     <img
-                      alt="NIBDET"
+                      alt="ERP"
                       className="border-[3px] border-slate-50 rounded-full cursor-pointer"
                       src={users.fakeUsers()[0].photo}
                     />
@@ -301,7 +301,7 @@ function Main() {
                       <div className="flex items-center justify-center p-1.5 rounded-full bg-gradient-to-b from-theme-1/60 to-theme-2/60">
                         <div className="w-24 h-24 overflow-hidden rounded-full image-fit">
                           <img
-                            alt="NIBDET"
+                            alt="ERP"
                             src={users.fakeUsers()[0].photo}
                           />
                         </div>
@@ -408,7 +408,7 @@ function Main() {
                   </Tippy>
                   <div className="w-28 h-28 overflow-hidden rounded-full image-fit border-[3px] border-slate-200/70">
                     <img
-                      alt="NIBDET"
+                      alt="ERP"
                       src={users.fakeUsers()[0].photo}
                     />
                   </div>
@@ -489,7 +489,7 @@ function Main() {
                 <div>
                   <div className="w-14 h-14 overflow-hidden rounded-full image-fit border-[3px] border-slate-200/70">
                     <img
-                      alt="NIBDET"
+                      alt="ERP"
                       src={users.fakeUsers()[0].photo}
                     />
                   </div>
@@ -534,25 +534,25 @@ function Main() {
                 <div className="grid grid-cols-4 gap-2.5 mt-5">
                   <div className="overflow-hidden rounded-md h-28 image-fit">
                     <img
-                      alt="NIBDET"
+                      alt="ERP"
                       src={projectDetails.fakeProjectDetails()[0].image}
                     />
                   </div>
                   <div className="overflow-hidden rounded-md h-28 image-fit">
                     <img
-                      alt="NIBDET"
+                      alt="ERP"
                       src={projectDetails.fakeProjectDetails()[0].image}
                     />
                   </div>
                   <div className="overflow-hidden rounded-md h-28 image-fit">
                     <img
-                      alt="NIBDET"
+                      alt="ERP"
                       src={projectDetails.fakeProjectDetails()[0].image}
                     />
                   </div>
                   <div className="overflow-hidden rounded-md h-28 image-fit">
                     <img
-                      alt="NIBDET"
+                      alt="ERP"
                       src={projectDetails.fakeProjectDetails()[0].image}
                     />
                   </div>
@@ -653,7 +653,7 @@ function Main() {
                   <div>
                     <div className="w-10 h-10 overflow-hidden border-2 rounded-full image-fit border-slate-200/70">
                       <img
-                        alt="NIBDET"
+                        alt="ERP"
                         src={users.fakeUsers()[0].photo}
                       />
                     </div>
@@ -735,7 +735,7 @@ function Main() {
                 </div>
                 <div className="w-full h-48 mt-4 overflow-hidden rounded-lg image-fit before:block before:absolute before:w-full before:h-full before:top-0 before:left-0 before:z-10 before:bg-gradient-to-t before:from-theme-1/60 before:to-theme-2/5">
                   <img
-                    alt="NIBDET"
+                    alt="ERP"
                     className="rounded-md saturate-150"
                     src={robotImage}
                   />
@@ -746,28 +746,28 @@ function Main() {
               <div className="flex items-center">
                 <div className="w-11 h-11 -ml-3.5 first:ml-0 image-fit zoom-in">
                   <img
-                    alt="NIBDET"
+                    alt="ERP"
                     className="border-[3px] border-slate-50 rounded-full cursor-pointer"
                     src={users.fakeUsers()[0].photo}
                   />
                 </div>
                 <div className="w-11 h-11 -ml-3.5 first:ml-0 image-fit zoom-in">
                   <img
-                    alt="NIBDET"
+                    alt="ERP"
                     className="border-[3px] border-slate-50 rounded-full cursor-pointer"
                     src={users.fakeUsers()[0].photo}
                   />
                 </div>
                 <div className="w-11 h-11 -ml-3.5 first:ml-0 image-fit zoom-in">
                   <img
-                    alt="NIBDET"
+                    alt="ERP"
                     className="border-[3px] border-slate-50 rounded-full cursor-pointer"
                     src={users.fakeUsers()[0].photo}
                   />
                 </div>
                 <div className="w-11 h-11 -ml-3.5 first:ml-0 image-fit zoom-in">
                   <img
-                    alt="NIBDET"
+                    alt="ERP"
                     className="border-[3px] border-slate-50 rounded-full cursor-pointer"
                     src={users.fakeUsers()[0].photo}
                   />
@@ -818,7 +818,7 @@ function Main() {
                 <div className="relative w-28 h-28">
                   <div className="w-28 h-28 overflow-hidden rounded-full image-fit border-[3px] border-slate-200/70">
                     <img
-                      alt="NIBDET"
+                      alt="ERP"
                       src={users.fakeUsers()[0].photo}
                     />
                   </div>

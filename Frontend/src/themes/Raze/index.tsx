@@ -438,7 +438,7 @@ function Main() {
                 <Menu className="ml-5">
                   <Menu.Button className="overflow-hidden rounded-full w-[36px] h-[36px] border-[3px] border-slate-200/70 image-fit">
                     <img
-                      alt="NIBDET"
+                      alt="ERP"
                       src={users.fakeUsers()[0].photo}
                     />
                   </Menu.Button>

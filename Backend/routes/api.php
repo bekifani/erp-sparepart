@@ -48,6 +48,14 @@ Route::middleware(['auth.api'])->group(function(){
     Route::post('/change_password', [App\Http\Controllers\UserController::class,'change_password']);
     //notification page 
     Route::get('notifications', [App\Http\Controllers\NotificationController::class, 'index']);
+    
+    // Dashboard routes
+    Route::get('/dashboard/data', [App\Http\Controllers\DashboardController::class, 'dashboard_data']);
+    Route::get('/dashboard/notifications', [App\Http\Controllers\DashboardController::class, 'getNotifications']);
+    Route::post('/dashboard/notifications/mark-read', [App\Http\Controllers\DashboardController::class, 'markNotificationsAsRead']);
+    Route::get('/dashboard/products/filtered', [App\Http\Controllers\DashboardController::class, 'getFilteredProducts']);
+    Route::get('/dashboard/top-cars', [App\Http\Controllers\DashboardController::class, 'getTopCars']);
+    Route::get('/dashboard/top-products', [App\Http\Controllers\DashboardController::class, 'getTopProducts']);
 
 Route::get('/customer', [App\Http\Controllers\CustomerController::class, 'index'])->middleware('permission:customer-list|customer-create|customer-edit|customer-delete');
 Route::get('/customer/{id}', [App\Http\Controllers\CustomerController::class, 'show'])->middleware('permission:customer-list|customer-create|customer-edit|customer-delete');

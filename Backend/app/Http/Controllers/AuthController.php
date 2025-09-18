@@ -175,61 +175,102 @@ class AuthController extends BaseController
 
     public function reset_password(Request $request)
     {
-        if($request->phone){
-            $request->email = $request->phone;
+        $input = $request->all();
+        $email = $input['email'] ?? null;
+        $phone = $input['phone'] ?? null;
+        
+        // Validate that at least one of email or phone is provided
+        if (empty($email) && empty($phone)) {
+            return $this->sendError(__('messages.invalid_input'), ['error' => 'Either email or phone must be provided']);
         }
+        
         $validation = Validator::make($request->all(), [
             'pin'                     => 'required|min:5',
             'password'                  => 'required|string|min:6|confirmed',
             'password_confirmation'     => 'required',
+            'email'                    => 'nullable|email',
+            'phone'                    => 'nullable|string',
         ]);
-       
-        $updatePassword = DB::table('password_reset_tokens')->where(['email' => $request->email, 'token' => strval($request->pin)])->first();
-        if(!$updatePassword) {
-            $response['error'] = 'Invalid Request';
-            $response['message'] = 'This request to reset password is invalid.';
-            $statusCode = 400;
-            return response()->json($response, $statusCode);
+        
+        if ($validation->fails()) {
+            return $this->sendError(__('messages.invalid_input'), $validation->errors());
         }
         
-        $user = User::where('email', $request->email)->orWhere('phone', $request->phone)
-                ->update(['password' => Hash::make($request->password)]);
+        // Determine the identifier used for the reset token (email or phone)
+        $identifier = $email ?? $phone;
         
-        DB::table('password_reset_tokens')->where(['email'=> $request->email])->delete();
+        // Check if the reset token exists and is valid
+        $updatePassword = DB::table('password_reset_tokens')
+            ->where(['email' => $identifier, 'token' => $request->pin])
+            ->first();
+            
+        if (!$updatePassword) {
+            return $this->sendError(__('messages.invalid_request'), ['error' => 'Invalid or expired reset token']);
+        }
+        
+        // Find the user by email or phone
+        $user = $this->findUserByEmailOrPhone($email, $phone);
+        
+        if (!$user) {
+            return $this->sendError(__('messages.invalid_email'), ['error' => 'User not found']);
+        }
+        
+        // Update the user's password
+        $user->update(['password' => Hash::make($request->password)]);
+        
+        // Clean up the used reset token
+        DB::table('password_reset_tokens')->where(['email' => $identifier])->delete();
 
-        return $this->sendResponse([], _('messages.password_changed_successfully.'));
+        return $this->sendResponse([], __('messages.password_changed_successfully'));
     }
 
     public function forgot_password(Request $request)
     {
         $input = $request->all();
-        $user_email = $input['email'];
-        $user_phone = $input['phone'];
-        if(User::where('email', $user_email)->orWhere('phone', $user_phone)->exists()){
+        $user_email = $input['email'] ?? null;
+        $user_phone = $input['phone'] ?? null;
+        
+        // Validate that at least one of email or phone is provided
+        if (empty($user_email) && empty($user_phone)) {
+            return $this->sendError(__('messages.invalid_input'), ['error' => 'Either email or phone must be provided']);
+        }
+        
+        // Check if user exists with the provided email or phone
+        $user = $this->findUserByEmailOrPhone($user_email, $user_phone);
+        
+        if ($user) {
             $token = rand(10000, 99999);
-            $updatePassword = DB::table('password_reset_tokens')->where(['email' => $request->email])->delete();
-            DB::table('password_reset_tokens')->insert(
-                ['email' => $request->email??$request->phone, 'token' => $token, 'created_at' => Carbon::now()]
-            );
-            if($user_email){
-                    try {
-                        Mail::send('emails.password', ['token' => $token], function($message) use($user_email){
-                            $message->to($user_email);
-                            $message->subject( __('messages.Password_Reset_Email'));
-                        });
-                    } catch (Exeption $e)
-                    {}
-            }
-            else {
+            $identifier = $user_email ?? $user_phone;
+            
+            // Clean up any existing reset tokens for this identifier
+            DB::table('password_reset_tokens')->where(['email' => $identifier])->delete();
+            
+            // Insert new reset token
+            DB::table('password_reset_tokens')->insert([
+                'email' => $identifier, 
+                'token' => $token, 
+                'created_at' => Carbon::now()
+            ]);
+            
+            // Send reset token via email or SMS
+            if ($user_email) {
+                try {
+                    Mail::send('emails.password', ['token' => $token], function($message) use($user_email){
+                        $message->to($user_email);
+                        $message->subject( __('messages.Password_Reset_Email'));
+                    });
+                } catch (Exception $e) {
+                    // Log the error but don't expose it to the user
+                    \Log::error('Failed to send password reset email: ' . $e->getMessage());
+                }
+            } else {
                 SmsHelper::sendSms($user_phone, __('messages.your_password_rest_pin_is').$token);
             }  
+            
             return $this->sendResponse(1, __('messages.password_reset_otp_sent_successfully'));
+        } else {
+            return $this->sendError(__('messages.invalid_email'), ['error' => __('messages.invalid_email')]);
         }
-        else {
-            return $this->sendError(__('messages.invalid_email'), ['error'=>__('messages.invalid_email')]);
-        }
-    
-        
     }
 
     public function resend_reset_email(Request $request)
@@ -277,6 +318,69 @@ class AuthController extends BaseController
             return $this->sendError("Email is not verified", "");
         }
         return $this->sendResponse(false, "Email Verified Succesfully");
+    }
 
+    /**
+     * Check if a user exists with the given email or phone
+     * 
+     * @param string|null $email
+     * @param string|null $phone
+     * @return User|null
+     */
+    private function findUserByEmailOrPhone($email = null, $phone = null)
+    {
+        if (empty($email) && empty($phone)) {
+            return null;
+        }
+
+        return User::where(function($query) use ($email, $phone) {
+            if ($email) {
+                $query->where('email', $email);
+            }
+            if ($phone) {
+                $query->orWhere('phone', $phone);
+            }
+        })->first();
+    }
+
+    /**
+     * Check if email or phone already exists in the system
+     * 
+     * @param Request $request
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function checkEmailOrPhoneExists(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'email' => 'nullable|email',
+            'phone' => 'nullable|string',
+        ]);
+
+        if ($validator->fails()) {
+            return $this->sendError(__('messages.invalid_input'), $validator->errors());
+        }
+
+        $email = $request->input('email');
+        $phone = $request->input('phone');
+
+        if (empty($email) && empty($phone)) {
+            return $this->sendError(__('messages.invalid_input'), ['error' => 'Either email or phone must be provided']);
+        }
+
+        $user = $this->findUserByEmailOrPhone($email, $phone);
+
+        if ($user) {
+            return $this->sendResponse([
+                'exists' => true,
+                'user_id' => $user->id,
+                'email' => $user->email,
+                'phone' => $user->phone,
+                'name' => $user->name
+            ], 'User found with provided email or phone');
+        } else {
+            return $this->sendResponse([
+                'exists' => false
+            ], 'No user found with provided email or phone');
+        }
     }
 }

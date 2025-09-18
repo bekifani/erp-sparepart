@@ -22,8 +22,8 @@ return [
     'allowed_origins' => ['*'],
     // 'allowed_origins' => [env('FRONTEND_URL', 'http://localhost:3000')],
 
-    'allowed_origins_patterns' => ['*', '*localhost*', '*addisanalytics*', '*nibdet*'],
-    // 'allowed_origins_patterns' => ['*localhost*', '*addisanalytics*','*nibdet*'],
+    'allowed_origins_patterns' => ['*', '*localhost*', '*addisanalytics*', '*ERP*'],
+    // 'allowed_origins_patterns' => ['*localhost*', '*addisanalytics*','*ERP*'],
 
     'allowed_headers' => ['*'],
 

@@ -66,6 +66,7 @@ import Warehouseaccount  from '@/views/ERP/Warehouseaccount'
 import Supplieraccount  from '@/views/ERP/Supplieraccount'
 import Producthistor  from '@/views/ERP/Producthistor'
 import Cashier  from '@/views/ERP/Cashier'
+import Statistics from '@/pages/Statistics'
 
 import ProductPictures  from '@/views/ERP/ProductPictures'
 import TechnicalImages  from '@/views/ERP/TechnicalImages'
@@ -353,6 +354,10 @@ function Router() {
       {
         path: "dashboard",
         element: <DashboardOverview1 />,
+      },
+      {
+        path: "statistics",
+        element: <Statistics />,
       },
         
       ],

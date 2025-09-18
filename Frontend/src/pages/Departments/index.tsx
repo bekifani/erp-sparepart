@@ -214,7 +214,7 @@ function Main() {
                                 <div className="w-[22px] h-[22px] overflow-hidden rounded-full border-2 image-fit zoom-in border-slate-200/70 box">
                                   <Tippy
                                     as="img"
-                                    alt="NIBDET"
+                                    alt="ERP"
                                     src={faker.location.image}
                                     content={faker.location.name}
                                   />

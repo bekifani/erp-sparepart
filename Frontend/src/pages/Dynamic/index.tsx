@@ -28,7 +28,7 @@ function Main() {
             <div className="p-5 box box--stacked">
               <div className="h-48 overflow-hidden rounded-lg image-fit before:block before:absolute before:w-full before:h-full before:top-0 before:left-0 before:z-10 before:bg-gradient-to-t before:from-theme-1/60 before:to-theme-2/5">
                 <img
-                  alt="NIBDET"
+                  alt="ERP"
                   className="rounded-md saturate-150"
                   src={robotImage}
                 />
@@ -138,7 +138,7 @@ function Main() {
                 <div className="relative w-40 h-40">
                   <div className="w-40 h-40 overflow-hidden rounded-full image-fit border-[3px] border-slate-200/70">
                     <img
-                      alt="NIBDET"
+                      alt="ERP"
                       src={users.fakeUsers()[0].photo}
                     />
                   </div>
@@ -171,7 +171,7 @@ function Main() {
                 <div>
                   <div className="overflow-hidden border-2 rounded-full w-14 h-14 image-fit border-slate-200/70">
                     <img
-                      alt="NIBDET"
+                      alt="ERP"
                       src={users.fakeUsers()[0].photo}
                     />
                   </div>
@@ -198,7 +198,7 @@ function Main() {
                   <div>
                     <div className="overflow-hidden border-2 rounded-full w-9 h-9 image-fit border-slate-200/70">
                       <img
-                        alt="NIBDET"
+                        alt="ERP"
                         src={users.fakeUsers()[0].photo}
                       />
                     </div>
@@ -220,7 +220,7 @@ function Main() {
               <div className="flex flex-col items-center gap-5 pt-5 mt-3 border-t border-dashed">
                 <div className="w-full h-48 overflow-hidden rounded-lg image-fit before:block before:absolute before:w-full before:h-full before:top-0 before:left-0 before:z-10 before:bg-gradient-to-t before:from-theme-1/60 before:to-theme-2/5">
                   <img
-                    alt="NIBDET"
+                    alt="ERP"
                     className="rounded-md saturate-150"
                     src={robotImage}
                   />
@@ -274,7 +274,7 @@ function Main() {
                 <div>
                   <div className="overflow-hidden border-2 rounded-full w-14 h-14 image-fit border-slate-200/70">
                     <img
-                      alt="NIBDET"
+                      alt="ERP"
                       src={users.fakeUsers()[0].photo}
                     />
                   </div>
@@ -414,7 +414,7 @@ function Main() {
                 <div>
                   <div className="w-28 h-28 overflow-hidden rounded-full image-fit border-[3px] border-slate-200/70">
                     <img
-                      alt="NIBDET"
+                      alt="ERP"
                       src={users.fakeUsers()[0].photo}
                     />
                   </div>
@@ -495,7 +495,7 @@ function Main() {
                 <div>
                   <div className="overflow-hidden border-2 rounded-full w-14 h-14 image-fit border-slate-200/70">
                     <img
-                      alt="NIBDET"
+                      alt="ERP"
                       src={users.fakeUsers()[0].photo}
                     />
                   </div>
@@ -520,7 +520,7 @@ function Main() {
             <div className="box box--stacked">
               <div className="h-48 overflow-hidden rounded-lg box image-fit before:block before:absolute before:w-full before:h-full before:top-0 before:left-0 before:z-10 before:bg-gradient-to-t before:from-theme-1/60 before:to-theme-2/5">
                 <img
-                  alt="NIBDET"
+                  alt="ERP"
                   className="rounded-md saturate-150"
                   src={robotImage}
                 />
@@ -559,7 +559,7 @@ function Main() {
                       <div className="flex items-center justify-center p-1.5 rounded-full bg-gradient-to-b from-theme-1/60 to-theme-2/60">
                         <div className="w-24 h-24 overflow-hidden rounded-full image-fit">
                           <img
-                            alt="NIBDET"
+                            alt="ERP"
                             src={users.fakeUsers()[0].photo}
                           />
                         </div>
@@ -622,7 +622,7 @@ function Main() {
                 <div className="flex flex-col items-center">
                   <div className="w-32 h-32 overflow-hidden border-2 rounded-full image-fit border-slate-200/70">
                     <img
-                      alt="NIBDET"
+                      alt="ERP"
                       src={users.fakeUsers()[0].photo}
                     />
                   </div>
@@ -662,7 +662,7 @@ function Main() {
                       <div>
                         <div className="w-10 h-10 overflow-hidden border-2 rounded-full image-fit border-slate-200/70">
                           <img
-                            alt="NIBDET"
+                            alt="ERP"
                             src={users.fakeUsers()[0].photo}
                           />
                         </div>
@@ -714,20 +714,20 @@ function Main() {
                     <div>
                       <div className="w-32 h-32 overflow-hidden rounded-full image-fit border-[3px] border-slate-200/70 -mt-1 -mr-1">
                         <img
-                          alt="NIBDET"
+                          alt="ERP"
                           src={users.fakeUsers()[0].photo}
                         />
                       </div>
                     </div>
                     <div className="absolute left-0 w-6 h-6 overflow-hidden border rounded-full image-fit border-slate-200/70 -ml-2.5">
                       <img
-                        alt="NIBDET"
+                        alt="ERP"
                         src={users.fakeUsers()[0].photo}
                       />
                     </div>
                     <div className="absolute bottom-0 left-0 w-8 h-8 mb-2.5 ml-2.5 overflow-hidden border rounded-full image-fit border-slate-200/70">
                       <img
-                        alt="NIBDET"
+                        alt="ERP"
                         src={users.fakeUsers()[0].photo}
                       />
                     </div>
@@ -816,7 +816,7 @@ function Main() {
                 <div>
                   <div className="overflow-hidden border-2 rounded-full w-14 h-14 image-fit border-slate-200/70">
                     <img
-                      alt="NIBDET"
+                      alt="ERP"
                       src={users.fakeUsers()[0].photo}
                     />
                   </div>
@@ -872,7 +872,7 @@ function Main() {
                 <div>
                   <div className="overflow-hidden border-2 rounded-full w-14 h-14 image-fit border-slate-200/70">
                     <img
-                      alt="NIBDET"
+                      alt="ERP"
                       src={users.fakeUsers()[0].photo}
                     />
                   </div>

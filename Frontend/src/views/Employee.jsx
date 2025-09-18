@@ -873,7 +873,7 @@ return (
         <Slideover.Panel className="text-center overflow-y-auto max-h-[110vh] max-w-5xl w-full">
           <form onSubmit={handleSubmit(onCreate)}>
             <Slideover.Title>
-              <h2 className="mr-auto text-base font-medium">{t("Add New Employee")}</h2>
+              <h2 className="mr-auto text-base font-medium">{t("Add New Worker")}</h2>
             </Slideover.Title>
             <Slideover.Description className="relative">
               <div className="relative">
@@ -1631,7 +1631,7 @@ return (
           refetch={refetch}
           setRefetch={setRefetch}
           permission={"Employee"}
-          page_name={t('Employee')}
+          page_name={t('Worker')}
           enableColumnControls={true}
         />
       </Can>

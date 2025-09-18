@@ -31,6 +31,7 @@ const initialState: SideMenuState = {
       title: "Dashboard",
       permission: "view-general-dashboard"
     },
+   
     // "HUMAN RESOURCE",
     {
       icon: "Users",
@@ -48,7 +49,7 @@ const initialState: SideMenuState = {
         {
           icon: "Users",
           pathname: "/menu/employee",
-          title: "Employee",
+          title: "Worker",
           permission:"employee-list",
         },
     
@@ -74,7 +75,7 @@ const initialState: SideMenuState = {
     {
       icon: "ShoppingCart",
       title: "Order Management",
-      permission: "view-hr-menu",
+      permission: "view-order-management-menu",
       subMenu: [
         {
           icon: "UserCheck",
@@ -262,7 +263,7 @@ const initialState: SideMenuState = {
        {
       icon: "Briefcase",
       title: "Product Portfolio",
-      permission: "view-hr-menu",
+      permission: "view-product-portfolio-menu",
       subMenu: [
     {
       icon: "List",
@@ -395,7 +396,7 @@ const initialState: SideMenuState = {
     {
       icon: "BarChart3",
       title: "Report",
-      permission: "view-hr-menu",
+      permission: "view-report-menu",
       subMenu: [
         {
           icon: "Wallet",
@@ -421,7 +422,7 @@ const initialState: SideMenuState = {
     {
       icon: "BookOpen",
       title: "Reference Book",
-      permission: "view-hr-menu",
+      permission: "view-reference-book-menu",
       subMenu: [
         
     {
@@ -461,6 +462,13 @@ const initialState: SideMenuState = {
     },
         
       ],
+    },
+
+    {
+      icon: "BarChart3",
+      pathname: "/menu/statistics",
+      title: "Statistics",
+      permission: "view-statistics-menu"
     },
 
 

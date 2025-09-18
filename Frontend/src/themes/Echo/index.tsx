@@ -171,9 +171,9 @@ function Main() {
             <a
               href=""
               onClick={toggleCompactMenu}
-              className="hidden group-[.side-menu--collapsed.side-menu--on-hover]:xl:opacity-100 group-[.side-menu--collapsed]:xl:rotate-180 group-[.side-menu--collapsed]:xl:opacity-0 transition-[opacity,transform] 3xl:flex items-center justify-center w-[20px] h-[20px] ml-auto border rounded-full border-slate-600/40 hover:bg-slate-600/5 dark:border-darkmode-100"
+              className="hidden group-[.side-menu--collapsed.side-menu--on-hover]:xl:opacity-100 group-[.side-menu--collapsed]:xl:rotate-180 group-[.side-menu--collapsed]:xl:opacity-0 transition-[opacity,transform] md:flex items-center justify-center w-[20px] h-[20px] ml-auto border rounded-full border-slate-600/40 hover:bg-slate-600/5 dark:border-darkmode-100"
             >
-              <Lucide icon="ArrowLeft" className="w-3.5 h-3.5 stroke-[1.3]" />
+              <Lucide icon="ArrowLeft" className="w-3.5 h-3.5 stroke-[1.3]" /> 
             </a>
           </div>
           <div

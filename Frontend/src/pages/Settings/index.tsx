@@ -212,7 +212,7 @@ function Main() {
                 <div className="absolute inset-x-0 top-0 w-32 h-32 mx-auto mt-36">
                   <div className="w-full h-full overflow-hidden border-[6px] box border-white rounded-full image-fit">
                     <img
-                      alt="NIBDET"
+                      alt="ERP"
                       src={users.fakeUsers()[0].photo}
                     />
                   </div>
@@ -1029,7 +1029,7 @@ function Main() {
                                   <div className="flex items-center whitespace-nowrap">
                                     <div className="w-4 h-4 image-fit zoom-in">
                                       <img
-                                        alt="NIBDET"
+                                        alt="ERP"
                                         className="rounded-full shadow-[0px_0px_0px_2px_#fff,_1px_1px_5px_rgba(0,0,0,0.32)] dark:shadow-[0px_0px_0px_2px_#3f4865,_1px_1px_5px_rgba(0,0,0,0.32)]"
                                         src={faker.browser.image}
                                       />

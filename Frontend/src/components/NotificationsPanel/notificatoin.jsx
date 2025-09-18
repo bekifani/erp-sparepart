@@ -57,7 +57,7 @@ function Main(props) {
                   <div>
                     <div className="flex justify-center items-center overflow-hidden border-2 rounded-full w-11 h-11 image-fit border-slate-200/70">
                       {/* <img
-                        alt="NIBDET"
+                        alt="ERP"
                         src={users.fakeUsers()[0].photo}
                       /> */}
                       <Lucide icon="Bell"></Lucide>
@@ -73,19 +73,19 @@ function Main(props) {
                         <div className="grid grid-cols-3 overflow-hidden rounded-[0.6rem]">
                           <div className="h-12 sm:h-16 overflow-hidden border image-fit border-slate-100 saturate-[.6] hover:saturate-100 cursor-pointer">
                             <img
-                              alt="NIBDET"
+                              alt="ERP"
                               src={faker.images[0]}
                             />
                           </div>
                           <div className="h-12 sm:h-16 overflow-hidden border image-fit border-slate-100 saturate-[.6] hover:saturate-100 cursor-pointer">
                             <img
-                              alt="NIBDET"
+                              alt="ERP"
                               src={faker.images[1]}
                             />
                           </div>
                           <div className="h-12 sm:h-16 overflow-hidden border image-fit border-slate-100 saturate-[.6] hover:saturate-100 cursor-pointer">
                             <img
-                              alt="NIBDET"
+                              alt="ERP"
                               src={faker.images[2]}
                             />
                           </div>

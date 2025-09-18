@@ -16,7 +16,7 @@ class PermissionSeeder extends Seeder
         $permissions = [ 
            //Product Permissions list 
            'view-general-dashboard', 
-           'view-hr-menu',
+           'view-hr-menu', 'view-order-management-menu', 'view-product-portfolio-menu','view-report-menu','view-reference-book-menu','view-statistics-menu',
             'user-list', 'user-create', 'user-edit', 'user-delete','activity-list', 
             'role-list', 'role-create', 'role-edit', 'role-delete', 
            //Company Permissions list 

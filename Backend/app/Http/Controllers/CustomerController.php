@@ -184,7 +184,7 @@ class CustomerController extends BaseController
                     try {
                         Mail::send('emails.password', ['token' => $password], function($message) use($user_email){
                             $message->to($user_email);
-                            $message->subject("Your NIBDET Customer Account Password");
+                            $message->subject("Your ERP Customer Account Password");
                         });
                     } catch (\Exception $e) {
                         Log::warning('Customer password email failed: '.$e->getMessage());

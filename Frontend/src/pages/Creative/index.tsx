@@ -35,7 +35,7 @@ function Main() {
                 <div>
                   <div className="w-14 h-14 overflow-hidden rounded-full image-fit border-[3px] border-slate-200/70">
                     <img
-                      alt="NIBDET"
+                      alt="ERP"
                       src={users.fakeUsers()[0].photo}
                     />
                   </div>
@@ -68,7 +68,7 @@ function Main() {
                 <div>
                   <div className="w-14 h-14 overflow-hidden rounded-full image-fit border-[3px] border-slate-200/70">
                     <img
-                      alt="NIBDET"
+                      alt="ERP"
                       src={users.fakeUsers()[0].photo}
                     />
                   </div>
@@ -103,7 +103,7 @@ function Main() {
                 <div>
                   <div className="w-14 h-14 overflow-hidden rounded-full image-fit border-[3px] border-slate-200/70">
                     <img
-                      alt="NIBDET"
+                      alt="ERP"
                       src={users.fakeUsers()[0].photo}
                     />
                   </div>
@@ -321,7 +321,7 @@ function Main() {
                     <div>
                       <div className="w-10 h-10 overflow-hidden border-2 rounded-full image-fit border-slate-200/70">
                         <img
-                          alt="NIBDET"
+                          alt="ERP"
                           src={faker.photo}
                         />
                       </div>
@@ -365,7 +365,7 @@ function Main() {
                 <div>
                   <div className="w-20 h-20 overflow-hidden rounded-full image-fit border-[3px] border-slate-200/70">
                     <img
-                      alt="NIBDET"
+                      alt="ERP"
                       src={users.fakeUsers()[0].photo}
                     />
                   </div>
@@ -406,7 +406,7 @@ function Main() {
                 <div>
                   <div className="w-20 h-20 overflow-hidden rounded-full image-fit border-[3px] border-slate-200/70">
                     <img
-                      alt="NIBDET"
+                      alt="ERP"
                       src={products.fakeProducts()[0].images[0].path}
                     />
                   </div>
@@ -437,7 +437,7 @@ function Main() {
                 <div>
                   <div className="w-28 h-28 overflow-hidden rounded-full image-fit border-[3px] border-slate-200/70">
                     <img
-                      alt="NIBDET"
+                      alt="ERP"
                       src={users.fakeUsers()[0].photo}
                     />
                   </div>
@@ -483,7 +483,7 @@ function Main() {
             <div className="p-5 box box--stacked">
               <div className="h-48 overflow-hidden rounded-lg image-fit before:block before:absolute before:w-full before:h-full before:top-0 before:left-0 before:z-10 before:bg-gradient-to-t before:from-theme-1/60 before:to-theme-2/5">
                 <img
-                  alt="NIBDET"
+                  alt="ERP"
                   className="rounded-md saturate-150"
                   src={robotImage}
                 />
@@ -524,7 +524,7 @@ function Main() {
                 <div>
                   <div className="w-10 h-10 overflow-hidden border-2 rounded-full image-fit border-slate-200/70">
                     <img
-                      alt="NIBDET"
+                      alt="ERP"
                       src={users.fakeUsers()[0].photo}
                     />
                   </div>
@@ -604,7 +604,7 @@ function Main() {
                     >
                       <Tippy
                         as="img"
-                        alt="NIBDET"
+                        alt="ERP"
                         className="border-2 border-white rounded-full"
                         src={faker.images[0].path}
                         content={faker.name}
@@ -634,7 +634,7 @@ function Main() {
               <div className="relative">
                 <div className="overflow-hidden rounded-lg h-96 image-fit before:block before:absolute before:w-full before:h-5/6 before:top-0 before:left-0 before:z-10 before:bg-gradient-to-t before:from-transparent before:to-theme-2/70">
                   <img
-                    alt="NIBDET"
+                    alt="ERP"
                     className="rounded-md saturate-150"
                     src={mountainImage}
                   />
@@ -660,7 +660,7 @@ function Main() {
                 <div>
                   <div className="w-28 h-28 overflow-hidden rounded-full image-fit border-[3px] border-slate-200/70">
                     <img
-                      alt="NIBDET"
+                      alt="ERP"
                       src={users.fakeUsers()[0].photo}
                     />
                   </div>
