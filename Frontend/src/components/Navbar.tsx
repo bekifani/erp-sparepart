@@ -46,7 +46,7 @@ const Navbar = () => {
               alt="Komiparts Logo" 
               className="h-8 w-auto"
             />
-            <span className="font-bold text-xl">Komiparts</span>
+            {/* <span className="font-bold text-xl">Komiparts</span> */}
           </Link>
 
           {/* Desktop Navigation */}

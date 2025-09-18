@@ -7,7 +7,9 @@ import Lucide from "@/components/Base/Lucide";
 import { Dialog } from "@/components/Base/Headless";
 import TomSelectSearch from "@/helpers/ui/Tomselect.jsx";
 import LoadingIcon from "@/components/Base/LoadingIcon/index.tsx";
-
+import { Link } from "react-router-dom";
+import { ShoppingCartIcon } from "lucide-react";
+import Navbar from "@/components/Navbar";
 function Catalog() {
   console.log('🎯 Catalog component rendering');
   
@@ -190,7 +192,7 @@ function Catalog() {
       ]);
 
       setProductDetails({
-        product: product.data,
+        product: product?.data,
         specifications: specs.data?.data || [],
         crossCars: crossCars.data?.data || [],
         crossCodes: crossCodes.data?.data || []
@@ -205,7 +207,7 @@ function Catalog() {
   const openProductModal = (product) => {
     setSelectedProduct(product);
     setShowProductModal(true);
-    fetchProductDetails(product.id);
+    fetchProductDetails(product?.id);
   };
 
   const closeProductModal = () => {
@@ -260,13 +262,13 @@ function Catalog() {
   const shareProduct = (product) => {
     if (navigator.share) {
       navigator.share({
-        title: product.localized_description || product.description,
-        text: `Check out this product: ${product.localized_description || product.description}`,
-        url: `${window.location.origin}/public/catalog?product=${product.id}`
+        title: product?.localized_description || product?.description,
+        text: `Check out this product: ${product?.localized_description || product?.description}`,
+        url: `${window.location.origin}/public/catalog?product=${product?.id}`
       });
     } else {
       // Show share options modal
-      setShowShareMenu(product.id);
+      setShowShareMenu(product?.id);
     }
   };
 
@@ -279,7 +281,7 @@ function Catalog() {
     try {
       console.log('=== PDF DOWNLOAD START ===');
       console.log('Product:', product);
-      console.log('API URL:', `${app_url}/api/catalog/product/${product.id}/pdf`);
+      console.log('API URL:', `${app_url}/api/catalog/product/${product?.id}/pdf`);
       
       // Show loading indicator
       const originalText = event?.target?.innerHTML;
@@ -288,7 +290,7 @@ function Catalog() {
         event.target.disabled = true;
       }
       
-      const response = await fetch(`${app_url}/api/catalog/product/${product.id}/pdf`, {
+      const response = await fetch(`${app_url}/api/catalog/product/${product?.id}/pdf`, {
         method: 'GET',
         credentials: 'include',
         headers: {
@@ -309,7 +311,7 @@ function Catalog() {
           const url = window.URL.createObjectURL(blob);
           const a = document.createElement('a');
           a.href = url;
-          a.download = `product-${product.brand_code || product.id}-${new Date().toISOString().split('T')[0]}.pdf`;
+          a.download = `product-${product?.brand_code || product?.id}-${new Date().toISOString().split('T')[0]}.pdf`;
           a.style.display = 'none';
           document.body.appendChild(a);
           a.click();
@@ -344,7 +346,7 @@ function Catalog() {
   };
 
   const copyProductLink = (product) => {
-    const url = `${window.location.origin}/public/catalog?product=${product.id}`;
+    const url = `${window.location.origin}/public/catalog?product=${product?.id}`;
       navigator.clipboard.writeText(url).then(() => {
         alert(t('Product link copied to clipboard'));
       setShowShareMenu(null);
@@ -353,15 +355,15 @@ function Catalog() {
 
   const generateQRCode = async (product) => {
     try {
-      const response = await fetch(`${app_url}/api/catalog/product/${product.id}/qr-code`, {
+      const response = await fetch(`${app_url}/api/catalog/product/${product?.id}/qr-code`, {
         method: 'POST',
         credentials: 'include',
         headers: {
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
-          title: product.localized_description || product.description,
-          url: `${window.location.origin}/public/catalog?product=${product.id}`
+          title: product?.localized_description || product?.description,
+          url: `${window.location.origin}/public/catalog?product=${product?.id}`
         })
       });
       
@@ -381,9 +383,9 @@ function Catalog() {
 
   const testProduct = async (product) => {
     try {
-      console.log('Testing product:', product.id);
+      console.log('Testing product:', product?.id);
       
-      const response = await fetch(`${app_url}/api/catalog/test-pdf/${product.id}`, {
+      const response = await fetch(`${app_url}/api/catalog/test-pdf/${product?.id}`, {
         method: 'GET',
         credentials: 'include'
       });
@@ -404,9 +406,9 @@ function Catalog() {
 
   const testPdfGeneration = async (product) => {
     try {
-      console.log('Testing PDF generation for product:', product.id);
+      console.log('Testing PDF generation for product:', product?.id);
       
-      const response = await fetch(`${app_url}/api/catalog/test-pdf-generation/${product.id}`, {
+      const response = await fetch(`${app_url}/api/catalog/test-pdf-generation/${product?.id}`, {
         method: 'GET',
         credentials: 'include'
       });
@@ -485,8 +487,9 @@ function Catalog() {
   };
 
   return (
-    <div className="container mx-auto px-4 py-8">
+    <div className="container mx-auto px-4 ">
       {/* Header */}
+      <Navbar />
       <div className="mb-8">
         <h1 className="text-3xl font-bold text-gray-900 mb-2">{t('Product Catalog')}</h1>
         <p className="text-gray-600">{t('Browse our complete product catalog')}</p>
@@ -536,14 +539,14 @@ function Catalog() {
             </select>
           </div>
           
-          <div className="text-xs text-muted-foreground">
-            <div>Net Weight: {product.net_weight}kg</div>
-            <div>Gross Weight: {product.gross_weight}kg</div>
-            <div>Volume: {product.volume ? `${product.volume}m³` : 'N/A'}</div>
-          </div>
+          {/* <div className="text-xs text-muted-foreground">
+            <div>Net Weight: {product?.net_weight}kg</div>
+            <div>Gross Weight: {product?.gross_weight}kg</div>
+            <div>Volume: {product?.volume ? `${product?.volume}m³` : 'N/A'}</div>
+          </div> */}
 
-          <div className="flex gap-2">
-            <Link to={`/product/${product.id}`} className="flex-1">
+          {/* <div className="flex gap-2">
+            <Link to={`/product/${product?.id}`} className="flex-1">
               <Button variant="outline" size="sm" className="w-full">
                 <Eye className="h-4 w-4 mr-1" />
                 View
@@ -557,7 +560,7 @@ function Catalog() {
               <ShoppingCart className="h-4 w-4 mr-1" />
               Add
             </Button>
-          </div>
+          </div> */}
         </div>
 
         {/* Action Buttons */}
@@ -592,9 +595,9 @@ function Catalog() {
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 mb-8">
           {products.map((product) => {
-            console.log('Rendering product card:', product.id, product.description);
+            console.log('Rendering product card:', product?.id, product?.description);
             return (
-            <div key={product.id} className="bg-white rounded-lg shadow-sm border hover:shadow-md transition-shadow">
+            <div key={product?.id} className="bg-white rounded-lg shadow-sm border hover:shadow-md transition-shadow">
               {/* Product Image */}
               <div 
                 className="aspect-square bg-gray-100 rounded-t-lg overflow-hidden cursor-pointer hover:opacity-90 transition-opacity"
@@ -605,13 +608,13 @@ function Catalog() {
                 }}
               >
                 {(() => {
-                  const productInfo = product.ProductInformation || product.productinformation || product.product_information;
+                  const productInfo = product?.ProductInformation || product?.productinformation || product?.product_information;
                   const technicalImage = productInfo?.technical_image || productInfo?.image;
                   
                   return technicalImage ? (
                     <img
                       src={`${media_url}${technicalImage}`}
-                      alt={product.localized_description || product.description}
+                      alt={product?.localized_description || product?.description}
                     className="w-full h-full object-cover"
                       onError={(e) => {
                         e.target.style.display = 'none';
@@ -621,7 +624,7 @@ function Catalog() {
                   ) : null;
                 })()}
                 <div className="w-full h-full flex items-center justify-center" style={{display: (() => {
-                  const productInfo = product.ProductInformation || product.productinformation || product.product_information;
+                  const productInfo = product?.ProductInformation || product?.productinformation || product?.product_information;
                   const technicalImage = productInfo?.technical_image || productInfo?.image;
                   return technicalImage ? 'none' : 'flex';
                 })()}}>
@@ -632,17 +635,17 @@ function Catalog() {
               {/* Product Info */}
               <div className="p-4">
                 <div className="mb-2">
-                  <p className="text-sm font-medium text-primary">{product.brand_name}</p>
-                  <p className="text-xs text-gray-500">{product.brand_code}</p>
+                  <p className="text-sm font-medium text-primary">{product?.brand_name}</p>
+                  <p className="text-xs text-gray-500">{product?.brand_code}</p>
                 </div>
                 
                 <h3 className="font-medium text-gray-900 mb-2 line-clamp-2">
-                  {product.localized_description || product.description}
+                  {product?.localized_description || product?.description}
                 </h3>
                 
-                {product.oe_code && (
+                {product?.oe_code && (
                   <p className="text-sm text-gray-600 mb-3">
-                    <span className="font-medium">{t('OE Code')}:</span> {product.oe_code}
+                    <span className="font-medium">{t('OE Code')}:</span> {product?.oe_code}
                   </p>
                 )}
 
@@ -663,12 +666,12 @@ function Catalog() {
                     variant="outline-secondary"
                     onClick={() => shareProduct(product)}
                   >
-                    <ShoppingCart className="h-4 w-4 mr-1" />
+                    <ShoppingCartIcon className="h-4 w-4 mr-1" />
                     Add to Cart
                   </Button>
                     
                     {/* Share Menu */}
-                    {showShareMenu === product.id && (
+                    {showShareMenu === product?.id && (
                       <div className="absolute right-0 top-full mt-1 w-48 bg-white rounded-md shadow-lg border z-10">
                         <div className="py-1">
                           <button
@@ -748,7 +751,7 @@ function Catalog() {
                   <button
                     onClick={() => {
                       console.log('Test button clicked!', product);
-                      alert('Test button works! Product ID: ' + product.id);
+                      alert('Test button works! Product ID: ' + product?.id);
                     }}
                     className="p-1 text-gray-400 hover:text-red-600 transition-colors"
                     title="Test Button"
@@ -791,8 +794,8 @@ function Catalog() {
                   <div className="aspect-square bg-gray-100 rounded-lg overflow-hidden mb-4">
                     {selectedProduct?.image ? (
                       <img
-                        src={`${media_url}${selectedProduct.image}`}
-                        alt={selectedProduct.description}
+                        src={`${media_url}${selectedproduct?.image}`}
+                        alt={selectedproduct?.description}
                         className="w-full h-full object-cover"
                       />
                     ) : (
