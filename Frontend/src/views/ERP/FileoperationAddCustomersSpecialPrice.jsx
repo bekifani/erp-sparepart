@@ -66,7 +66,28 @@ const FileoperationAddCustomersSpecialPrice = ({
       }
     } catch (error) {
       console.error('File upload error:', error);
-      setError(error.response?.data?.message || 'Failed to upload file');
+      
+      // Handle column mismatch errors with detailed feedback
+      if (error.response?.data?.error_type === 'COLUMN_MISMATCH') {
+        const details = error.response.data.details;
+        let errorMessage = error.response.data.message + '\n\n';
+        
+        if (details.missing_columns?.length > 0) {
+          errorMessage += `Missing columns: ${details.missing_columns.join(', ')}\n`;
+        }
+        
+        if (details.extra_columns?.length > 0) {
+          errorMessage += `Extra columns: ${details.extra_columns.join(', ')}\n`;
+        }
+        
+        if (details.suggestions?.length > 0) {
+          errorMessage += '\nSuggestions:\n' + details.suggestions.map(s => `• ${s}`).join('\n');
+        }
+        
+        setError(errorMessage);
+      } else {
+        setError(error.response?.data?.message || 'Failed to upload file');
+      }
     } finally {
       setLoading(false);
     }
