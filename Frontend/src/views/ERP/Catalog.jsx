@@ -42,6 +42,8 @@ function Catalog() {
   const [activeTab, setActiveTab] = useState("specifications");
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
   const [showShareMenu, setShowShareMenu] = useState(null);
+  const [showFullScreenImage, setShowFullScreenImage] = useState(false);
+  const [fullScreenImageSrc, setFullScreenImageSrc] = useState("");
   
   // Notifications
   const [toastMessage, setToastMessage] = useState("");
@@ -202,30 +204,41 @@ function Catalog() {
 
   const handleExportPDF = async () => {
     try {
+      console.log('Starting PDF export...');
       const filters = {};
       if (searchTerm) filters.search = searchTerm;
       if (selectedCategory) filters.category = selectedCategory;
       if (selectedCarModel) filters.car_model = selectedCarModel;
       if (crossCodeSearch) filters.cross_code = crossCodeSearch;
       
-      const result = await exportPdf(filters).unwrap();
+      console.log('Export filters:', filters);
       
-      // Handle PDF download
-      const blob = new Blob([result], { type: 'application/pdf' });
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `catalog-${new Date().toISOString().split('T')[0]}.pdf`;
-      document.body.appendChild(a);
-      a.click();
-      window.URL.revokeObjectURL(url);
-      document.body.removeChild(a);
+      // Build URL with filters
+      const params = new URLSearchParams();
+      if (filters.search) params.set('search', filters.search);
+      if (filters.category) params.set('category', filters.category);
+      if (filters.car_model) params.set('car_model', filters.car_model);
+      if (filters.cross_code) params.set('cross_code', filters.cross_code);
       
-      setToastMessage(t('PDF exported successfully'));
+      const exportUrl = `${app_url}/api/catalog/export-pdf?${params}`;
+      console.log('Export URL:', exportUrl);
+      
+      // Create a temporary link and trigger download
+      const link = document.createElement('a');
+      link.href = exportUrl;
+      link.download = `catalog-${new Date().toISOString().split('T')[0]}.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      
+      setToastMessage(t('PDF export started'));
+      basicStickyNotification.current?.showToast();
+      
     } catch (error) {
+      console.error('PDF export error:', error);
       setToastMessage(t('Error exporting PDF'));
+      basicStickyNotification.current?.showToast();
     }
-    basicStickyNotification.current?.showToast();
   };
 
   const shareProduct = (product) => {
@@ -242,6 +255,29 @@ function Catalog() {
         setToastMessage(t('Product link copied to clipboard'));
         basicStickyNotification.current?.showToast();
       });
+    }
+  };
+
+  const downloadProductPDF = async (productId) => {
+    try {
+      console.log('Downloading product PDF for ID:', productId);
+      const downloadUrl = `${app_url}/api/catalog/product/${productId}/pdf`;
+      
+      // Create a temporary link and trigger download
+      const link = document.createElement('a');
+      link.href = downloadUrl;
+      link.download = `product-${productId}-${new Date().toISOString().split('T')[0]}.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      
+      setToastMessage(t('Product PDF download started'));
+      basicStickyNotification.current?.showToast();
+      
+    } catch (error) {
+      console.error('Product PDF download error:', error);
+      setToastMessage(t('Error downloading product PDF'));
+      basicStickyNotification.current?.showToast();
     }
   };
 
@@ -315,6 +351,20 @@ function Catalog() {
       document.removeEventListener('mousedown', handleClickOutside);
     };
   }, [showShareMenu]);
+
+  // Close full screen image on escape key
+  useEffect(() => {
+    const handleEscapeKey = (event) => {
+      if (event.key === 'Escape' && showFullScreenImage) {
+        setShowFullScreenImage(false);
+      }
+    };
+
+    document.addEventListener('keydown', handleEscapeKey);
+    return () => {
+      document.removeEventListener('keydown', handleEscapeKey);
+    };
+  }, [showFullScreenImage]);
 
   // Handle URL parameters for shared product links
   useEffect(() => {
@@ -409,7 +459,10 @@ function Catalog() {
               setValue={() => {}}
               variable="car_model_id"
               minQueryLength={2}
-              customDataMapping={(item) => ({ value: item.id, text: `${item.brand} ${item.model} (${item.year})` })}
+              customDataMapping={(item) => ({ 
+                value: item.id, 
+                text: `${item.brand || ''} ${item.model || item.car_model || ''} ${item.year ? `(${item.year})` : ''}`.trim() 
+              })}
               onSelectionChange={(item) => setSelectedCarModel(item?.value || "")}
               placeholder={t('Search car models')}
             />
@@ -456,12 +509,12 @@ function Catalog() {
           <LoadingIcon icon="oval" className="w-8 h-8" />
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
           {products.map((product) => (
-            <div key={product.id} className="bg-white rounded-lg shadow-sm border hover:shadow-md transition-shadow p-4">
-              <div className="flex gap-4">
-                {/* Product Image */}
-                <div className="w-32 h-32 bg-gray-100 rounded-lg overflow-hidden flex-shrink-0 flex items-center justify-center">
+            <div key={product.id} className="bg-white rounded-lg shadow-sm border hover:shadow-md transition-shadow overflow-hidden">
+              <div className="flex">
+                {/* Product Image - Left Side */}
+                <div className="w-48 h-48 bg-gray-100 flex items-center justify-center flex-shrink-0">
                   {(() => {
                     const productInfo = product.ProductInformation || product.productinformation || product.product_information;
                     const technicalImage = productInfo?.technical_image || productInfo?.image;
@@ -472,12 +525,8 @@ function Catalog() {
                         alt={product.description || 'Product'}
                         className="w-full h-full object-cover"
                         onError={(e) => {
-                          console.log('Image failed to load:', e.target.src);
                           e.target.style.display = 'none';
                           e.target.nextSibling.style.display = 'flex';
-                        }}
-                        onLoad={(e) => {
-                          console.log('Image loaded successfully:', e.target.src);
                         }}
                       />
                     ) : null;
@@ -491,51 +540,64 @@ function Catalog() {
                   </div>
                 </div>
 
-                {/* Product Details */}
-                <div className="flex-1 min-w-0">
-                  <div className="mb-2">
-                    <p className="text-sm font-medium text-gray-900">Brand: {product.brand?.brand_name || 'N/A'}</p>
-                    <p className="text-sm text-gray-600">Code: {product.brand_code || 'N/A'}</p>
-                    <p className="text-sm text-gray-600">Name: {product.description || 'N/A'}</p>
-                    {product.oe_code && (
-                      <p className="text-sm text-gray-600">Compatible OEM: {product.oe_code}</p>
-                    )}
+                {/* Product Details - Right Side */}
+                <div className="flex-1 p-4 flex flex-col justify-between">
+                  <div>
+                    <div className="mb-2">
+                      <p className="text-sm text-gray-600 mb-1">Brand: <span className="font-medium text-gray-900">{product.brand?.brand_name || 'N/A'}</span></p>
+                      <p className="text-sm text-gray-600 mb-1">Code: <span className="font-medium text-gray-900">{product.brand_code || 'N/A'}</span></p>
+                      <p className="text-sm text-gray-600 mb-2">Name: <span className="font-medium text-gray-900">{product.localized_description || product.description || 'N/A'}</span></p>
+                      {product.oe_code && (
+                        <p className="text-sm text-gray-600">Compatible OEM: <span className="font-medium text-gray-900">{product.oe_code}</span></p>
+                      )}
+                    </div>
                   </div>
-                </div>
 
-                {/* Action Buttons */}
-                <div className="flex flex-col gap-2 flex-shrink-0">
-                  <Button
-                    size="sm"
-                    variant="outline-secondary"
-                    onClick={() => shareProduct(product)}
-                    className="p-2"
-                  >
-                    <Lucide icon="Share2" className="w-4 h-4" />
-                  </Button>
-                </div>
-              </div>
-
-              {/* Bottom Actions */}
-              <div className="mt-4 pt-3 border-t border-gray-100 flex justify-between items-center">
-                <Button
-                  size="sm"
-                  variant="outline-primary"
-                  onClick={() => openProductModal(product)}
-                  className="text-xs"
-                >
-                  Information
-                </Button>
-                <div className="flex gap-1">
-                  <Button size="sm" variant="outline-secondary" className="p-1">
-                    <Lucide icon="FileText" className="w-3 h-3" />
-                  </Button>
-                  <Button size="sm" variant="outline-secondary" className="p-1">
-                    <Lucide icon="Download" className="w-3 h-3" />
-                  </Button>
-                  <Button size="sm" variant="outline-secondary" className="p-1">
-                    <Lucide icon="Eye" className="w-3 h-3" />
-                  </Button>
+                  {/* Action Buttons */}
+                  <div className="flex gap-2 mt-4">
+                    <Button
+                      size="sm"
+                      variant="outline-primary"
+                      onClick={() => openProductModal(product)}
+                      className="text-xs flex items-center gap-1"
+                    >
+                      <Lucide icon="Info" className="w-3 h-3" />
+                      Information
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline-secondary"
+                      onClick={() => downloadProductPDF(product.id)}
+                      className="text-xs flex items-center gap-1"
+                    >
+                      <Lucide icon="Download" className="w-3 h-3" />
+                      Download
+                    </Button>
+                    <div className="relative">
+                      <Button
+                        size="sm"
+                        variant="outline-secondary"
+                        onClick={() => setShowShareMenu(showShareMenu === product.id ? null : product.id)}
+                        className="p-2"
+                      >
+                        <Lucide icon="Share2" className="w-3 h-3" />
+                      </Button>
+                      {showShareMenu === product.id && (
+                        <div className="share-dropdown absolute right-0 top-full mt-1 bg-white border rounded-lg shadow-lg z-10 min-w-[150px]">
+                          <button
+                            onClick={() => {
+                              shareProduct(product);
+                              setShowShareMenu(null);
+                            }}
+                            className="w-full px-3 py-2 text-left text-sm hover:bg-gray-50 flex items-center gap-2"
+                          >
+                            <Lucide icon="Link" className="w-3 h-3" />
+                            Copy Link
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
@@ -564,35 +626,151 @@ function Catalog() {
                 <LoadingIcon icon="oval" className="w-8 h-8" />
               </div>
             ) : productDetails ? (
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 {/* Left Side - Product Images */}
-                <div className="lg:col-span-1 space-y-4">
+                <div className="space-y-4">
                   {(() => {
-                    // Collect all available images
+                    // Collect all available images from productinformation
                     const images = [];
-                    if (productDetails?.data?.productinformation?.image) {
+                    const productInfo = productDetails?.data?.productinformation;
+                    
+                    // Add main image
+                    if (productInfo?.image) {
                       images.push({
-                        src: `${media_url}${productDetails.data.productinformation.image}`,
+                        src: `${media_url}${productInfo.image}`,
                         alt: selectedProduct.description,
                         type: 'main'
                       });
                     }
-                    if (productDetails?.data?.productinformation?.technical_image) {
+                    
+                    // Add technical image
+                    if (productInfo?.technical_image) {
                       images.push({
-                        src: `${media_url}${productDetails.data.productinformation.technical_image}`,
+                        src: `${media_url}${productInfo.technical_image}`,
                         alt: 'Technical Drawing',
                         type: 'technical'
                       });
                     }
+                    
+                    // Add images from the pictures column
+                    if (productInfo?.pictures) {
+                      console.log('Pictures data found:', productInfo.pictures, 'Type:', typeof productInfo.pictures);
+                      
+                      try {
+                        let picturesData;
+                        
+                        // Handle different formats of pictures data
+                        if (typeof productInfo.pictures === 'string') {
+                          // If it's a JSON string, parse it
+                          if (productInfo.pictures.startsWith('[') || productInfo.pictures.startsWith('{')) {
+                            picturesData = JSON.parse(productInfo.pictures);
+                          } else {
+                            // If it's a single image path or comma-separated paths
+                            picturesData = productInfo.pictures.split(',').map(img => img.trim()).filter(Boolean);
+                          }
+                        } else if (Array.isArray(productInfo.pictures)) {
+                          // If it's already an array
+                          picturesData = productInfo.pictures;
+                        } else if (typeof productInfo.pictures === 'object') {
+                          // If it's an object, try to extract image paths
+                          picturesData = Object.values(productInfo.pictures).filter(Boolean);
+                        }
+                        
+                        console.log('Processed pictures data:', picturesData);
+                        
+                        // Add each picture to the images array
+                        if (Array.isArray(picturesData)) {
+                          picturesData.forEach((picture, index) => {
+                            if (picture && typeof picture === 'string' && picture.trim() !== '') {
+                              const imagePath = picture.trim();
+                              let imageSrc;
+                              
+                              // Check if it's base64 data
+                              if (imagePath.startsWith('data:image/')) {
+                                // It's already a complete base64 data URL
+                                imageSrc = imagePath;
+                              } else if (imagePath.startsWith('/9j/') || 
+                                        imagePath.startsWith('iVBORw0KGgo') || 
+                                        imagePath.startsWith('R0lGODlh') ||
+                                        (imagePath.length > 100 && imagePath.match(/^[A-Za-z0-9+/]+=*$/) && !imagePath.includes('.'))) {
+                                // Likely base64 image data (JPEG starts with /9j/, PNG with iVBORw0KGgo, GIF with R0lGODlh)
+                                imageSrc = `data:image/jpeg;base64,${imagePath}`;
+                              } else {
+                                // It's a regular file path
+                                imageSrc = `${media_url}${imagePath}`;
+                              }
+                              
+                              images.push({
+                                src: imageSrc,
+                                alt: `Product Picture ${index + 1}`,
+                                type: 'picture'
+                              });
+                            } else if (picture?.path || picture?.url || picture?.src) {
+                              const imageSrc = picture.path || picture.url || picture.src;
+                              let finalSrc;
+                              
+                              // Check if it's base64 data
+                              if (imageSrc.startsWith('data:image/')) {
+                                finalSrc = imageSrc;
+                              } else if (imageSrc.startsWith('/9j/') || 
+                                        imageSrc.startsWith('iVBORw0KGgo') || 
+                                        imageSrc.startsWith('R0lGODlh') ||
+                                        (imageSrc.length > 100 && imageSrc.match(/^[A-Za-z0-9+/]+=*$/) && !imageSrc.includes('.'))) {
+                                finalSrc = `data:image/jpeg;base64,${imageSrc}`;
+                              } else {
+                                finalSrc = `${media_url}${imageSrc}`;
+                              }
+                              
+                              images.push({
+                                src: finalSrc,
+                                alt: picture.alt || `Product Picture ${index + 1}`,
+                                type: 'picture'
+                              });
+                            }
+                          });
+                        }
+                      } catch (error) {
+                        console.log('Error parsing pictures data:', error, productInfo.pictures);
+                        // If parsing fails, try to use it as a single image path
+                        if (typeof productInfo.pictures === 'string' && productInfo.pictures.length > 0) {
+                          const imagePath = productInfo.pictures.trim();
+                          let imageSrc;
+                          
+                          // Check if it's base64 data
+                          if (imagePath.startsWith('data:image/')) {
+                            imageSrc = imagePath;
+                          } else if (imagePath.startsWith('/9j/') || 
+                                    imagePath.startsWith('iVBORw0KGgo') || 
+                                    imagePath.startsWith('R0lGODlh') ||
+                                    (imagePath.length > 100 && imagePath.match(/^[A-Za-z0-9+/]+=*$/) && !imagePath.includes('.'))) {
+                            imageSrc = `data:image/jpeg;base64,${imagePath}`;
+                          } else {
+                            imageSrc = `${media_url}${imagePath}`;
+                          }
+                          
+                          images.push({
+                            src: imageSrc,
+                            alt: 'Product Picture',
+                            type: 'picture'
+                          });
+                        }
+                      }
+                    }
+                    
+                    console.log('Final images array:', images);
 
                     return images.length > 0 ? (
                       <>
                         {/* Main Large Image */}
-                        <div className="aspect-square bg-gray-100 rounded-lg overflow-hidden border">
+                        <div className="aspect-square bg-gray-100 rounded-lg overflow-hidden border relative">
                           <img
                             src={images[selectedImageIndex]?.src}
                             alt={images[selectedImageIndex]?.alt}
-                            className="w-full h-full object-cover cursor-pointer"
+                            className="w-full h-full object-contain cursor-pointer hover:opacity-90 transition-opacity"
+                            onClick={() => {
+                              setFullScreenImageSrc(images[selectedImageIndex]?.src);
+                              setShowFullScreenImage(true);
+                            }}
                             onError={(e) => {
                               console.log('Image failed to load:', e.target.src);
                               e.target.style.display = 'none';
@@ -602,24 +780,29 @@ function Catalog() {
                           <div className="w-full h-full flex items-center justify-center" style={{display: 'none'}}>
                             <Lucide icon="Package" className="w-16 h-16 text-gray-400" />
                           </div>
+                          {/* Click indicator */}
+                          <div className="absolute top-2 right-2 bg-black bg-opacity-50 text-white p-1 rounded text-xs">
+                            <Lucide icon="Maximize2" className="w-3 h-3" />
+                          </div>
                         </div>
 
                         {/* Thumbnail Gallery */}
-                        <div className="flex space-x-2 justify-center mt-4">
+                        <div className="flex flex-wrap gap-2 justify-start mt-4">
                           {images.map((image, index) => (
                             <div 
                               key={index}
                               className={`w-16 h-16 bg-gray-100 rounded border cursor-pointer transition-colors ${
                                 selectedImageIndex === index 
-                                  ? 'border-primary border-2' 
+                                  ? 'border-blue-500 border-2' 
                                   : 'border-gray-300 hover:border-gray-400'
                               }`}
                               onClick={() => setSelectedImageIndex(index)}
+                              title={image.alt}
                             >
                               <img
                                 src={image.src}
                                 alt={image.alt}
-                                className="w-full h-full object-cover rounded"
+                                className="w-full h-full object-contain rounded"
                                 onError={(e) => {
                                   e.target.style.display = 'none';
                                   e.target.nextSibling.style.display = 'flex';
@@ -630,127 +813,102 @@ function Catalog() {
                               </div>
                             </div>
                           ))}
-                          {/* Add placeholder thumbnails to match design */}
-                          {Array.from({length: Math.max(0, 3 - images.length)}).map((_, index) => (
-                            <div key={`placeholder-${index}`} className="w-16 h-16 bg-gray-100 rounded border border-gray-300 flex items-center justify-center">
+                          {/* Show message if no images found */}
+                          {images.length === 0 && (
+                            <div className="w-16 h-16 bg-gray-100 rounded border border-gray-300 flex items-center justify-center">
                               <Lucide icon="Camera" className="w-4 h-4 text-gray-400" />
                             </div>
-                          ))}
+                          )}
                         </div>
                       </>
                     ) : (
                       // No images available
                       <div className="aspect-square bg-gray-100 rounded-lg overflow-hidden flex items-center justify-center border">
-                        <Lucide icon="Package" className="w-16 h-16 text-gray-400" />
+                        <div className="text-center">
+                          <Lucide icon="Package" className="w-16 h-16 text-gray-400 mx-auto mb-2" />
+                          <p className="text-sm text-gray-500">{t('No images available')}</p>
+                        </div>
                       </div>
                     );
                   })()}
                 </div>
 
                 {/* Right Side - Product Information and Specifications */}
-                <div className="lg:col-span-2 space-y-4">
-                  {/* Product Header */}
-                  <div className="border-b pb-4">
-                    <h2 className="text-xl font-bold text-gray-900 mb-2">Specification</h2>
-                    <div className="space-y-1 text-sm">
-                      <div><span className="font-medium">Band:</span> {selectedProduct?.brand?.brand_name || 'N/A'}</div>
-                      <div><span className="font-medium">Code:</span> {selectedProduct?.brand_code || 'N/A'}</div>
-                      <div><span className="font-medium">Name:</span> {selectedProduct?.description || 'N/A'}</div>
+                <div className="space-y-6">
+                  {/* Specification Header */}
+                  <div>
+                    <h2 className="text-xl font-bold text-gray-900 mb-4">{t('Specification')}</h2>
+                    <div className="space-y-2 text-sm">
+                      <div><span className="font-medium text-gray-700">{t('Brand')}:</span> <span className="text-gray-900">{selectedProduct?.brand?.brand_name || 'N/A'}</span></div>
+                      <div><span className="font-medium text-gray-700">{t('Code')}:</span> <span className="text-gray-900">{selectedProduct?.brand_code || 'N/A'}</span></div>
+                      <div><span className="font-medium text-gray-700">{t('Name')}:</span> <span className="text-gray-900">{selectedProduct?.localized_description || selectedProduct?.description || 'N/A'}</span></div>
+                      {productDetails?.data?.productinformation?.product_size_a && (
+                        <div><span className="font-medium text-gray-700">{t('Length')}:</span> <span className="text-gray-900">{productDetails.data.productinformation.product_size_a}</span></div>
+                      )}
+                      {productDetails?.data?.productinformation?.product_size_b && (
+                        <div><span className="font-medium text-gray-700">{t('Width')}:</span> <span className="text-gray-900">{productDetails.data.productinformation.product_size_b}</span></div>
+                      )}
+                      {productDetails?.data?.productinformation?.product_size_c && (
+                        <div><span className="font-medium text-gray-700">{t('Thickness')}:</span> <span className="text-gray-900">{productDetails.data.productinformation.product_size_c}</span></div>
+                      )}
+                      {productSpecifications?.data?.length > 0 && productSpecifications.data.slice(0, 2).map((spec, index) => (
+                        <div key={index}><span className="font-medium text-gray-700">{spec.specificationheadname?.headname || spec.headname || 'Spec'}:</span> <span className="text-gray-900">{spec.value || 'N/A'}</span></div>
+                      ))}
                     </div>
                   </div>
 
-                  {/* Specifications */}
-                  <div className="space-y-2">
-                    {loadingSpecs ? (
-                      <div className="flex justify-center py-4">
-                        <LoadingIcon icon="oval" className="w-5 h-5" />
-                      </div>
-                    ) : productSpecifications?.data?.length > 0 ? (
-                      productSpecifications.data.map((spec, index) => (
-                        <div key={index} className="flex justify-between text-sm py-1">
-                          <span className="font-medium text-gray-700">
-                            {spec.specificationheadname?.headname || spec.headname || 'N/A'}:
-                          </span>
-                          <span className="text-gray-900">{spec.value || 'N/A'}</span>
-                        </div>
-                      ))
-                    ) : null}
-
-                    {/* Physical Properties from Product Information */}
-                    {productDetails?.data?.productinformation && (
-                      <>
-                        {productDetails.data.productinformation.net_weight && (
-                          <div className="flex justify-between text-sm py-1">
-                            <span className="font-medium text-gray-700">Length-1:</span>
-                            <span className="text-gray-900">{productDetails.data.productinformation.product_size_a || 'N/A'}</span>
-                          </div>
-                        )}
-                        {productDetails.data.productinformation.product_size_b && (
-                          <div className="flex justify-between text-sm py-1">
-                            <span className="font-medium text-gray-700">Width-1:</span>
-                            <span className="text-gray-900">{productDetails.data.productinformation.product_size_b}</span>
-                          </div>
-                        )}
-                        {productDetails.data.productinformation.product_size_c && (
-                          <div className="flex justify-between text-sm py-1">
-                            <span className="font-medium text-gray-700">Thickness-1:</span>
-                            <span className="text-gray-900">{productDetails.data.productinformation.product_size_c}</span>
-                          </div>
-                        )}
-                        {productDetails.data.productinformation.additional_note && (
-                          <div className="flex justify-between text-sm py-1">
-                            <span className="font-medium text-gray-700">Pcs in Set:</span>
-                            <span className="text-gray-900">{productDetails.data.productinformation.additional_note}</span>
-                          </div>
-                        )}
-                      </>
-                    )}
-                  </div>
 
                   {/* Compatible Models */}
-                  <div className="border-t pt-4">
-                    <h3 className="font-bold text-gray-900 mb-3">Compatible models:</h3>
+                  <div className="border-b pb-4">
+                    <h3 className="font-bold text-gray-900 mb-3">{t('Compatible Vehicle Models')}</h3>
                     {loadingCrossCars ? (
                       <div className="flex justify-center py-4">
                         <LoadingIcon icon="oval" className="w-5 h-5" />
                       </div>
                     ) : productCrossCars?.data?.length > 0 ? (
-                      <div className="space-y-1">
-                        {productCrossCars.data.slice(0, 7).map((crosscar, index) => (
-                          <div key={index} className="text-sm text-gray-700 bg-gray-50 px-2 py-1 rounded">
-                            {crosscar.carmodel?.car_model || 'N/A'} {crosscar.year_from && crosscar.year_to ? `${crosscar.year_from}-${crosscar.year_to}` : ''}
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                        {productCrossCars.data.slice(0, 12).map((crosscar, index) => (
+                          <div key={index} className="text-sm text-gray-700 bg-gray-50 px-3 py-2 rounded border">
+                            <div className="font-medium">{crosscar.carmodel?.car_model || 'N/A'}</div>
+                            {(crosscar.year_from || crosscar.year_to) && (
+                              <div className="text-xs text-gray-600">
+                                {crosscar.year_from && crosscar.year_to 
+                                  ? `${crosscar.year_from} - ${crosscar.year_to}`
+                                  : crosscar.year_from || crosscar.year_to
+                                }
+                              </div>
+                            )}
                           </div>
                         ))}
-                        {productCrossCars.data.length > 7 && (
-                          <div className="text-center text-sm text-gray-500 mt-2">
-                            <span>{'< 1 '}</span>
-                            <span className="bg-primary text-white px-2 py-1 rounded text-xs">2</span>
-                            <span>{' ...12 >'}</span>
+                        {productCrossCars.data.length > 12 && (
+                          <div className="col-span-full text-center text-sm text-gray-500 mt-2 p-2 bg-gray-50 rounded">
+                            {t('And')} {productCrossCars.data.length - 12} {t('more models...')}
                           </div>
                         )}
                       </div>
                     ) : (
-                      <div className="text-sm text-gray-500">No compatible models available</div>
+                      <div className="text-sm text-gray-500 text-center py-4">{t('No compatible models available')}</div>
                     )}
                   </div>
 
                   {/* Cross Reference */}
-                  <div className="border-t pt-4">
-                    <h3 className="font-bold text-gray-900 mb-3">Cross Reference</h3>
+                  <div>
+                    <h3 className="font-bold text-gray-900 mb-3">{t('Cross Reference / Alternative Part Numbers')}</h3>
                     {loadingCrossCodes ? (
                       <div className="flex justify-center py-4">
                         <LoadingIcon icon="oval" className="w-5 h-5" />
                       </div>
                     ) : productCrossCodes?.data?.length > 0 ? (
-                      <div className="text-sm text-gray-700">
-                        {productCrossCodes.data.slice(0, 3).map((crosscode, index) => (
-                          <div key={index} className="mb-1">
-                            {crosscode.brandname?.brand_name || 'N/A'}: {crosscode.cross_code || 'N/A'}
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                        {productCrossCodes.data.map((crosscode, index) => (
+                          <div key={index} className="text-sm bg-blue-50 border border-blue-200 px-3 py-2 rounded">
+                            <div className="font-medium text-blue-900">{crosscode.brandname?.brand_name || 'N/A'}</div>
+                            <div className="text-blue-700">{crosscode.cross_code || crosscode.cross_band || 'N/A'}</div>
                           </div>
                         ))}
                       </div>
                     ) : (
-                      <div className="text-sm text-gray-500">No cross references available</div>
+                      <div className="text-sm text-gray-500 text-center py-4">{t('No cross references available')}</div>
                     )}
                   </div>
                 </div>
@@ -767,17 +925,59 @@ function Catalog() {
               {t("Close")}
             </Button>
             {selectedProduct && (
-              <Button
-                type="button"
-                variant="primary"
-                onClick={() => shareProduct(selectedProduct)}
-                className="w-20"
-              >
-                <Lucide icon="Share2" className="w-4 h-4 mr-1" />
-                {t("Share")}
-              </Button>
+              <>
+                <Button
+                  type="button"
+                  variant="outline-primary"
+                  onClick={() => downloadProductPDF(selectedProduct.id)}
+                  className="mr-2"
+                >
+                  <Lucide icon="Download" className="w-4 h-4 mr-1" />
+                  {t("Download PDF")}
+                </Button>
+                <Button
+                  type="button"
+                  variant="primary"
+                  onClick={() => shareProduct(selectedProduct)}
+                  className="w-20"
+                >
+                  <Lucide icon="Share2" className="w-4 h-4 mr-1" />
+                  {t("Share")}
+                </Button>
+              </>
             )}
           </Dialog.Footer>
+        </Dialog.Panel>
+      </Dialog>
+
+      {/* Full Screen Image Modal */}
+      <Dialog
+        open={showFullScreenImage}
+        onClose={() => setShowFullScreenImage(false)}
+        size="6xl"
+      >
+        <Dialog.Panel className="p-0">
+          <div className="relative bg-black">
+            {/* Close Button */}
+            <button
+              onClick={() => setShowFullScreenImage(false)}
+              className="absolute top-4 right-4 z-10 bg-black bg-opacity-50 text-white p-2 rounded-full hover:bg-opacity-70 transition-colors"
+            >
+              <Lucide icon="X" className="w-6 h-6" />
+            </button>
+            
+            {/* Full Screen Image */}
+            <div className="flex items-center justify-center min-h-[80vh]">
+              <img
+                src={fullScreenImageSrc}
+                alt="Full Screen View"
+                className="max-w-full max-h-[80vh] object-contain"
+                onError={(e) => {
+                  console.log('Full screen image failed to load:', e.target.src);
+                }}
+              />
+            </div>
+          </div>
         </Dialog.Panel>
       </Dialog>
 

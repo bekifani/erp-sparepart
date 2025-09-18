@@ -158,7 +158,7 @@ class SearchresultController extends BaseController
                 "user_id" => "nullable|exists:users,id",
                 "customer_id" => "nullable|exists:customers,id",
                 "query_text" => "required|string|max:255",
-                "search_type" => "required|in:category,car_model,description,code",
+                "search_type" => "required|in:category,car_model,description,code,catalog_browse,customer,supplier",
                 "result_found" => "required|boolean",
                 "search_timestamp" => "nullable|date",
                 "user_type" => "required|in:guest,customer,employee",
@@ -201,7 +201,7 @@ class SearchresultController extends BaseController
                 "user_id" => "nullable|exists:users,id",
                 "customer_id" => "nullable|exists:customers,id", 
                 "query_text" => "required|string|max:255",
-                "search_type" => "required|in:category,car_model,description,code",
+                "search_type" => "required|in:category,car_model,description,code,catalog_browse,customer,supplier",
                 "result_found" => "required|boolean",
                 "search_timestamp" => "nullable|date",
                 "user_type" => "required|in:guest,customer,employee",
@@ -267,7 +267,10 @@ class SearchresultController extends BaseController
             'category' => 'By Category',
             'car_model' => 'By Car Model', 
             'description' => 'By Description (Product Name)',
-            'code' => 'By Code (Brand Code, OE Code, or Cross Code)'
+            'code' => 'By Code (Brand Code, OE Code, or Cross Code)',
+            'catalog_browse' => 'Catalog Browse',
+            'customer' => 'Customer Search',
+            'supplier' => 'Supplier Search'
         ];
         
         return $types[$searchType] ?? $searchType;

@@ -68,4 +68,57 @@ class Product extends Model
     {
         return $this->hasMany(Crosscode::class, 'product_id', 'id');
     }
+    
+    // Multi-language support methods
+    public function getLocalizedDescription($locale = 'en')
+    {
+        if (!$this->productname) {
+            return $this->description;
+        }
+        
+        switch ($locale) {
+            case 'az':
+                return $this->productname->name_az ?: $this->description;
+            case 'ru':
+                return $this->productname->name_ru ?: $this->description;
+            case 'cn':
+                return $this->productname->name_cn ?: $this->description;
+            case 'en':
+            default:
+                return $this->productname->description_en ?: $this->description;
+        }
+    }
+    
+    public function getLocalizedName($locale = 'en')
+    {
+        if (!$this->productname) {
+            return $this->description;
+        }
+        
+        switch ($locale) {
+            case 'az':
+                return $this->productname->name_az ?: $this->description;
+            case 'ru':
+                return $this->productname->name_ru ?: $this->description;
+            case 'cn':
+                return $this->productname->name_cn ?: $this->description;
+            case 'en':
+            default:
+                return $this->productname->description_en ?: $this->description;
+        }
+    }
+    
+    public function getAvailableLanguages()
+    {
+        $languages = [];
+        
+        if ($this->productname) {
+            if ($this->productname->name_az) $languages[] = 'az';
+            if ($this->productname->name_ru) $languages[] = 'ru';
+            if ($this->productname->name_cn) $languages[] = 'cn';
+            if ($this->productname->description_en) $languages[] = 'en';
+        }
+        
+        return $languages;
+    }
 }

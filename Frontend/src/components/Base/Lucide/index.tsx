@@ -1,16 +1,20 @@
 import * as lucideIcons from "lucide-react";
 import { twMerge } from "tailwind-merge";
 
-export const { icons } = lucideIcons;
-
 interface LucideProps extends React.ComponentPropsWithoutRef<"svg"> {
-  icon: keyof typeof icons;
+  icon: keyof typeof lucideIcons;
   title?: string;
 }
 
 function Lucide(props: LucideProps) {
   const { icon, className, ...computedProps } = props;
-  const Component = icons[props.icon];
+  const Component = lucideIcons[props.icon] as React.ComponentType<any>;
+  
+  if (!Component) {
+    console.warn(`Lucide icon "${props.icon}" not found`);
+    return null;
+  }
+  
   return (
     <Component
       {...computedProps}

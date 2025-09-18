@@ -41,6 +41,19 @@ class SearchLoggerMiddleware
             '/api/search_carmodel',
             '/api/search_category',
             '/api/search_productname',
+            '/api/search_customer',
+            '/api/search_supplier',
+            '/api/search_order',
+            '/api/search_invoice',
+            '/api/search_packinglist',
+            '/api/search_supplierinvoice',
+            '/api/search_companyaccount',
+            '/api/search_warehouseaccount',
+            '/api/search_problem',
+            '/api/search_specificationheadname',
+            // Catalog search endpoints
+            '/api/catalog/products',
+            '/api/catalog/export-pdf',
             // Add more search endpoints as needed
         ];
 
@@ -103,9 +116,33 @@ class SearchLoggerMiddleware
         $searchParams = ['search', 'query', 'q', 'term', 'keyword'];
         
         foreach ($searchParams as $param) {
-            if ($request->has($param)) {
+            if ($request->has($param) && !empty($request->get($param))) {
                 return $request->get($param);
             }
+        }
+
+        // For catalog searches, combine multiple filter parameters
+        if (strpos($request->getPathInfo(), '/api/catalog/') !== false) {
+            $catalogFilters = [];
+            
+            if ($request->has('search') && !empty($request->get('search'))) {
+                $catalogFilters[] = 'search:' . $request->get('search');
+            }
+            if ($request->has('category') && !empty($request->get('category'))) {
+                $catalogFilters[] = 'category:' . $request->get('category');
+            }
+            if ($request->has('car_model') && !empty($request->get('car_model'))) {
+                $catalogFilters[] = 'car_model:' . $request->get('car_model');
+            }
+            if ($request->has('cross_code') && !empty($request->get('cross_code'))) {
+                $catalogFilters[] = 'cross_code:' . $request->get('cross_code');
+            }
+            
+            if (!empty($catalogFilters)) {
+                return implode(' | ', $catalogFilters);
+            }
+            
+            return 'catalog_browse';
         }
 
         // Check if it's a path parameter (e.g., /api/search_product/toyota)
@@ -124,6 +161,23 @@ class SearchLoggerMiddleware
     {
         $path = $request->getPathInfo();
         
+        // Handle catalog searches specifically
+        if (strpos($path, '/api/catalog/') !== false) {
+            // Determine primary search type based on parameters
+            if ($request->has('search') && !empty($request->get('search'))) {
+                return 'description'; // Text search in catalog
+            } elseif ($request->has('category') && !empty($request->get('category'))) {
+                return 'category';
+            } elseif ($request->has('car_model') && !empty($request->get('car_model'))) {
+                return 'car_model';
+            } elseif ($request->has('cross_code') && !empty($request->get('cross_code'))) {
+                return 'code';
+            } else {
+                return 'catalog_browse'; // General catalog browsing
+            }
+        }
+        
+        // Handle standard search endpoints
         if (strpos($path, 'category') !== false) {
             return 'category';
         } elseif (strpos($path, 'carmodel') !== false || strpos($path, 'car_model') !== false) {
@@ -132,6 +186,10 @@ class SearchLoggerMiddleware
             return 'description';
         } elseif (strpos($path, 'brandname') !== false || strpos($path, 'brand') !== false) {
             return 'code';
+        } elseif (strpos($path, 'customer') !== false) {
+            return 'customer';
+        } elseif (strpos($path, 'supplier') !== false) {
+            return 'supplier';
         } else {
             return 'description'; // Default to description search
         }
@@ -181,12 +239,17 @@ class SearchLoggerMiddleware
         }
         
         // Check if user has customer relationship
-        if ($user->customer_id || method_exists($user, 'customer')) {
+        if ((isset($user->customer_id) && $user->customer_id) || 
+            (method_exists($user, 'customer') && $user->customer)) {
             return 'customer';
         }
         
         // Check if user is employee (has employee role or permissions)
-        if ($user->hasRole('employee') || $user->permissions) {
+        if (method_exists($user, 'hasRole') && $user->hasRole('employee')) {
+            return 'employee';
+        }
+        
+        if (isset($user->permissions) && $user->permissions) {
             return 'employee';
         }
         
@@ -202,8 +265,8 @@ class SearchLoggerMiddleware
             return $user->name ?? $user->email ?? null;
         }
         
-        // For guests, try to get session ID or IP
-        return $request->session()->getId() ?? $request->ip();
+        // For guests, just use IP address (API routes don't have sessions)
+        return $request->ip();
     }
 
     /**

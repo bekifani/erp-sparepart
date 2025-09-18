@@ -182,74 +182,83 @@ class ProductController extends BaseController
 
     public function search(Request $request, $search_term)
     {
-        $searchTerm = $search_term;
-        if (empty($searchTerm)) {
-            return response()->json([
-                'message' => 'Please enter a search term.'
-            ], 400);
+        try {
+            $searchTerm = $search_term;
+            if (empty($searchTerm)) {
+                return response()->json([
+                    'message' => 'Please enter a search term.'
+                ], 400);
+            }
+
+            $query = Product::with(['ProductInformation'])
+                ->leftJoin('product_information', 'product_information.product_id', '=', 'products.id')
+                ->leftJoin('productnames', 'products.productname_id', '=', 'productnames.id')
+                ->leftJoin('brandnames', 'products.brand_id', '=', 'brandnames.id')
+                ->leftJoin('boxes', 'product_information.box_id', '=', 'boxes.id')
+                ->leftJoin('labels', 'product_information.label_id', '=', 'labels.id')
+                ->leftJoin('units', 'product_information.unit_id', '=', 'units.id')
+                ->leftJoin('suppliers', 'products.supplier_id', '=', 'suppliers.id');
+
+            $selects = [
+                DB::raw('products.id as value'),
+                'product_information.product_code',
+                'products.oe_code',
+                'products.description',
+                'products.brand_code as brand_code_name',
+                'productnames.name_az as product_name',
+                'productnames.product_name_code',
+                'brandnames.brand_name',
+                'boxes.box_name',
+                'labels.label_name',
+                'units.name as unit_name',
+                'suppliers.supplier as supplier',
+            ];
+            if (Schema::hasColumn('suppliers', 'code')) {
+                $selects[] = 'suppliers.code as supplier_code';
+            } else {
+                $selects[] = DB::raw('NULL as supplier_code');
+            }
+            $query->select($selects);
+
+            $searchable = $this->searchableColumns;
+            // nothing to remove since we didn't include supplier_code here
+
+            $results = $query->where(function ($q) use ($searchTerm, $searchable) {
+                    foreach ($searchable as $column) {
+                        $q->orWhere($column, 'like', "%$searchTerm%");
+                    }
+                })
+                ->get()
+                ->map(function ($item) {
+                    $brandCode = $item->brand_code_name;
+                    $parts = [];
+                    if ($item->brand_name) { $parts[] = $item->brand_name; }
+                    if ($brandCode) { $parts[] = '(' . $brandCode . ')'; }
+                    if ($item->oe_code) { $parts[] = '- ' . $item->oe_code; }
+                    if ($item->description) { $parts[] = '- ' . $item->description; }
+                    if ($item->product_code) { $parts[] = '- ' . $item->product_code; }
+                    $text = trim(preg_replace('/\s+/', ' ', implode(' ', $parts)));
+                     return [
+                         'value' => $item->value,
+                         'text' => $text ?: (string)$item->value,
+                         'product_code' => $item->product_code,
+                         'product_name' => $item->product_name,
+                         'brand_name' => $item->brand_name,
+                         'brand_code_name' => $item->brand_code_name,
+                         'oe_code' => $item->oe_code,
+                         'description' => $item->description
+                     ];
+                });
+
+            return response()->json($results);
+        } catch (\Exception $e) {
+            Log::error('ProductController search error: ' . $e->getMessage(), [
+                'search_term' => $search_term,
+                'request_path' => $request->getPathInfo(),
+                'user_id' => auth()->id()
+            ]);
+            return response()->json(['error' => 'Search failed', 'message' => $e->getMessage()], 500);
         }
-
-        $query = Product::with(['ProductInformation'])
-            ->leftJoin('product_information', 'product_information.product_id', '=', 'products.id')
-            ->leftJoin('productnames', 'products.productname_id', '=', 'productnames.id')
-            ->leftJoin('brandnames', 'products.brand_id', '=', 'brandnames.id')
-            ->leftJoin('boxes', 'product_information.box_id', '=', 'boxes.id')
-            ->leftJoin('labels', 'product_information.label_id', '=', 'labels.id')
-            ->leftJoin('units', 'product_information.unit_id', '=', 'units.id')
-            ->leftJoin('suppliers', 'products.supplier_id', '=', 'suppliers.id');
-
-        $selects = [
-            DB::raw('products.id as value'),
-            'product_information.product_code',
-            'products.oe_code',
-            'products.description',
-            'products.brand_code as brand_code_name',
-            'productnames.name_az as product_name',
-            'productnames.product_name_code',
-            'brandnames.brand_name',
-            'boxes.box_name',
-            'labels.label_name',
-            'units.name as unit_name',
-            'suppliers.supplier as supplier',
-        ];
-        if (Schema::hasColumn('suppliers', 'code')) {
-            $selects[] = 'suppliers.code as supplier_code';
-        } else {
-            $selects[] = DB::raw('NULL as supplier_code');
-        }
-        $query->select($selects);
-
-        $searchable = $this->searchableColumns;
-        // nothing to remove since we didn't include supplier_code here
-
-        $results = $query->where(function ($q) use ($searchTerm, $searchable) {
-                foreach ($searchable as $column) {
-                    $q->orWhere($column, 'like', "%$searchTerm%");
-                }
-            })
-            ->get()
-            ->map(function ($item) {
-                $brandCode = $item->brand_code_name;
-                $parts = [];
-                if ($item->brand_name) { $parts[] = $item->brand_name; }
-                if ($brandCode) { $parts[] = '(' . $brandCode . ')'; }
-                if ($item->oe_code) { $parts[] = '- ' . $item->oe_code; }
-                if ($item->description) { $parts[] = '- ' . $item->description; }
-                if ($item->product_code) { $parts[] = '- ' . $item->product_code; }
-                $text = trim(preg_replace('/\s+/', ' ', implode(' ', $parts)));
-                 return [
-                     'value' => $item->value,
-                     'text' => $text ?: (string)$item->value,
-                     'product_code' => $item->product_code,
-                     'product_name' => $item->product_name,
-                     'brand_name' => $item->brand_name,
-                     'brand_code_name' => $item->brand_code_name,
-                     'oe_code' => $item->oe_code,
-                     'description' => $item->description
-                 ];
-            });
-
-        return response()->json($results);
     }
 
     public function store(Request $request)

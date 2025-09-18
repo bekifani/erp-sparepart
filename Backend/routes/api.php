@@ -588,6 +588,13 @@ Route::get('/catalog/product/{id}', [App\Http\Controllers\CatalogController::cla
 Route::get('/catalog/product/{id}/specifications', [App\Http\Controllers\CatalogController::class, 'getProductSpecifications'])->withoutMiddleware('auth.api');
 Route::get('/catalog/product/{id}/cross-cars', [App\Http\Controllers\CatalogController::class, 'getProductCrossCars'])->withoutMiddleware('auth.api');
 Route::get('/catalog/product/{id}/cross-codes', [App\Http\Controllers\CatalogController::class, 'getProductCrossCodes'])->withoutMiddleware('auth.api');
+Route::get('/catalog/product/{id}/pdf', [App\Http\Controllers\CatalogController::class, 'exportSingleProductPdf'])->withoutMiddleware('auth.api');
+Route::get('/catalog/test-pdf/{id}', [App\Http\Controllers\CatalogController::class, 'testPdf'])->withoutMiddleware('auth.api');
+Route::get('/catalog/test-pdf-generation/{id}', [App\Http\Controllers\CatalogController::class, 'testPdfGeneration'])->withoutMiddleware('auth.api');
+Route::post('/catalog/product/{id}/qr-code', [App\Http\Controllers\CatalogController::class, 'generateProductQRCode'])->withoutMiddleware('auth.api');
+Route::get('/carmodel/smart-search', [App\Http\Controllers\CarmodelController::class, 'smartSearch'])->withoutMiddleware('auth.api');
+Route::post('/catalog/clear-cache', [App\Http\Controllers\CatalogController::class, 'clearCache']);
+Route::get('/catalog/cache-stats', [App\Http\Controllers\CatalogController::class, 'getCacheStats']);
 
 // Journal and Accounting System Routes
     Route::get('/journal-entries', [App\Http\Controllers\JournalController::class, 'index'])->middleware('permission:view-hr-menu');
