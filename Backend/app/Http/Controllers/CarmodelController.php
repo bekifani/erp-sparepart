@@ -74,33 +74,184 @@ class CarmodelController extends BaseController
                 'message' => 'Please enter a search term.'
             ], 400);
         }
+        
+        // Smart search with fuzzy matching and relevance scoring
         $results = Carmodel::select(
                 'carmodels.id as value',
                 'carmodels.car_model',
+                'carmodels.brand',
+                'carmodels.model',
+                'carmodels.year',
                 'carmodels.additional_note',
-                DB::raw('COALESCE(crosscar_counts.product_qty, 0) as product_qty')
+                DB::raw('COALESCE(crosscar_counts.product_qty, 0) as product_qty'),
+                // Add relevance scoring
+                DB::raw("
+                    CASE 
+                        WHEN carmodels.car_model LIKE ? THEN 100
+                        WHEN carmodels.car_model LIKE ? THEN 80
+                        WHEN carmodels.brand LIKE ? THEN 70
+                        WHEN carmodels.model LIKE ? THEN 60
+                        WHEN carmodels.year LIKE ? THEN 50
+                        WHEN carmodels.additional_note LIKE ? THEN 30
+                        ELSE 10
+                    END as relevance
+                ")
             )
             ->leftJoin(
                 DB::raw('(SELECT car_model_id, COUNT(*) as product_qty FROM crosscars GROUP BY car_model_id) as crosscar_counts'),
                 'carmodels.id', '=', 'crosscar_counts.car_model_id'
             )
             ->where(function ($query) use ($searchTerm) {
-                foreach ($this->searchableColumns as $column) {
-                    $query->orWhere('carmodels.' . $column, 'like', "%$searchTerm%");
-                }
+                $query->where('carmodels.car_model', 'like', "%$searchTerm%")
+                      ->orWhere('carmodels.brand', 'like', "%$searchTerm%")
+                      ->orWhere('carmodels.model', 'like', "%$searchTerm%")
+                      ->orWhere('carmodels.year', 'like', "%$searchTerm%")
+                      ->orWhere('carmodels.additional_note', 'like', "%$searchTerm%");
             })
+            ->orderBy('relevance', 'desc')
+            ->orderBy('product_qty', 'desc')
+            ->limit(20)
             ->get()
-            ->map(function ($item) {
+            ->map(function ($item) use ($searchTerm) {
+                // Highlight matching text
+                $highlightedModel = $this->highlightText($item->car_model, $searchTerm);
+                $highlightedBrand = $this->highlightText($item->brand ?? '', $searchTerm);
+                
                 return [
                     'value' => $item->value,
                     'text' => $item->car_model,
                     'car_model' => $item->car_model,
+                    'brand' => $item->brand,
+                    'model' => $item->model,
+                    'year' => $item->year,
                     'additional_note' => $item->additional_note,
-                    'product_qty' => $item->product_qty
+                    'product_qty' => $item->product_qty,
+                    'relevance' => $item->relevance,
+                    'highlighted_model' => $highlightedModel,
+                    'highlighted_brand' => $highlightedBrand,
+                    'display_text' => $this->formatDisplayText($item, $searchTerm)
                 ];
             });
 
         return response()->json($results);
+    }
+    
+    private function highlightText($text, $searchTerm) {
+        if (empty($text) || empty($searchTerm)) {
+            return $text;
+        }
+        
+        $pattern = '/(' . preg_quote($searchTerm, '/') . ')/i';
+        return preg_replace($pattern, '<mark>$1</mark>', $text);
+    }
+    
+    private function formatDisplayText($item, $searchTerm) {
+        $parts = [];
+        
+        if ($item->brand) {
+            $parts[] = $this->highlightText($item->brand, $searchTerm);
+        }
+        if ($item->model) {
+            $parts[] = $this->highlightText($item->model, $searchTerm);
+        }
+        if ($item->year) {
+            $parts[] = $this->highlightText($item->year, $searchTerm);
+        }
+        
+        $mainText = implode(' ', $parts);
+        if ($item->product_qty > 0) {
+            $mainText .= " ({$item->product_qty} products)";
+        }
+        
+        return $mainText;
+    }
+    
+    public function smartSearch(Request $request)
+    {
+        $searchTerm = $request->get('q', '');
+        $limit = $request->get('limit', 10);
+        
+        if (empty($searchTerm)) {
+            return response()->json([]);
+        }
+        
+        // Enhanced smart search with multiple matching strategies
+        $results = Carmodel::select(
+                'carmodels.id as value',
+                'carmodels.car_model',
+                'carmodels.brand',
+                'carmodels.model',
+                'carmodels.year',
+                'carmodels.additional_note',
+                DB::raw('COALESCE(crosscar_counts.product_qty, 0) as product_qty'),
+                // Advanced relevance scoring
+                DB::raw("
+                    CASE 
+                        WHEN carmodels.car_model = ? THEN 1000
+                        WHEN carmodels.car_model LIKE ? THEN 900
+                        WHEN carmodels.brand = ? THEN 800
+                        WHEN carmodels.brand LIKE ? THEN 700
+                        WHEN carmodels.model = ? THEN 600
+                        WHEN carmodels.model LIKE ? THEN 500
+                        WHEN carmodels.year = ? THEN 400
+                        WHEN carmodels.year LIKE ? THEN 300
+                        WHEN carmodels.additional_note LIKE ? THEN 200
+                        ELSE 100
+                    END as relevance
+                ")
+            )
+            ->leftJoin(
+                DB::raw('(SELECT car_model_id, COUNT(*) as product_qty FROM crosscars GROUP BY car_model_id) as crosscar_counts'),
+                'carmodels.id', '=', 'crosscar_counts.car_model_id'
+            )
+            ->where(function ($query) use ($searchTerm) {
+                $query->where('carmodels.car_model', 'like', "%$searchTerm%")
+                      ->orWhere('carmodels.brand', 'like', "%$searchTerm%")
+                      ->orWhere('carmodels.model', 'like', "%$searchTerm%")
+                      ->orWhere('carmodels.year', 'like', "%$searchTerm%")
+                      ->orWhere('carmodels.additional_note', 'like', "%$searchTerm%");
+            })
+            ->orderBy('relevance', 'desc')
+            ->orderBy('product_qty', 'desc')
+            ->limit($limit)
+            ->get()
+            ->map(function ($item) use ($searchTerm) {
+                return [
+                    'value' => $item->value,
+                    'text' => $item->car_model,
+                    'car_model' => $item->car_model,
+                    'brand' => $item->brand,
+                    'model' => $item->model,
+                    'year' => $item->year,
+                    'additional_note' => $item->additional_note,
+                    'product_qty' => $item->product_qty,
+                    'relevance' => $item->relevance,
+                    'display_text' => $this->formatSmartDisplayText($item, $searchTerm)
+                ];
+            });
+
+        return response()->json($results);
+    }
+    
+    private function formatSmartDisplayText($item, $searchTerm) {
+        $parts = [];
+        
+        if ($item->brand) {
+            $parts[] = $item->brand;
+        }
+        if ($item->model) {
+            $parts[] = $item->model;
+        }
+        if ($item->year) {
+            $parts[] = "({$item->year})";
+        }
+        
+        $mainText = implode(' ', $parts);
+        if ($item->product_qty > 0) {
+            $mainText .= " - {$item->product_qty} products";
+        }
+        
+        return $mainText;
     }
 
 

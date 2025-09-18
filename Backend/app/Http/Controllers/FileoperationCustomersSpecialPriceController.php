@@ -48,8 +48,31 @@ class FileoperationCustomersSpecialPriceController extends Controller
             $headers = array_shift($data); // Remove header row
             $totalRows = count($data);
 
-            // Expected columns: Customer, Brand, Code, Min. Qty, Price
-            $expectedColumns = ['customer', 'brand', 'code', 'min_qty', 'price'];
+            // Expected columns with exact names (case-insensitive)
+            $expectedColumns = [
+                'Customer',
+                'Brand', 
+                'Code',
+                'Min. Qty',
+                'Price'
+            ];
+
+            // Validate column headers
+            $columnValidation = $this->validateColumns($headers, $expectedColumns);
+            if (!$columnValidation['valid']) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Column mismatch detected. Please upload a valid file with the correct column structure.',
+                    'error_type' => 'COLUMN_MISMATCH',
+                    'details' => [
+                        'expected_columns' => $expectedColumns,
+                        'found_columns' => $headers,
+                        'missing_columns' => $columnValidation['missing'],
+                        'extra_columns' => $columnValidation['extra'],
+                        'suggestions' => $columnValidation['suggestions']
+                    ]
+                ], 400);
+            }
             
             // Get all customers and products for validation
             $customers = Customer::pluck('name', 'id')->toArray();
@@ -263,5 +286,96 @@ class FileoperationCustomersSpecialPriceController extends Controller
                 'message' => 'Import failed: ' . $e->getMessage()
             ], 500);
         }
+    }
+
+    /**
+     * Validate Excel column headers against expected structure
+     */
+    private function validateColumns($actualHeaders, $expectedColumns)
+    {
+        // Clean and normalize headers (trim whitespace, case-insensitive)
+        $cleanActualHeaders = array_map(function($header) {
+            return trim(strtolower($header));
+        }, $actualHeaders);
+
+        $cleanExpectedHeaders = array_map(function($header) {
+            return trim(strtolower($header));
+        }, $expectedColumns);
+
+        // Check for missing and extra columns
+        $missing = [];
+        $extra = [];
+        $suggestions = [];
+
+        // Find missing columns
+        foreach ($cleanExpectedHeaders as $index => $expected) {
+            if (!in_array($expected, $cleanActualHeaders)) {
+                $missing[] = $expectedColumns[$index]; // Use original case for display
+                
+                // Find similar columns for suggestions
+                $suggestion = $this->findSimilarColumn($expected, $cleanActualHeaders, $actualHeaders);
+                if ($suggestion) {
+                    $suggestions[] = "Did you mean '{$suggestion}' instead of missing '{$expectedColumns[$index]}'?";
+                }
+            }
+        }
+
+        // Find extra columns
+        foreach ($cleanActualHeaders as $index => $actual) {
+            if (!in_array($actual, $cleanExpectedHeaders)) {
+                $extra[] = $actualHeaders[$index]; // Use original case for display
+            }
+        }
+
+        // Check if columns are in wrong order
+        $orderSuggestions = [];
+        if (empty($missing) && empty($extra) && count($cleanActualHeaders) === count($cleanExpectedHeaders)) {
+            for ($i = 0; $i < count($cleanExpectedHeaders); $i++) {
+                if (isset($cleanActualHeaders[$i]) && $cleanActualHeaders[$i] !== $cleanExpectedHeaders[$i]) {
+                    $expectedPos = array_search($cleanActualHeaders[$i], $cleanExpectedHeaders);
+                    if ($expectedPos !== false) {
+                        $orderSuggestions[] = "Column '{$actualHeaders[$i]}' should be in position " . ($expectedPos + 1) . " instead of position " . ($i + 1);
+                    }
+                }
+            }
+        }
+
+        if (!empty($orderSuggestions)) {
+            $suggestions = array_merge($suggestions, $orderSuggestions);
+        }
+
+        // Add general suggestions
+        if (!empty($missing) || !empty($extra)) {
+            $suggestions[] = "Please ensure your Excel file has exactly these columns in order: " . implode(', ', $expectedColumns);
+            $suggestions[] = "Download the template file to get the correct format.";
+        }
+
+        return [
+            'valid' => empty($missing) && empty($extra),
+            'missing' => $missing,
+            'extra' => $extra,
+            'suggestions' => $suggestions
+        ];
+    }
+
+    /**
+     * Find similar column name for suggestions
+     */
+    private function findSimilarColumn($target, $cleanHeaders, $originalHeaders)
+    {
+        $maxSimilarity = 0;
+        $bestMatch = null;
+
+        foreach ($cleanHeaders as $index => $header) {
+            // Calculate similarity using levenshtein distance
+            $similarity = 1 - (levenshtein($target, $header) / max(strlen($target), strlen($header)));
+            
+            if ($similarity > $maxSimilarity && $similarity > 0.6) { // 60% similarity threshold
+                $maxSimilarity = $similarity;
+                $bestMatch = $originalHeaders[$index];
+            }
+        }
+
+        return $bestMatch;
     }
 }

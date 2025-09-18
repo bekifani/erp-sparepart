@@ -32,6 +32,12 @@ return Application::configure(basePath: dirname(__DIR__))
             'role_or_permission' => \Spatie\Permission\Middleware\RoleOrPermissionMiddleware::class,
             'auth.api' => \App\Http\Middleware\AuthenticateApiUser::class,
             'lang' => \App\Http\Middleware\SetLocale::class,
+            'search.logger' => \App\Http\Middleware\SearchLoggerMiddleware::class,
+        ]);
+
+        // Register SearchLoggerMiddleware for API routes
+        $middleware->api(append: [
+            \App\Http\Middleware\SearchLoggerMiddleware::class,
         ]);
 
         $middleware->validateCsrfTokens(except: [

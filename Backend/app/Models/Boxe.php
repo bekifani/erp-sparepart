@@ -13,7 +13,7 @@ use Illuminate\Notifications\Notifiable;
 class Boxe extends Model
 {
     use HasFactory, LogsActivity, Notifiable;
-    public $fillable = ['brand', 'box_name', 'material', 'stock_qty', 'order_qty', 'price', 'size_a', 'size_b', 'size_c', 'volume', 'label', 'image', 'design_file', 'additional_note', 'operation_mode', 'package_type'];
+    public $fillable = ['brand', 'box_name', 'material', 'stock_qty', 'order_qty', 'price', 'size_a', 'size_b', 'size_c', 'volume', 'label', 'image', 'design_file', 'additional_note', 'package_type'];
     protected static $logAttributes = ['*'];
     public $guarded = [];
 

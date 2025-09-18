@@ -1,7 +1,7 @@
 import "@/assets/css/vendors/tabulator.css";
 import Lucide from "@/components/Base/Lucide";
 import Button from "@/components/Base/Button";
-import React, { useRef, useState } from "react";
+import React, { useRef, useState, useEffect } from "react";
 import Notification from "@/components/Base/Notification";
 import TableComponent from "@/helpers/ui/TableComponent.jsx";
 import { FormInput, FormLabel, FormSelect } from "@/components/Base/Form";
@@ -23,13 +23,13 @@ function SearchResultAnalysis() {
   const [userTypeFilter, setUserTypeFilter] = useState("");
   const [searchTypeFilter, setSearchTypeFilter] = useState("");
   const [resultFilter, setResultFilter] = useState("");
-
+  
   const hasPermission = (permission) => {
     return user.permissions.includes(permission);
   };
 
-  // Table column configuration for search result analysis
-  const [data, setData] = useState([
+  // Table columns for search result analysis
+  const columns = [
     {
       title: t("Date & Time"),
       minWidth: 180,
@@ -41,6 +41,13 @@ function SearchResultAnalysis() {
       sorter: "datetime",
       sorterParams: {
         format: "YYYY-MM-DD HH:mm:ss"
+      },
+      formatter(cell) {
+        const dateTime = cell.getValue();
+        return `<div class="text-sm">
+          <div class="font-medium">${dateTime ? dateTime.split(' ')[0] : ''}</div>
+          <div class="text-gray-500">${dateTime ? dateTime.split(' ')[1] : ''}</div>
+        </div>`;
       }
     },
     {
@@ -55,6 +62,7 @@ function SearchResultAnalysis() {
       formatter(cell) {
         const data = cell.getData();
         const userType = data.user_type;
+        const userDisplay = cell.getValue();
         let iconClass = "";
         let textClass = "";
         
@@ -75,7 +83,7 @@ function SearchResultAnalysis() {
         
         return `<div class="flex items-center">
           <i data-lucide="user" class="w-4 h-4 mr-2 ${iconClass}"></i>
-          <span class="${textClass}">${cell.getValue()}</span>
+          <span class="${textClass}">${userDisplay || 'Unknown'}</span>
         </div>`;
       }
     },
@@ -90,6 +98,7 @@ function SearchResultAnalysis() {
       download: true,
       formatter(cell) {
         const searchType = cell.getData().search_type;
+        const searchTypeDisplay = cell.getValue();
         let iconClass = "";
         
         switch(searchType) {
@@ -105,13 +114,22 @@ function SearchResultAnalysis() {
           case 'code':
             iconClass = "hash";
             break;
+          case 'catalog_browse':
+            iconClass = "grid";
+            break;
+          case 'customer':
+            iconClass = "users";
+            break;
+          case 'supplier':
+            iconClass = "building";
+            break;
           default:
             iconClass = "search";
         }
         
         return `<div class="flex items-center">
           <i data-lucide="${iconClass}" class="w-4 h-4 mr-2 text-slate-500"></i>
-          <span>${cell.getValue()}</span>
+          <span>${searchTypeDisplay || searchType}</span>
         </div>`;
       }
     },
@@ -126,8 +144,8 @@ function SearchResultAnalysis() {
       download: true,
       formatter(cell) {
         const query = cell.getValue();
-        return `<div class="font-mono text-sm bg-gray-50 px-2 py-1 rounded border">
-          ${query}
+        return `<div class="font-mono text-sm bg-gray-50 px-2 py-1 rounded border max-w-xs truncate" title="${query}">
+          ${query || ''}
         </div>`;
       }
     },
@@ -147,12 +165,12 @@ function SearchResultAnalysis() {
         if (resultFound) {
           return `<div class="flex items-center justify-center">
             <i data-lucide="check-circle" class="w-4 h-4 mr-1 text-green-500"></i>
-            <span class="text-green-700 font-medium">Yes</span>
+            <span class="text-green-700 font-medium">Found</span>
           </div>`;
         } else {
           return `<div class="flex items-center justify-center">
-            <i data-lucide="x" class="w-4 h-4 mr-1 text-red-500"></i>
-            <span class="text-red-700 font-bold">No</span>
+            <i data-lucide="x-circle" class="w-4 h-4 mr-1 text-red-500"></i>
+            <span class="text-red-700 font-medium">Not Found</span>
           </div>`;
         }
       }
@@ -186,7 +204,25 @@ function SearchResultAnalysis() {
         return element;
       },
     },
-  ]);
+  ];
+  
+  // Function to show search details modal
+  const showSearchDetails = (rowData) => {
+    const details = `
+      <div class="space-y-3">
+        <div><strong>Date & Time:</strong> ${rowData.date_time}</div>
+        <div><strong>User:</strong> ${rowData.user_display} (${rowData.user_type})</div>
+        <div><strong>Search Type:</strong> ${rowData.search_type_display}</div>
+        <div><strong>Search Query:</strong> <code class="bg-gray-100 px-2 py-1 rounded">${rowData.search_query}</code></div>
+        <div><strong>Result Found:</strong> <span class="${rowData.result_found ? 'text-green-600' : 'text-red-600'}">${rowData.result_display}</span></div>
+        ${rowData.entity_type ? `<div><strong>Entity Type:</strong> ${rowData.entity_type}</div>` : ''}
+        ${rowData.entity_id ? `<div><strong>Entity ID:</strong> ${rowData.entity_id}</div>` : ''}
+      </div>
+    `;
+    
+    setToastMessage(`Search Result Details: ${details}`);
+    basicStickyNotification.current?.showToast();
+  };
 
   // Search columns for filtering
   const [searchColumns, setSearchColumns] = useState([
@@ -199,24 +235,6 @@ function SearchResultAnalysis() {
 
   const [refetch, setRefetch] = useState(false);
   const [appliedFilters, setAppliedFilters] = useState([]);
-
-  // Function to show search details modal
-  const showSearchDetails = (data) => {
-    const details = `
-      <div class="space-y-3">
-        <div><strong>Date & Time:</strong> ${data.date_time}</div>
-        <div><strong>User:</strong> ${data.user_display} (${data.user_type})</div>
-        <div><strong>Search Type:</strong> ${data.search_type_display}</div>
-        <div><strong>Search Query:</strong> <code class="bg-gray-100 px-2 py-1 rounded">${data.search_query}</code></div>
-        <div><strong>Result Found:</strong> <span class="${data.result_found ? 'text-green-600' : 'text-red-600'}">${data.result_display}</span></div>
-        ${data.entity_type ? `<div><strong>Entity Type:</strong> ${data.entity_type}</div>` : ''}
-        ${data.entity_id ? `<div><strong>Entity ID:</strong> ${data.entity_id}</div>` : ''}
-      </div>
-    `;
-    
-    setToastMessage(`Search Result Details: ${details}`);
-    basicStickyNotification.current?.showToast();
-  };
 
   // Filter functions
   const applyFilters = () => {
@@ -279,6 +297,7 @@ function SearchResultAnalysis() {
 
   return (
     <div>
+
       {/* Filter Panel */}
       <div className="bg-white p-6 rounded-lg shadow-sm border mb-6">
         <div className="flex items-center justify-between mb-4">
@@ -419,18 +438,33 @@ function SearchResultAnalysis() {
 
       {/* Search Results Table */}
       <Can permission="searchresult-list">
-        <TableComponent
-          endpoint={app_url + "/api/searchresult"}
-          data={data}
-          searchColumns={searchColumns}
-          refetch={refetch}
-          setRefetch={setRefetch}
-          permission={"Searchresult"}
-          show_create={false} // Hide create button for analysis interface
-          title={t("Search Activity Log")}
-          subtitle={t("Monitor and analyze all search queries performed on the website and accounting application")}
-          customFilters={appliedFilters}
-        />
+        <div className="bg-white rounded-lg shadow-sm border">
+          {/* Enhanced Table Header */}
+          <div className="p-4 border-b">
+            <div className="flex items-center justify-between">
+              <div>
+                <h2 className="text-lg font-semibold text-gray-900">{t("Search Activity Log")}</h2>
+                <p className="text-sm text-gray-600 mt-1">
+                  {t("Monitor and analyze all search queries performed on the website and accounting application")}
+                </p>
+              </div>
+            </div>
+          </div>
+          
+          {/* Search Results Table */}
+          <div className="table-container">
+            <TableComponent
+              endpoint={app_url + "/api/searchresult"}
+              data={columns}
+              searchColumns={searchColumns}
+              refetch={refetch}
+              setRefetch={setRefetch}
+              permission={"Searchresult"}
+              show_create={false}
+              customFilters={appliedFilters}
+            />
+          </div>
+        </div>
       </Can>
     </div>
   );

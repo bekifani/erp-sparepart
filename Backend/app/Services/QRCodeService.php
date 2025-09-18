@@ -2,59 +2,166 @@
 
 namespace App\Services;
 
-use Illuminate\Support\Facades\Storage;
 use SimpleSoftwareIO\QrCode\Facades\QrCode;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 
 class QRCodeService
 {
     /**
-     * Generate QR code for product information
-     * 
-     * @param array $data - Contains brand_code, oe_code, product_link
-     * @return string - File path of generated QR code
+     * Generate QR code for a product
      */
     public static function generateProductQR($data)
     {
-        // Create QR content with brand code, OE code, and product link
-        $qrContent = json_encode([
-            'brand_code' => $data['brand_code'] ?? '',
-            'oe_code' => $data['oe_code'] ?? '',
-            'product_link' => $data['product_link'] ?? '',
-            'generated_at' => now()->toISOString(),
-        ]);
-
-        // Generate unique filename (just the filename, not the path)
-        $filename = 'product_' . ($data['product_id'] ?? 'unknown') . '_' . time() . '.svg';
-        $fullPath = 'qr_codes/' . $filename;
-        
-        // Generate QR code image using SVG format (no imagick required)
-        $qrCode = QrCode::format('svg')
-            ->size(200)
-            ->margin(2)
-            ->generate($qrContent);
-
-        // Store the QR code image
-        Storage::disk('public')->put($fullPath, $qrCode);
-
-        return $filename; // Return only the filename
-    }
-
-    /**
-     * Update existing QR code or generate new one
-     */
-    public static function updateProductQR($productInfo, $oldQrFilename = null)
-    {
-        // Delete old QR code if exists
-        if ($oldQrFilename && Storage::disk('public')->exists('qr_codes/' . $oldQrFilename)) {
-            Storage::disk('public')->delete('qr_codes/' . $oldQrFilename);
+        try {
+            // Create QR code content
+            $qrContent = self::buildQRContent($data);
+            
+            // Generate unique filename
+            $filename = 'product_' . ($data['product_id'] ?? 'unknown') . '_' . time() . '.png';
+            $path = 'qr_codes/' . $filename;
+            
+            // Generate QR code
+            $qrCode = QrCode::format('png')
+                ->size(300)
+                ->margin(2)
+                ->errorCorrection('M')
+                ->generate($qrContent);
+            
+            // Store the QR code
+            Storage::disk('public')->put($path, $qrCode);
+            
+            \Log::info('QR code generated successfully', [
+                'product_id' => $data['product_id'] ?? 'unknown',
+                'path' => $path
+            ]);
+            
+            return $path;
+            
+        } catch (\Exception $e) {
+            \Log::error('QR code generation failed', [
+                'error' => $e->getMessage(),
+                'data' => $data
+            ]);
+            throw $e;
         }
-
-        // Generate new QR code
-        return self::generateProductQR([
-            'product_id' => $productInfo['product_id'],
-            'brand_code' => $productInfo['brand_code'] ?? '',
-            'oe_code' => $productInfo['oe_code'] ?? '',
-            'product_link' => url("/product/{$productInfo['product_id']}"),
-        ]);
+    }
+    
+    /**
+     * Update existing QR code
+     */
+    public static function updateProductQR($data, $oldPath = null)
+    {
+        try {
+            // Delete old QR code if exists
+            if ($oldPath && Storage::disk('public')->exists($oldPath)) {
+                Storage::disk('public')->delete($oldPath);
+            }
+            
+            // Generate new QR code
+            return self::generateProductQR($data);
+            
+        } catch (\Exception $e) {
+            \Log::error('QR code update failed', [
+                'error' => $e->getMessage(),
+                'data' => $data
+            ]);
+            throw $e;
+        }
+    }
+    
+    /**
+     * Generate QR code for sharing
+     */
+    public static function generateShareQR($url, $title = null)
+    {
+        try {
+            $qrContent = $url;
+            if ($title) {
+                $qrContent = $title . "\n\n" . $url;
+            }
+            
+            $filename = 'share_' . Str::random(10) . '_' . time() . '.png';
+            $path = 'qr_codes/share/' . $filename;
+            
+            $qrCode = QrCode::format('png')
+                ->size(200)
+                ->margin(2)
+                ->errorCorrection('M')
+                ->generate($qrContent);
+            
+            Storage::disk('public')->put($path, $qrCode);
+            
+            return $path;
+            
+        } catch (\Exception $e) {
+            \Log::error('Share QR code generation failed', [
+                'error' => $e->getMessage(),
+                'url' => $url
+            ]);
+            throw $e;
+        }
+    }
+    
+    /**
+     * Build QR code content for product
+     */
+    private static function buildQRContent($data)
+    {
+        $content = [];
+        
+        // Add product information
+        if (isset($data['product_id'])) {
+            $content[] = "Product ID: " . $data['product_id'];
+        }
+        
+        if (isset($data['brand_code'])) {
+            $content[] = "Brand Code: " . $data['brand_code'];
+        }
+        
+        if (isset($data['oe_code'])) {
+            $content[] = "OE Code: " . $data['oe_code'];
+        }
+        
+        if (isset($data['product_link'])) {
+            $content[] = "Link: " . $data['product_link'];
+        }
+        
+        // Add timestamp
+        $content[] = "Generated: " . now()->format('Y-m-d H:i:s');
+        
+        return implode("\n", $content);
+    }
+    
+    /**
+     * Get QR code URL
+     */
+    public static function getQRCodeUrl($path)
+    {
+        if (!$path) {
+            return null;
+        }
+        
+        return Storage::disk('public')->url($path);
+    }
+    
+    /**
+     * Delete QR code
+     */
+    public static function deleteQRCode($path)
+    {
+        try {
+            if ($path && Storage::disk('public')->exists($path)) {
+                Storage::disk('public')->delete($path);
+                return true;
+            }
+            return false;
+        } catch (\Exception $e) {
+            \Log::error('QR code deletion failed', [
+                'error' => $e->getMessage(),
+                'path' => $path
+            ]);
+            return false;
+        }
     }
 }
