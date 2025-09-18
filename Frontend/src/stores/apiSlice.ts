@@ -68,8 +68,8 @@ import { transactionEndpoints } from "./endpoints/transactionEndpoints"
 export const apiSlice = createApi({
     reducerPath: "user",
     baseQuery: fetchBaseQuery({
-      // baseUrl: "https://erp-backend.learnica.net/api/",
-      baseUrl: "http://localhost:8000/api/",
+      baseUrl: "https://erp-backend.learnica.net/api/",
+      // baseUrl: "http://localhost:8000/api/",
       credentials: "include",
       prepareHeaders: (headers, { getState }) => {
         const state = getState() as RootState;
