@@ -260,7 +260,7 @@ function Main() {
                 <div className="w-9 h-9 2xl:w-11 2xl:h-11 image-fit zoom-in">
                   <Tippy
                     as="img"
-                    alt="NIBDET"
+                    alt="ERP"
                     className="rounded-full border-[3px] border-white/50"
                     src={users.fakeUsers()[0].photo}
                     content={users.fakeUsers()[0].name}
@@ -269,7 +269,7 @@ function Main() {
                 <div className="-ml-3 w-9 h-9 2xl:w-11 2xl:h-11 image-fit zoom-in">
                   <Tippy
                     as="img"
-                    alt="NIBDET"
+                    alt="ERP"
                     className="rounded-full border-[3px] border-white/50"
                     src={users.fakeUsers()[0].photo}
                     content={users.fakeUsers()[0].name}
@@ -278,7 +278,7 @@ function Main() {
                 <div className="-ml-3 w-9 h-9 2xl:w-11 2xl:h-11 image-fit zoom-in">
                   <Tippy
                     as="img"
-                    alt="NIBDET"
+                    alt="ERP"
                     className="rounded-full border-[3px] border-white/50"
                     src={users.fakeUsers()[0].photo}
                     content={users.fakeUsers()[0].name}
@@ -287,7 +287,7 @@ function Main() {
                 <div className="-ml-3 w-9 h-9 2xl:w-11 2xl:h-11 image-fit zoom-in">
                   <Tippy
                     as="img"
-                    alt="NIBDET"
+                    alt="ERP"
                     className="rounded-full border-[3px] border-white/50"
                     src={users.fakeUsers()[0].photo}
                     content={users.fakeUsers()[0].name}

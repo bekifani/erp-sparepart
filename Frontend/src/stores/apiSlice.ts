@@ -203,9 +203,13 @@ export const {
     useGetSalesReportQuery,
     useSendTestNotificationQuery,
 
-    
+    // New Dashboard Hooks
+    useGetDashboardDataQuery,
     useGetNotificationsQuery,
-    useMarkAsReadMutation,
+    useMarkNotificationsAsReadMutation,
+    useGetFilteredProductsQuery,
+    useGetTopCarsQuery,
+    useGetTopProductsQuery,
 
     useCreateCustomerMutation,
     useEditCustomerMutation,

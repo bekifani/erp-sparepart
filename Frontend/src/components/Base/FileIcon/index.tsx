@@ -27,7 +27,7 @@ function FileIcon({ variant, type, src, className, ...props }: FileIconProps) {
           <div className="absolute top-0 left-0 w-full h-full image-fit">
             <img
               className="rounded-md"
-              alt="NIBDET"
+              alt="ERP"
               src={src}
             />
           </div>

@@ -43,6 +43,7 @@
     "lucide-react": "^0.307.0",
     "pusher-js": "^8.4.0-rc2",
     "react": "^18.2.0",
+    "react-apexcharts": "^1.7.0",
     "react-barcode": "^1.5.3",
     "react-barcode-reader": "^0.0.2",
     "react-countup": "^6.5.3",

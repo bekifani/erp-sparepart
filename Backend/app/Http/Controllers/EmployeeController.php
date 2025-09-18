@@ -171,7 +171,7 @@ class EmployeeController extends BaseController
             try {
                 Mail::send('emails.password', ['token' => $password], function($message) use($user_email){
                     $message->to($user_email);
-                    $message->subject("Your NIBDET Password");
+                    $message->subject("Your ERP Password");
                 });
             } catch (Exeption $e)
             {}

@@ -33,7 +33,7 @@ function Main(props: MainProps) {
               >
                 <div className="overflow-hidden rounded-full w-11 h-11 image-fit border-[3px] border-slate-200/70">
                   <img
-                    alt="NIBDET"
+                    alt="ERP"
                     src={faker.photo}
                   />
                 </div>

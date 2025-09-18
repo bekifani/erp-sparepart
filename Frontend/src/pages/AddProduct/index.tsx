@@ -202,7 +202,7 @@ function Main() {
                               >
                                 <img
                                   className="rounded-lg"
-                                  alt="NIBDET"
+                                  alt="ERP"
                                   src={faker.images[0].path}
                                 />
                                 <Tippy

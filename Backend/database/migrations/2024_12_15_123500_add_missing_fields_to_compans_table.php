@@ -27,7 +27,11 @@ return new class extends Migration
             
             // Split tax number into VAT and Tax ID
             $table->string('vat_number')->nullable()->after('business_registration_number');
-            $table->renameColumn('tax_number', 'tax_id');
+            
+            // Only rename tax_number to tax_id if tax_number column exists
+            if (Schema::hasColumn('compans', 'tax_number')) {
+                $table->renameColumn('tax_number', 'tax_id');
+            }
         });
     }
 
@@ -47,7 +51,11 @@ return new class extends Migration
                 'business_registration_number',
                 'vat_number'
             ]);
-            $table->renameColumn('tax_id', 'tax_number');
+            
+            // Only rename tax_id back to tax_number if tax_id column exists
+            if (Schema::hasColumn('compans', 'tax_id')) {
+                $table->renameColumn('tax_id', 'tax_number');
+            }
         });
     }
 };

@@ -14,7 +14,6 @@ return new class extends Migration
                 $table->string('currency');
                 $table->decimal('price',10,2);
                 $table->string('base_currency');
-                
             $table->timestamps();
         });
     }

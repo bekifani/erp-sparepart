@@ -213,7 +213,7 @@ function Main() {
                 >
                   <div className="w-[22px] h-[22px] overflow-hidden border-2 rounded-full image-fit border-slate-200/70 box">
                     <img
-                      alt="NIBDET"
+                      alt="ERP"
                       src={faker.image}
                     />
                   </div>
@@ -333,7 +333,7 @@ function Main() {
                   >
                     <Tippy
                       as="img"
-                      alt="NIBDET"
+                      alt="ERP"
                       className="border-[3px] border-slate-50 rounded-full cursor-pointer"
                       src={faker.images[0].path}
                       content={faker.name}
