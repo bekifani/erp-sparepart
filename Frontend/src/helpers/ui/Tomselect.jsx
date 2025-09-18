@@ -8,6 +8,7 @@ const TomSelectSearch = ({ apiUrl, setValue , variable, defaultValue, customData
   const {t,i18n} = useTranslation()
   const tomSelectRef = useRef(null);
   const token = useSelector((state)=> state.auth.token)
+  const csrfToken = useSelector((state)=> state.auth.csrf_token)
   const tenant = useSelector((state)=> state.auth.tenant)
 
   useEffect(() => {
@@ -30,7 +31,8 @@ const TomSelectSearch = ({ apiUrl, setValue , variable, defaultValue, customData
             response = await axios.get(pathUrl, {
               headers: {
                 'X-Tenant': `${tenant}`,
-                'Authorization': `Bearer ${token}`
+                'Authorization': `Bearer ${token}`,
+                'X-CSRF-TOKEN': csrfToken
               } 
             });
           } catch (err) {
