@@ -20,7 +20,6 @@ return Application::configure(basePath: dirname(__DIR__))
         // $middleware->append(\App\Http\Middleware\AuthenticateApiUser::class);
         $middleware->alias([
             'verified' => \App\Http\Middleware\EnsureEmailIsVerified::class,
-            
         ]);
 
         $middleware->web(append: [
@@ -33,6 +32,10 @@ return Application::configure(basePath: dirname(__DIR__))
             'role_or_permission' => \Spatie\Permission\Middleware\RoleOrPermissionMiddleware::class,
             'auth.api' => \App\Http\Middleware\AuthenticateApiUser::class,
             'lang' => \App\Http\Middleware\SetLocale::class,
+        ]);
+
+        $middleware->validateCsrfTokens(except: [
+            '/api/uploadFile', // Exclude this route pattern
         ]);
 
         //
