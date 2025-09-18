@@ -12,4 +12,9 @@ Route::get('/', function () {
     return ['Laravel' => app()->version()];
 });
 
+// Public catalog route - no authentication required
+Route::get('/public/catalog', function () {
+    return view('catalog.public');
+})->name('public.catalog');
+
 require __DIR__.'/auth.php';

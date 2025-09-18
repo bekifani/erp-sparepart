@@ -25,7 +25,6 @@ import FileUpload from "@/helpers/ui/FileUpload.jsx";
 import TomSelectSearch from "@/helpers/ui/Tomselect.jsx";
 import { useSelector } from "react-redux";
 import { ClassicEditor } from "@/components/Base/Ckeditor";
-import AddPaymentModal from "@/components/AddPaymentModal";
 
 
 function index_main() {
@@ -36,8 +35,16 @@ function index_main() {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showUpdateModal, setShowUpdateModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
-  const [showAddPaymentModal, setShowAddPaymentModal] = useState(false);
-  const [selectedCustomer, setSelectedCustomer] = useState(null);
+  const [pictures, setPictures] = useState([]);
+  const [uploadedImages, setUploadedImages] = useState([]);
+  
+  const addUploadedImage = (url) => {
+    setUploadedImages((prev) => {
+      const next = [...prev, url];
+      setPictures(next);
+      return next;
+    });
+  };
   const [editorData, setEditorData] = useState("")
   const [confirmationMessage, setConfirmationMessage] =
     useState(t("Are you Sure Do You want to Delete Customeraccount"));
@@ -242,11 +249,10 @@ function index_main() {
         });
         addPayment.addEventListener("click", function () {
           const data = cell.getData();
-          setSelectedCustomer({
-            id: data.customer_id,
-            name: data.customer_name || data.customer?.name_surname || 'Unknown Customer'
-          });
-          setShowAddPaymentModal(true);
+          // Reset form and open create modal for new transaction
+          reset();
+          setValue("customer_id", data.customer_id);
+          setShowCreateModal(true);
         });
         b.addEventListener("click", function () {
           const data = cell.getData();
@@ -274,15 +280,15 @@ function index_main() {
   // schema
   const schema = yup
     .object({
-     trans_number : yup.string().required(t('The Trans Number field is required')), 
-user_id : yup.string().required(t('The User Id field is required')), 
-invoice_number : yup.string().required(t('The Invoice Number field is required')), 
-payment_status : yup.string().required(t('The Payment Status field is required')), 
-account_type_id : yup.string().required(t('The Account Type Id field is required')), 
-payment_note_id : yup.string().required(t('The Payment Note Id field is required')), 
-picture_url : yup.string().required(t('The Picture Url field is required')), 
-additional_note : yup.string().required(t('The Additional Note field is required')), 
-
+      customer_id: yup.string().required(t('Customer is required')),
+      transaction_date: yup.date().required(t('Transaction date is required')),
+      amount: yup.number().positive(t('Amount must be positive')).required(t('Amount is required')),
+      invoice_number: yup.string().nullable(),
+      payment_status: yup.string().nullable(),
+      account_type_id: yup.string().required(t('Account type is required')),
+      payment_note_id: yup.string().nullable(),
+      pictures: yup.array().nullable(),
+      additional_note: yup.string().nullable(),
     })
     .required();
 
@@ -292,6 +298,7 @@ additional_note : yup.string().required(t('The Additional Note field is required
     getValues,
     setValue,
     handleSubmit,
+    reset,
     formState: { errors },
   } = useForm({
     mode: "onChange",
@@ -344,13 +351,30 @@ additional_note : yup.string().required(t('The Additional Note field is required
     }
     
     try {
-      const response = await createCustomeraccount(data);
+      // Prepare data for new backend API structure
+      const formData = {
+        customer_id: data.customer_id,
+        transaction_date: data.transaction_date,
+        amount: data.amount,
+        invoice_number: data.invoice_number || null,
+        payment_status: data.payment_status || 'pending',
+        account_type_id: data.account_type_id,
+        payment_note_id: data.payment_note_id || null,
+        pictures: pictures.length > 0 ? pictures : [],
+        additional_note: data.additional_note || null,
+      };
+      
+      const response = await createCustomeraccount(formData);
       console.log('🟡 API response:', response);
       
       if (response && (response.success === true || response.data?.success === true)) {
-        setToastMessage(t("Customeraccount created successfully."));
+        setToastMessage(t("Transaction created successfully."));
         setRefetch(true);
         setShowCreateModal(false);
+        reset();
+        setPictures([]);
+        setUploadedImages([]);
+        setEditorData("");
         basicStickyNotification.current?.showToast();
         // Auto-hide toast after 7 seconds
         setTimeout(() => {
@@ -720,7 +744,7 @@ return (
         <Slideover.Panel className="text-center">
           <form onSubmit={handleSubmit(onCreate)}>
             <Slideover.Title>
-              <h2 className="mr-auto text-base font-medium">{t("Add New Customeraccount")}</h2>
+              <h2 className="mr-auto text-base font-medium">{t("Add New Transaction")}</h2>
             </Slideover.Title>
             <Slideover.Description className="relative overflow-y-auto max-h-[calc(100vh-200px)]">
               <div className="relative">
@@ -733,59 +757,74 @@ return (
                 ) : (
                   <div className=" w-full grid grid-cols-2 gap-4 gap-y-3">
                     
-<div className="mt-3 input-form">
-                      <FormLabel
-                        htmlFor="validation-form-1"
-                        className="flex justify-start items-start flex-col w-full sm:flex-row"
-                      >
+                    {/* Trans Number - Auto-generated, display only */}
+                    <div className="mt-3 input-form">
+                      <FormLabel className="flex justify-start items-start flex-col w-full sm:flex-row">
                         {t("Trans Number")}
                       </FormLabel>
                       <FormInput
-                        {...register("trans_number")}
-                        id="validation-form-1"
                         type="text"
-                        name="trans_number"
-                        className={clsx({
-                          "border-danger": errors.trans_number,
-                        })}
-                        placeholder={t("Enter trans_number")}
+                        value={t("Auto-generated")}
+                        disabled
+                        className="bg-gray-100"
+                        placeholder={t("Auto-generated with cu prefix")}
                       />
-                      {errors.trans_number && (
+                    </div>
+
+                    {/* Customer Selection */}
+                    <div className="mt-3 input-form">
+                      <FormLabel className="flex flex-col w-full sm:flex-row">
+                        {t("Customer")} *
+                      </FormLabel>
+                      <TomSelectSearch 
+                        apiUrl={`${app_url}/api/search_customer`} 
+                        setValue={setValue} 
+                        variable="customer_id"
+                        customDataMapping={(item) => ({
+                          value: item.id,
+                          text: item.name_surname || item.shipping_mark || item.email || String(item.id)
+                        })}
+                      />
+                      {errors.customer_id && (
                         <div className="mt-2 text-danger">
-                          {typeof errors.trans_number.message === "string" &&
-                            errors.trans_number.message}
+                          {typeof errors.customer_id.message === "string" &&
+                            errors.customer_id.message}
                         </div>
                       )}
                     </div>
 
+                    {/* Transaction Date */}
+                    <div className="mt-3 input-form">
+                      <FormLabel className="flex justify-start items-start flex-col w-full sm:flex-row">
+                        {t("Transaction Date")} *
+                      </FormLabel>
+                      <FormInput
+                        {...register("transaction_date")}
+                        type="date"
+                        name="transaction_date"
+                        className={clsx({
+                          "border-danger": errors.transaction_date,
+                        })}
+                        defaultValue={new Date().toISOString().split('T')[0]}
+                      />
+                      {errors.transaction_date && (
+                        <div className="mt-2 text-danger">
+                          {typeof errors.transaction_date.message === "string" &&
+                            errors.transaction_date.message}
+                        </div>
+                      )}
+                    </div>
 
-   <div className="mt-3 input-form">
-      <FormLabel
-        htmlFor="validation-form-1"
-        className="flex flex-col w-full sm:flex-row"
-      >
-        {t("User Id")}
-      </FormLabel>
-      <TomSelectSearch apiUrl={`${app_url}/api/search_user`} setValue={setValue} variable="user_id"/>
-      {errors.user_id && (
-        <div className="mt-2 text-danger">
-          {typeof errors.user_id.message === "string" &&
-            errors.user_id.message}
-        </div>
-      )}
-    </div>
-
-<div className="mt-3 input-form">
-                      <FormLabel
-                        htmlFor="validation-form-1"
-                        className="flex justify-start items-start flex-col w-full sm:flex-row"
-                      >
-                        {t("Amount")}
+                    {/* Amount */}
+                    <div className="mt-3 input-form">
+                      <FormLabel className="flex justify-start items-start flex-col w-full sm:flex-row">
+                        {t("Amount")} *
                       </FormLabel>
                       <FormInput
                         {...register("amount")}
-                        id="validation-form-1"
                         type="number"
+                        step="0.01"
+                        min="0.01"
                         name="amount"
                         className={clsx({
                           "border-danger": errors.amount,
@@ -800,23 +839,19 @@ return (
                       )}
                     </div>
 
-
-<div className="mt-3 input-form">
-                      <FormLabel
-                        htmlFor="validation-form-1"
-                        className="flex justify-start items-start flex-col w-full sm:flex-row"
-                      >
+                    {/* Invoice Number */}
+                    <div className="mt-3 input-form">
+                      <FormLabel className="flex justify-start items-start flex-col w-full sm:flex-row">
                         {t("Invoice Number")}
                       </FormLabel>
                       <FormInput
                         {...register("invoice_number")}
-                        id="validation-form-1"
                         type="text"
                         name="invoice_number"
                         className={clsx({
                           "border-danger": errors.invoice_number,
                         })}
-                        placeholder={t("Enter invoice_number")}
+                        placeholder={t("Enter invoice number")}
                       />
                       {errors.invoice_number && (
                         <div className="mt-2 text-danger">
@@ -826,23 +861,19 @@ return (
                       )}
                     </div>
 
-
-<div className="mt-3 input-form">
-                      <FormLabel
-                        htmlFor="validation-form-1"
-                        className="flex justify-start items-start flex-col w-full sm:flex-row"
-                      >
+                    {/* Payment Status */}
+                    <div className="mt-3 input-form">
+                      <FormLabel className="flex justify-start items-start flex-col w-full sm:flex-row">
                         {t("Payment Status")}
                       </FormLabel>
                       <FormInput
                         {...register("payment_status")}
-                        id="validation-form-1"
                         type="text"
                         name="payment_status"
                         className={clsx({
                           "border-danger": errors.payment_status,
                         })}
-                        placeholder={t("Enter payment_status")}
+                        placeholder={t("Enter payment status")}
                       />
                       {errors.payment_status && (
                         <div className="mt-2 text-danger">
@@ -906,24 +937,17 @@ return (
                         htmlFor="validation-form-1"
                         className="flex justify-start items-start flex-col w-full sm:flex-row"
                       >
-                        {t("Picture Url")}
+                        {t("Pictures")}
                       </FormLabel>
-                      <FormInput
-                        {...register("picture_url")}
-                        id="validation-form-1"
-                        type="text"
-                        name="picture_url"
-                        className={clsx({
-                          "border-danger": errors.picture_url,
-                        })}
-                        placeholder={t("Enter picture_url")}
+                      <FileUpload 
+                        endpoint={upload_url} 
+                        type="image/*" 
+                        className="w-full" 
+                        setUploadedURL={addUploadedImage}
                       />
-                      {errors.picture_url && (
-                        <div className="mt-2 text-danger">
-                          {typeof errors.picture_url.message === "string" &&
-                            errors.picture_url.message}
-                        </div>
-                      )}
+                      <div className="mt-1 text-sm text-gray-500">
+                        {t("Upload up to 5 images (JPG, PNG, GIF)")}
+                      </div>
                     </div>
 
 
@@ -1197,24 +1221,17 @@ return (
                         htmlFor="validation-form-1"
                         className="flex justify-start items-start flex-col w-full sm:flex-row"
                       >
-                        {t("Picture Url")}
+                        {t("Pictures")}
                       </FormLabel>
-                      <FormInput
-                        {...register("picture_url")}
-                        id="validation-form-1"
-                        type="text"
-                        name="picture_url"
-                        className={clsx({
-                          "border-danger": errors.picture_url,
-                        })}
-                        placeholder={t("Enter picture_url")}
+                      <FileUpload 
+                        endpoint={upload_url} 
+                        type="image/*" 
+                        className="w-full" 
+                        setUploadedURL={addUploadedImage}
                       />
-                      {errors.picture_url && (
-                        <div className="mt-2 text-danger">
-                          {typeof errors.picture_url.message === "string" &&
-                            errors.picture_url.message}
-                        </div>
-                      )}
+                      <div className="mt-1 text-sm text-gray-500">
+                        {t("Upload up to 5 images (JPG, PNG, GIF)")}
+                      </div>
                     </div>
 
 
@@ -1279,14 +1296,18 @@ return (
                 type="button"
                 variant="outline-secondary"
                 onClick={() => {
-                  setShowUpdateModal(false);
+                  setShowCreateModal(false);
+                  reset();
+                  setPictures([]);
+                  setUploadedImages([]);
+                  setEditorData("");
                 }}
                 className="w-20 mx-2"
               >
                 {t("Cancel")}
               </Button>
               <Button variant="primary" type="submit" className="w-20">
-                {t("Update")}
+                {t("Save")}
               </Button>
             </Slideover.Footer>
           </form>
@@ -1312,22 +1333,6 @@ return (
         />
       </Can>
       
-      {/* Add Payment Modal */}
-      <AddPaymentModal
-        isOpen={showAddPaymentModal}
-        onClose={() => {
-          setShowAddPaymentModal(false);
-          setSelectedCustomer(null);
-        }}
-        accountType="customer"
-        entityId={selectedCustomer?.id}
-        entityName={selectedCustomer?.name}
-        onPaymentAdded={(newPayment) => {
-          setRefetch(!refetch);
-          setShowAddPaymentModal(false);
-          setSelectedCustomer(null);
-        }}
-      />
     </div>
   );
 }

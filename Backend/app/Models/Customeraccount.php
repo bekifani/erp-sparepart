@@ -13,7 +13,7 @@ use Illuminate\Notifications\Notifiable;
 class Customeraccount extends Model
 {
     use HasFactory, LogsActivity, Notifiable;
-    public $fillable = ['trans_number', 'user_id', 'amount', 'invoice_number', 'payment_status', 'account_type_id', 'payment_note_id', 'picture_url', 'additional_note', 'balance'];
+    public $fillable = ['trans_number', 'customer_id', 'user_id', 'amount', 'invoice_number', 'payment_status', 'account_type_id', 'payment_note_id', 'picture_url', 'additional_note', 'balance'];
     protected static $logAttributes = ['*'];
     public $guarded = [];
 
@@ -33,6 +33,9 @@ class Customeraccount extends Model
 
  public function user() { 
  return $this->belongsTo(User::class, 'user_id', 'id');
+ }
+ public function customer() { 
+ return $this->belongsTo(Customer::class, 'customer_id', 'id');
  }
  public function accounttype() { 
  return $this->belongsTo(Accounttype::class, 'account_type_id', 'id');

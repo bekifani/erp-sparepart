@@ -11,7 +11,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 class BoxeController extends BaseController
 {
-    protected $searchableColumns = ['brand', 'box_name', 'material', 'stock_qty', 'order_qty', 'price', 'size_a', 'size_b', 'size_c', 'volume', 'label', 'image', 'design_file', 'additional_note', 'operation_mode'];
+    protected $searchableColumns = ['brand', 'box_name', 'material', 'stock_qty', 'order_qty', 'price', 'size_a', 'size_b', 'size_c', 'volume', 'label', 'image', 'design_file', 'additional_note'];
 
     public function index(Request $request)
     {
@@ -129,7 +129,6 @@ class BoxeController extends BaseController
               "image"=>"nullable|string",
               "design_file"=>"nullable|string",
               "additional_note"=>"nullable|string",
-              "operation_mode"=>"nullable|string|max:255",
               "package_type"=>"nullable|in:3D,2D",
             ];
 
@@ -183,7 +182,6 @@ class BoxeController extends BaseController
               "image"=>"nullable|string",
               "design_file"=>"nullable|string",
               "additional_note"=>"nullable|string",
-              "operation_mode"=>"nullable|string|max:255",
               "package_type"=>"nullable|in:3D,2D",
             ];
 

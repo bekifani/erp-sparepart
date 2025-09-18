@@ -282,17 +282,6 @@ function index_main() {
     },
 
 
-    {
-      title: t("Operation Mode"),
-      minWidth: 200,
-      field: "operation_mode",
-      hozAlign: "center",
-      headerHozAlign: "center",
-      vertAlign: "middle",
-      print: true,
-      download: true,
-
-    },
 
     {
       title: t("Package Type"),
@@ -385,7 +374,7 @@ function index_main() {
       },
     },
   ]);
-  const [searchColumns, setSearchColumns] = useState(['brand', 'box_name', 'material', 'stock_qty', 'order_qty', 'available_qty', 'price', 'size_a', 'size_b', 'size_c', 'volume', 'label', 'additional_note', 'operation_mode', 'package_type']);
+  const [searchColumns, setSearchColumns] = useState(['brand', 'box_name', 'material', 'stock_qty', 'order_qty', 'available_qty', 'price', 'size_a', 'size_b', 'size_c', 'volume', 'label', 'additional_note', 'package_type']);
   const [packageType, setPackageType] = useState('3D');
 
   // schema
@@ -405,7 +394,6 @@ function index_main() {
       image: yup.string().nullable(),
       design_file: yup.string().nullable(),
       additional_note: yup.string().nullable(),
-      operation_mode: yup.string().nullable(),
       package_type: yup.string().nullable(),
     })
     .required();
@@ -496,7 +484,6 @@ function index_main() {
     setValue("image", data.image);
     setValue("design_file", data.design_file);
     setValue("additional_note", data.additional_note);
-    setValue("operation_mode", data.operation_mode);
     setValue("package_type", data.package_type || '3D');
     setPackageType(data.package_type || '3D');
     setSelectedData(data);
@@ -519,7 +506,6 @@ function index_main() {
       image: data.image,
       design_file: data.design_file,
       additional_note: data.additional_note,
-      operation_mode: data.operation_mode,
       package_type: data.package_type,
     };
     
@@ -999,30 +985,6 @@ function index_main() {
                       )}
                     </div>
   
-                    <div className="mt-3 input-form">
-                      <FormLabel
-                        htmlFor="validation-form-1"
-                        className="flex justify-start items-start flex-col w-full sm:flex-row"
-                      >
-                        {t("Operation Mode")}
-                      </FormLabel>
-                      <FormInput
-                        {...register("operation_mode")}
-                        id="validation-form-1"
-                        type="text"
-                        name="operation_mode"
-                        className={clsx({
-                          "border-danger": errors.operation_mode,
-                        })}
-                        placeholder={t("Enter operation_mode")}
-                      />
-                      {errors.operation_mode && (
-                        <div className="mt-2 text-danger">
-                          {typeof errors.operation_mode.message === "string" &&
-                            errors.operation_mode.message}
-                        </div>
-                      )}
-                    </div>
 
                   </div>
                 )}
@@ -1426,30 +1388,6 @@ function index_main() {
                       )}
                     </div>
   
-                    <div className="mt-3 input-form">
-                      <FormLabel
-                        htmlFor="validation-form-1"
-                        className="flex justify-start items-start flex-col w-full sm:flex-row"
-                      >
-                        {t("Operation Mode")}
-                      </FormLabel>
-                      <FormInput
-                        {...register("operation_mode")}
-                        id="validation-form-1"
-                        type="text"
-                        name="operation_mode"
-                        className={clsx({
-                          "border-danger": errors.operation_mode,
-                        })}
-                        placeholder={t("Enter operation_mode")}
-                      />
-                      {errors.operation_mode && (
-                        <div className="mt-2 text-danger">
-                          {typeof errors.operation_mode.message === "string" &&
-                            errors.operation_mode.message}
-                        </div>
-                      )}
-                    </div>
 
                   </div>
                 )}
