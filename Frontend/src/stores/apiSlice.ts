@@ -73,9 +73,9 @@ export const apiSlice = createApi({
       credentials: "include",
       prepareHeaders: (headers, { getState }) => {
         const state = getState() as RootState;
-        const csrf_token = state.auth.csrf_token;
+        // const csrf_token = state.auth.csrf_token;
         headers.set("X-Tenant", state.auth.tenant);
-        headers.set("X-CSRF-TOKEN", csrf_token);
+        // headers.set("X-CSRF-TOKEN", csrf_token);
         headers.set("Accept-Language", state.auth.lang);
         if(state.auth.isAuthenticated){
           const token = state.auth.token;
