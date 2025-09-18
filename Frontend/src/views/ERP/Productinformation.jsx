@@ -512,32 +512,34 @@ function index_main() {
     const base64String = imageData && imageData.data ? imageData.data : imageUrl || imageData;
     console.log('Camera captured image:', base64String);
     if (base64String) {
-      const newImages = [...capturedImages, base64String];
-      setCapturedImages(newImages);
-      updatePicturesArray(newImages, uploadedImages);
+      setCapturedImages(prevImages => [...prevImages, base64String]);
     }
   };
   
   const handleImageUpload = (imagePath) => {
-    const newImages = [...uploadedImages, imagePath];
-    setUploadedImages(newImages);
-    updatePicturesArray(capturedImages, newImages);
+    setUploadedImages(prevImages => {
+      const newImages = [...prevImages, imagePath];
+      return newImages;
+    });
   };
   
   const updatePicturesArray = (captured, uploaded) => {
     const allImages = [...captured, ...uploaded].filter(Boolean);
     setValue('pictures', allImages, { shouldValidate: true });
   };
+
+  // Update pictures array whenever uploadedImages or capturedImages change
+  useEffect(() => {
+    updatePicturesArray(capturedImages, uploadedImages);
+  }, [capturedImages, uploadedImages]);
   
   const removeImage = (index, type) => {
     if (type === 'captured') {
       const newImages = capturedImages.filter((_, i) => i !== index);
       setCapturedImages(newImages);
-      updatePicturesArray(newImages, uploadedImages);
     } else {
       const newImages = uploadedImages.filter((_, i) => i !== index);
       setUploadedImages(newImages);
-      updatePicturesArray(capturedImages, newImages);
     }
   };
 
