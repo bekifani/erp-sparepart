@@ -9,8 +9,10 @@ const WrapperComponent = ({ children }) => {
     const dispatch = useDispatch()
     const { data: token , isLoading: loading, isSuccess } = useGetCsrfTokenQuery();
     useEffect(()=>{
-        const csrf_token = token?.csrf_token;
+        const csrf_token = token?.data?.csrf_token;
+        console.log(token, 'is token')
         if(csrf_token){
+            console.log(csrf_token)
             dispatch(setCSRFToken(csrf_token))
         }
     },[token]);

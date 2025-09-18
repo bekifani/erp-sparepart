@@ -383,4 +383,23 @@ class AuthController extends BaseController
             ], 'No user found with provided email or phone');
         }
     }
+
+    /**
+     * Get CSRF token for the application
+     *
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function getCsrfToken()
+    {
+        try {
+            $token = csrf_token();
+            
+            return $this->sendResponse([
+                'csrf_token' => $token,
+                'expires_at' => now()->addMinutes(120)->toISOString() // CSRF tokens typically expire in 2 hours
+            ], 'CSRF token retrieved successfully');
+        } catch (\Exception $e) {
+            return $this->sendError('Failed to generate CSRF token', ['error' => $e->getMessage()]);
+        }
+    }
 }

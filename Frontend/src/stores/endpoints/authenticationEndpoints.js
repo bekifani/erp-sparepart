@@ -1,6 +1,6 @@
 export const authenticationEndpoints = (builder) => ({
     getCsrfToken: builder.query({
-        query: () => `user`,
+        query: () => `csrf-token`,
     }),  
     loginUser: builder.mutation({
         query: (data) => ({

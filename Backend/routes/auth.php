@@ -16,6 +16,7 @@ Route::post('/register', [AuthController::class, 'register']);
 Route::post('/send_reset_password_pin', [AuthController::class, 'forgot_password'])->middleware(['lang']);
 Route::post('/reset_password', [AuthController::class, 'reset_password'])->middleware(['lang']);
 Route::post('/check_email_phone_exists', [AuthController::class, 'checkEmailOrPhoneExists'])->middleware(['lang']);
+Route::get('/csrf-token', [AuthController::class, 'getCsrfToken']);
 
 
 Route::post('/register_san', [RegisteredUserController::class, 'store'])
