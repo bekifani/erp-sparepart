@@ -25,7 +25,6 @@ import FileUpload from "@/helpers/ui/FileUpload.jsx";
 import TomSelectSearch from "@/helpers/ui/Tomselect.jsx";
 import { useSelector } from "react-redux";
 import { ClassicEditor } from "@/components/Base/Ckeditor";
-import AddPaymentModal from "@/components/AddPaymentModal";
 
 
 function index_main() {
@@ -36,8 +35,7 @@ function index_main() {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showUpdateModal, setShowUpdateModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
-  const [showAddPaymentModal, setShowAddPaymentModal] = useState(false);
-  const [selectedSupplier, setSelectedSupplier] = useState(null);
+  const [pictures, setPictures] = useState([]);
   const [editorData, setEditorData] = useState("")
   const [confirmationMessage, setConfirmationMessage] =
     useState(t("Are you Sure Do You want to Delete Supplieraccount"));

@@ -581,7 +581,37 @@ Route::get('/catalog/product/{id}/specifications', [App\Http\Controllers\Catalog
 Route::get('/catalog/product/{id}/cross-cars', [App\Http\Controllers\CatalogController::class, 'getProductCrossCars'])->withoutMiddleware('auth.api');
 Route::get('/catalog/product/{id}/cross-codes', [App\Http\Controllers\CatalogController::class, 'getProductCrossCodes'])->withoutMiddleware('auth.api');
 
-//add here
+// Journal and Accounting System Routes
+    Route::get('/journal-entries', [App\Http\Controllers\JournalController::class, 'index'])->middleware('permission:view-hr-menu');
+    Route::get('/journal-entries/{id}', [App\Http\Controllers\JournalController::class, 'show'])->middleware('permission:view-hr-menu');
+    Route::post('/journal-entries', [App\Http\Controllers\JournalController::class, 'store'])->middleware('permission:view-hr-menu');
+    Route::put('/journal-entries/{id}', [App\Http\Controllers\JournalController::class, 'update'])->middleware('permission:view-hr-menu');
+    Route::delete('/journal-entries/{id}', [App\Http\Controllers\JournalController::class, 'destroy'])->middleware('permission:view-hr-menu');
+    Route::post('/journal-entries/{id}/post', [App\Http\Controllers\JournalController::class, 'post'])->middleware('permission:view-hr-menu');
+    Route::post('/journal-entries/{id}/reverse', [App\Http\Controllers\JournalController::class, 'reverse'])->middleware('permission:view-hr-menu');
+    Route::post('/journal-entries/offsetting', [App\Http\Controllers\JournalController::class, 'createOffsettingEntry'])->middleware('permission:view-hr-menu');
+    Route::get('/journal-entries/balance/running', [App\Http\Controllers\JournalController::class, 'getRunningBalance'])->middleware('permission:view-hr-menu');
+
+    // Ledger Account Routes
+    Route::get('/ledger-accounts', [App\Http\Controllers\LedgerController::class, 'index'])->middleware('permission:view-hr-menu');
+    Route::get('/ledger-accounts/{id}', [App\Http\Controllers\LedgerController::class, 'show'])->middleware('permission:view-hr-menu');
+    Route::post('/ledger-accounts', [App\Http\Controllers\LedgerController::class, 'store'])->middleware('permission:view-hr-menu');
+    Route::put('/ledger-accounts/{id}', [App\Http\Controllers\LedgerController::class, 'update'])->middleware('permission:view-hr-menu');
+    Route::delete('/ledger-accounts/{id}', [App\Http\Controllers\LedgerController::class, 'destroy'])->middleware('permission:view-hr-menu');
+    Route::get('/ledger-accounts/chart/accounts', [App\Http\Controllers\LedgerController::class, 'chartOfAccounts'])->middleware('permission:view-hr-menu');
+    Route::get('/ledger-accounts/balances', [App\Http\Controllers\LedgerController::class, 'balances'])->middleware('permission:view-hr-menu');
+    Route::get('/search_ledgeraccount/{search_term}', [App\Http\Controllers\LedgerController::class, 'search'])->middleware('permission:view-hr-menu');
+
+    // Contra Account Mapping Routes
+    Route::get('/contra-mappings', [App\Http\Controllers\ContraAccountMappingController::class, 'index'])->middleware('permission:view-hr-menu');
+    Route::get('/contra-mappings/{id}', [App\Http\Controllers\ContraAccountMappingController::class, 'show'])->middleware('permission:view-hr-menu');
+    Route::post('/contra-mappings', [App\Http\Controllers\ContraAccountMappingController::class, 'store'])->middleware('permission:view-hr-menu');
+    Route::put('/contra-mappings/{id}', [App\Http\Controllers\ContraAccountMappingController::class, 'update'])->middleware('permission:view-hr-menu');
+    Route::delete('/contra-mappings/{id}', [App\Http\Controllers\ContraAccountMappingController::class, 'destroy'])->middleware('permission:view-hr-menu');
+    Route::get('/contra-mappings/find', [App\Http\Controllers\ContraAccountMappingController::class, 'findMapping'])->middleware('permission:view-hr-menu');
+    Route::get('/contra-mappings/account-types', [App\Http\Controllers\ContraAccountMappingController::class, 'getAccountTypes'])->middleware('permission:view-hr-menu');
+    Route::get('/contra-mappings/payment-notes', [App\Http\Controllers\ContraAccountMappingController::class, 'getPaymentNotes'])->middleware('permission:view-hr-menu');
+    Route::get('/contra-mappings/ledger-accounts', [App\Http\Controllers\ContraAccountMappingController::class, 'getLedgerAccounts'])->middleware('permission:view-hr-menu');
 
     Route::post('notifications/mark-as-read', [App\Http\Controllers\NotificationController::class, 'markAsRead']);
     
