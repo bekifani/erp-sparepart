@@ -180,7 +180,7 @@ const FileoperationAddSpecifications = ({
         setShowPreview(false);
         
         if (onSuccess) {
-          const message = `Successfully imported ${response.data.imported} specification records`;
+          let message = `Successfully imported ${response.data.imported} specification records`;
           if (response.data.created_headnames && response.data.created_headnames.length > 0) {
             message += `. Created new headnames: ${response.data.created_headnames.join(', ')}`;
           }

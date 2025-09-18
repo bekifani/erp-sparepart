@@ -7,6 +7,20 @@ import ForgotPassword from '@/views/ForgotPassword/index.jsx'
 import ResetPassword from '@/views/ResetPassword/index.jsx'
 import Layout from "../themes/index.tsx";
 import Landingpage from "@/views/PublicPage/landingpage.jsx"
+
+import Catalog from '@/views/Public/Catalog.jsx'
+import About from '@/views/Public/About'
+import Cart from '@/views/Public/Cart'
+import Profile from '@/views/Public/Profile'
+import Contact from '@/views/Public/Contact'
+import Landing from '@/views/Public/Landing'
+import MyOrders from '@/views/Public/MyOrders'
+import Notifications from '@/views/Public/Notifications'
+import ProductDetail from '@/views/Public/ProductDetail'
+import NotFound from '@/views/Public/NotFound'
+import Index from '@/views/Public/Index'
+
+
 import Employee  from '@/views/Employee'
 import User  from '@/views/User'
 import Activities from '@/views/Activities'
@@ -73,7 +87,7 @@ import TechnicalImages  from '@/views/ERP/TechnicalImages'
 import BoxImages  from '@/views/ERP/BoxImages'
 import LabelImages  from '@/views/ERP/LabelImages'
 import OtherImages  from '@/views/ERP/OtherImages'
-import Catalog  from '@/views/ERP/Catalog'
+// import Catalog  from '@/views/ERP/Catalog'
 import { Navigate } from "react-router-dom";
 //add file here 
 
@@ -81,7 +95,7 @@ function Router() {
   const routes = [
     {
       path: "",
-      element: <Landingpage />,
+      element: <Landing />,
     },
     
     {
@@ -326,10 +340,7 @@ function Router() {
     path: "producthistor",
     element: <Producthistor />,
   }, 
-  {
-    path: "catalog",
-    element: <Catalog />,
-  },
+  
   {
     path: "productpictures",
     element: <ProductPictures />,
@@ -362,6 +373,11 @@ function Router() {
         
       ],
     },
+
+    {
+      path: "catalog",
+      element: <Catalog />,
+    },
     
     {
       path: "login",
@@ -382,6 +398,46 @@ function Router() {
     {
       path: "shared-product/:id",
       element: <Navigate to={`/catalog?product=${":id"}`} />,
+    },
+    {
+      path: "about",
+      element: <About />,
+    },
+    {
+      path: "cart",
+      element: <Cart />,
+    },
+    {
+      path: "contact",
+      element: <Contact />,
+    },
+    {
+      path: "landing",
+      element: <Landing />,
+    },
+    {
+      path: "my-orders",
+      element: <MyOrders />,
+    },
+    {
+      path: "notifications",
+      element: <Notifications />,
+    },
+    {
+      path: "product/:id",
+      element: <ProductDetail />,
+    },
+    {
+      path: "profile",
+      element: <Profile />,
+    },
+    {
+      path: "index",
+      element: <Index />,
+    },
+    {
+      path: "*",
+      element: <NotFound />,
     }
   ];
 

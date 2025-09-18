@@ -55,8 +55,7 @@ const FileUpload = ({endpoint, type, setUploadedURL}) => {
     }
     
   }, []);
-  const handleUpload = () => {
-    console.log('[FileUpload] starting upload, dropzoneRef:', dropzoneRef.current);
+  const handleUpload = async () => {
     dropzoneRef.current.dropzone.processQueue(); // Manually start the upload
   };
   return (

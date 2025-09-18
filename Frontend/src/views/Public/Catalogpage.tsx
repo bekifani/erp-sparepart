@@ -16,9 +16,8 @@ import {
   Eye
 } from 'lucide-react';
 import { sampleProducts, categories, brands } from '@/data/products';
+import { Product } from '@/types/product';
 import { useCart } from '@/hooks/useCart';
-import ERPCatalog from '@/views/ERP/Catalog';
-import Navbar from '@/components/Navbar';
 
 const Catalog = () => {
   const [searchParams] = useSearchParams();
@@ -26,7 +25,7 @@ const Catalog = () => {
   const [selectedCategory, setSelectedCategory] = useState('All Categories');
   const [selectedBrand, setSelectedBrand] = useState('All Brands');
   const [sortBy, setSortBy] = useState('name');
-  const [viewMode, setViewMode] = useState('grid');
+  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [showFilters, setShowFilters] = useState(false);
   
   const { addToCart } = useCart();
@@ -74,11 +73,11 @@ const Catalog = () => {
     return filtered;
   }, [searchQuery, selectedCategory, selectedBrand, sortBy]);
 
-  const handleAddToCart = (product) => {
+  const handleAddToCart = (product: Product) => {
     addToCart(product, 1);
   };
 
-  const ProductCard = ({ product }) => (
+  const ProductCard = ({ product }: { product: Product }) => (
     <Card key={product.id} className="card-hover h-full">
       <CardHeader className="pb-3">
         <div className="flex items-start justify-between mb-2">
@@ -126,7 +125,7 @@ const Catalog = () => {
     </Card>
   );
 
-  const ProductListItem = ({ product }) => (
+  const ProductListItem = ({ product }: { product: Product }) => (
     <Card key={product.id} className="mb-4">
       <CardContent className="p-4">
         <div className="flex items-center gap-4">
@@ -169,11 +168,15 @@ const Catalog = () => {
   );
 
   return (
-    <div className="min-h-screen bg-background">
-      <Navbar />
-      <div className="container mx-auto px-4 py-8">
-      <ERPCatalog/>
+    <div className="container mx-auto px-4 py-8">
+      {/* Header */}
+      <div className="mb-8">
+        <h1 className="text-3xl font-bold mb-4">Product Catalog</h1>
+        <p className="text-muted-foreground">
+          Browse our extensive collection of automotive parts and components
+        </p>
       </div>
+
     </div>
   );
 };
