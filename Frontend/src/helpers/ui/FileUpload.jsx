@@ -9,6 +9,9 @@ const FileUpload = ({endpoint, type, setUploadedURL}) => {
   const getToken = () => {
    return useSelector((state) => state.auth.token)
   }
+  const getCsrfToken = () => {
+    return useSelector((state) => state.auth.csrf_token)
+   }
   const tenant = useSelector((state) => state.auth.tenant)
   
   const dropzoneRef = useRef(null);
@@ -76,6 +79,7 @@ const FileUpload = ({endpoint, type, setUploadedURL}) => {
           headers: {
             Authorization: `Bearer ${getToken()}`, 
             "X-Tenant": `${tenant}`, 
+            "X-CSRF-TOKEN": getCsrfToken(),
           },
           params: {
             type: type,
