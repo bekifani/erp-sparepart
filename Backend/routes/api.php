@@ -551,6 +551,14 @@ Route::get('/catalog/product/{id}', [App\Http\Controllers\CatalogController::cla
     Route::get('/images/box-images', [App\Http\Controllers\ImageController::class, 'getBoxImages'])->middleware('permission:boxe-list');
     Route::get('/images/label-images', [App\Http\Controllers\ImageController::class, 'getLabelImages'])->middleware('permission:label-list');
     Route::get('/images/other-images', [App\Http\Controllers\ImageController::class, 'getOtherImages'])->middleware('permission:view-hr-menu');
+
+
+    // StockItems
+    Route::get('/stock-items', [App\Http\Controllers\StockItemController::class, 'index']);
+    Route::post('/stock-item', [App\Http\Controllers\StockItemController::class, 'store']);
+    Route::get('/stock-item/{id}', [App\Http\Controllers\StockItemController::class, 'show']);
+    Route::patch('/stock-item/{id}', [App\Http\Controllers\StockItemController::class, 'update']);
+    Route::delete('/stock-item/{id}', [App\Http\Controllers\StockItemController::class, 'destroy']);
     
     // API END
 });
