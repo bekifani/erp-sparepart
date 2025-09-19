@@ -9,12 +9,6 @@ use Illuminate\Support\Facades\DB;
 
 class StockItemController
 {
-    // List all stock items
-    // public function index()
-    // {
-    //     return response()->json(StockItem::with(['user', 'supplier', 'brand'])->get());
-    // }
-
     private function mapField($field)
     {
         $map = [
@@ -44,20 +38,17 @@ class StockItemController
         $sortBy = 'stock_items.id';
         $sortDir = 'desc';
 
-        // Handle sorting from request
+        
         if (!empty($request['sort'])) {
             $candidate = $request['sort'][0]['field'];
             $sortBy = $this->mapField($candidate);
             $sortDir = $request['sort'][0]['dir'];
         }
 
-        // Pagination size (default 10)
         $perPage = $request->query('size', 10);
 
-        // Filters from request
         $filters = $request['filter'];
 
-        // Build query with joins
         $query = StockItem::with(['user', 'supplier', 'brand'])
             ->leftJoin('users', 'stock_items.user_id', '=', 'users.id')
             ->leftJoin('suppliers', 'stock_items.supplier_id', '=', 'suppliers.id')
@@ -108,7 +99,6 @@ class StockItemController
         return response()->json($data);
     }
 
-    // Store a new stock item
     public function store(Request $request)
     {
         $validated = $request->validate([
@@ -144,7 +134,7 @@ class StockItemController
         return response()->json($stockItem->load(['user', 'supplier', 'brand']));
     }
 
-    public function updateItem(Request $request, $id)
+    public function update(Request $request, $id)
     {
         $stockItem = StockItem::findOrFail($id);
 
@@ -159,9 +149,9 @@ class StockItemController
             'qty'      => 'sometimes|integer|min:0',
             'min_qty'      => 'sometimes|integer|min:1',
             'purchase_price'         => 'sometimes|numeric|min:0',
-            'extra_cost'      => 'sometimes|string',
-            'cost_basis'      => 'sometimes|string',
-            'amount'      => 'sometimes|string',
+            'extra_cost'      => 'sometimes|numeric',
+            'cost_basis'      => 'sometimes|numeric',
+            'amount'      => 'sometimes|numeric',
             'note'      => 'sometimes|string',
             'status'        => 'sometimes|in:In Stock, Out of Stock, In Supplier Warehouse',
         ]);
