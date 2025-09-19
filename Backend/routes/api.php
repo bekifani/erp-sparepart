@@ -338,13 +338,23 @@ Route::delete('/problemitem/{id}', [App\Http\Controllers\ProblemitemController::
 Route::get('/all_problemitems', [App\Http\Controllers\ProblemitemController::class,'all_problemitems']);
 
 
-Route::get('/productstatus', [App\Http\Controllers\ProductstatusController::class, 'index'])->middleware('permission:productstatus-list|productstatus-create|productstatus-edit|productstatus-delete');
-Route::get('/productstatus/{id}', [App\Http\Controllers\ProductstatusController::class, 'show'])->middleware('permission:productstatus-list|productstatus-create|productstatus-edit|productstatus-delete');
-Route::get('/search_productstatus/{search_term}', [App\Http\Controllers\ProductstatusController::class, 'search'])->middleware('permission:productstatus-list|productstatus-create|productstatus-edit|productstatus-delete');
-Route::post('/productstatus', [App\Http\Controllers\ProductstatusController::class, 'store'])->middleware('permission:productstatus-create');
-Route::put('/productstatus/{id}', [App\Http\Controllers\ProductstatusController::class, 'update'])->middleware('permission:productstatus-edit');
-Route::delete('/productstatus/{id}', [App\Http\Controllers\ProductstatusController::class, 'destroy'])->middleware('permission:productstatus-delete');
-Route::get('/all_productstatuss', [App\Http\Controllers\ProductstatusController::class,'all_productstatuss']);
+Route::get('/productstatus', [App\Http\Controllers\ProductStatusController::class, 'index'])->middleware('permission:product-list|productstatus-create|productstatus-edit|productstatus-delete');
+Route::get('/productstatus/{id}', [App\Http\Controllers\ProductStatusController::class, 'show'])->middleware('permission:product-list|productstatus-create|productstatus-edit|productstatus-delete');
+Route::post('/productstatus', [App\Http\Controllers\ProductStatusController::class, 'store'])->middleware('permission:product-create');
+Route::put('/productstatus/{id}', [App\Http\Controllers\ProductStatusController::class, 'update'])->middleware('permission:product-edit');
+Route::delete('/productstatus/{id}', [App\Http\Controllers\ProductStatusController::class, 'destroy'])->middleware('permission:product-delete');
+
+// Sub-Status Routes
+Route::get('/productstatus/{parentId}/sub-statuses', [App\Http\Controllers\ProductStatusController::class, 'getSubStatuses'])->middleware('permission:productstatus-list');
+Route::put('/sub-status/{subStatusId}', [App\Http\Controllers\ProductStatusController::class, 'updateSubStatus'])->middleware('permission:productstatus-edit');
+Route::delete('/sub-status/{subStatusId}', [App\Http\Controllers\ProductStatusController::class, 'destroySubStatus'])->middleware('permission:productstatus-delete');
+
+// Workflow Routes
+Route::get('/productstatus/{statusId}/workflow', [App\Http\Controllers\ProductStatusController::class, 'getWorkflow'])->middleware('permission:productstatus-list');
+
+// Legacy compatibility routes
+Route::get('/all_productstatuss', [App\Http\Controllers\ProductStatusController::class, 'all_productstatuss']);
+Route::get('/search_productstatus/{search_term}', [App\Http\Controllers\ProductStatusController::class, 'search']);
 
 
 Route::get('/customerinvoice', [App\Http\Controllers\CustomerinvoiceController::class, 'index'])->middleware('permission:customerinvoice-list|customerinvoice-create|customerinvoice-edit|customerinvoice-delete');

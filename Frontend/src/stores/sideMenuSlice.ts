@@ -255,6 +255,12 @@ const initialState: SideMenuState = {
           pathname: "/menu/productinformation",
           title: "Information",
           permission: "productinformation-list"
+        },
+        {
+          icon: "TrendingUp",
+          pathname: "/menu/productstatus",
+          title: "Product Statuses",
+          permission: "product-list"
         }
       ],
     },
@@ -414,12 +420,6 @@ const initialState: SideMenuState = {
           pathname: "/menu/warehouse",
           title: "Warehouse",
           permission: "warehouse-list"
-        },
-        {
-          icon: "TrendingUp",
-          pathname: "/menu/productstatus",
-          title: "Product Statuses",
-          permission: "productstatus-list"
         }
       ]
     },

@@ -8,32 +8,29 @@ use Spatie\Activitylog\Traits\LogsActivity;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Notifications\Notifiable;
-use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
-class Productstatus extends Model
+class ProductSubStatus extends Model
 {
     use HasFactory, LogsActivity, Notifiable;
     
     protected $fillable = [
-        'status_key',
+        'parent_status_id',
+        'sub_status_key',
         'status_name_en',
         'status_name_ch',
         'status_name_az',
         'description_en',
         'description_ch',
         'description_az',
-        'is_core_status',
         'is_active',
-        'locks_editing',
         'sort_order',
         'rules',
         'color_code'
     ];
     
     protected $casts = [
-        'is_core_status' => 'boolean',
         'is_active' => 'boolean',
-        'locks_editing' => 'boolean',
         'rules' => 'array'
     ];
     
@@ -41,22 +38,11 @@ class Productstatus extends Model
     public $guarded = [];
 
     /**
-     * Get the sub-statuses for this main status
+     * Get the parent status that this sub-status belongs to
      */
-    public function subStatuses(): HasMany
+    public function parentStatus(): BelongsTo
     {
-        return $this->hasMany(ProductSubStatus::class, 'parent_status_id')
-                    ->where('is_active', true)
-                    ->orderBy('sort_order');
-    }
-
-    /**
-     * Get all sub-statuses including inactive ones
-     */
-    public function allSubStatuses(): HasMany
-    {
-        return $this->hasMany(ProductSubStatus::class, 'parent_status_id')
-                    ->orderBy('sort_order');
+        return $this->belongsTo(Productstatus::class, 'parent_status_id');
     }
 
     /**
@@ -94,23 +80,39 @@ class Productstatus extends Model
     }
 
     /**
-     * Scope to get only core statuses
+     * Get the full status display name (e.g., "3.1 In the Train")
      */
-    public function scopeCoreStatuses($query)
+    public function getFullNameAttribute(): string
     {
-        return $query->where('is_core_status', true);
+        return $this->sub_status_key . ' ' . $this->getLocalizedNameAttribute();
     }
 
     /**
-     * Scope to get only custom statuses (including sub-statuses)
+     * Get the next sub-status within the same parent
      */
-    public function scopeCustomStatuses($query)
+    public function getNextSubStatus(): ?self
     {
-        return $query->where('is_core_status', false);
+        return self::where('parent_status_id', $this->parent_status_id)
+                   ->where('sort_order', '>', $this->sort_order)
+                   ->where('is_active', true)
+                   ->orderBy('sort_order')
+                   ->first();
     }
 
     /**
-     * Scope to get only active statuses
+     * Get the previous sub-status within the same parent
+     */
+    public function getPreviousSubStatus(): ?self
+    {
+        return self::where('parent_status_id', $this->parent_status_id)
+                   ->where('sort_order', '<', $this->sort_order)
+                   ->where('is_active', true)
+                   ->orderBy('sort_order', 'desc')
+                   ->first();
+    }
+
+    /**
+     * Scope to get active sub-statuses
      */
     public function scopeActive($query)
     {
@@ -118,60 +120,22 @@ class Productstatus extends Model
     }
 
     /**
-     * Get the next status in the workflow
+     * Scope to get sub-statuses for a specific parent
      */
-    public function getNextStatus()
+    public function scopeForParent($query, $parentId)
     {
-        return self::where('sort_order', '>', $this->sort_order)
-                   ->orderBy('sort_order')
-                   ->first();
-    }
-
-    /**
-     * Get the previous status in the workflow
-     */
-    public function getPreviousStatus()
-    {
-        return self::where('sort_order', '<', $this->sort_order)
-                   ->orderBy('sort_order', 'desc')
-                   ->first();
-    }
-
-    /**
-     * Check if this status locks editing
-     */
-    public function locksEditing(): bool
-    {
-        return $this->locks_editing;
-    }
-
-    /**
-     * Check if status can be deleted (only non-core statuses can be deleted)
-     */
-    public function canBeDeleted(): bool
-    {
-        return !$this->is_core_status;
-    }
-
-    /**
-     * Check if status can be edited (core statuses have limited editability)
-     */
-    public function canBeEdited(): bool
-    {
-        // Core statuses can only have their translations and descriptions updated
-        // Custom statuses can be fully edited
-        return true;
+        return $query->where('parent_status_id', $parentId);
     }
 
     public function getDescriptionForEvent(string $eventName): string
     {
-        return "user has {$eventName} product status {$this->status_name_en}";
+        return "user has {$eventName} product sub-status {$this->status_name_en}";
     }
 
     public function getActivitylogOptions(): LogOptions
     {
         return LogOptions::defaults()
             ->logOnly(['*'])
-            ->useLogName("Productstatus");
+            ->useLogName("ProductSubStatus");
     }
 }

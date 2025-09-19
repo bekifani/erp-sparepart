@@ -7,6 +7,7 @@ use App\Models\User;
 use Illuminate\Database\Seeder;
 use App\Models\Tenant;
 use App\Models\Product;
+
 class DatabaseSeeder extends Seeder
 {
     /**
@@ -23,6 +24,7 @@ class DatabaseSeeder extends Seeder
             ProductnameSeeder::class,
             ProductSeeder::class,
             ProductInformationSeeder::class,
+            ProductStatusSeeder::class,
 
         ]);
     }   

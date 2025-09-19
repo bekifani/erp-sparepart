@@ -1,46 +1,43 @@
-
 import "@/assets/css/vendors/tabulator.css";
 import Lucide from "@/components/Base/Lucide";
 import ReactDOMServer from 'react-dom/server';
-import { Slideover } from "@/components/Base/Headless";
+import { Slideover, Dialog } from "@/components/Base/Headless";
 import Button from "@/components/Base/Button";
-import React, { useRef, useState } from "react";
+import React, { useRef, useState, useEffect } from "react";
 import { yupResolver } from "@hookform/resolvers/yup";
 import Notification from "@/components/Base/Notification";
 import TableComponent from "@/helpers/ui/TableComponent.jsx";
 import * as yup from "yup";
 import { useForm } from "react-hook-form";
-import { FormCheck, FormTextarea , FormInput, FormLabel } from "@/components/Base/Form";
+import { FormCheck, FormTextarea, FormInput, FormLabel, FormSelect } from "@/components/Base/Form";
 import { stringToHTML } from "@/utils/helper";
 import {
   useCreateProductstatusMutation,
   useDeleteProductstatusMutation,
   useEditProductstatusMutation,
+  useGetProductstatussQuery,
 } from "@/stores/apiSlice";
 import clsx from "clsx";
 import Can from "@/helpers/PermissionChecker/index.js";
 import { useTranslation } from "react-i18next";
 import LoadingIcon from "@/components/Base/LoadingIcon/index.tsx";
-import FileUpload from "@/helpers/ui/FileUpload.jsx";
-import TomSelectSearch from "@/helpers/ui/Tomselect.jsx";
 import { useSelector } from "react-redux";
-import { ClassicEditor } from "@/components/Base/Ckeditor";
 
-
-function index_main() {
+function ProductStatusIndex() {
   const { t, i18n } = useTranslation();
-  const app_url = useSelector((state) => state.auth.app_url)
-  const upload_url = useSelector((state)=> state.auth.upload_url)
-  const media_url = useSelector((state)=>state.auth.media_url)
+  const app_url = useSelector((state) => state.auth.app_url);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showUpdateModal, setShowUpdateModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
-  const [editorData, setEditorData] = useState("")
-  const [confirmationMessage, setConfirmationMessage] =
-    useState(t("Are you Sure Do You want to Delete Productstatus"));
+  const [showSubStatusModal, setShowSubStatusModal] = useState(false);
+  const [selectedStatus, setSelectedStatus] = useState(null);
+  const [selectedParentStatus, setSelectedParentStatus] = useState(null);
+  const [statusType, setStatusType] = useState('all'); // 'all', 'core', 'custom'
+  const [confirmationMessage, setConfirmationMessage] = useState(t("Are you sure you want to delete this status?"));
+  const [refetch, setRefetch] = useState(false);
+  const [tableKey, setTableKey] = useState(0);
 
-  
- const [
+  const [
     createProductstatus,
     { isLoading: loading, isSuccess: success, error: successError },
   ] = useCreateProductstatusMutation();
@@ -51,15 +48,41 @@ function index_main() {
   const [
     deleteProductstatus,
     { isLoading: deleting, isSuccess: deleted, error: deleteError },
-  ] = useDeleteProductstatusMutation()
+  ] = useDeleteProductstatusMutation();
 
-
-  const [toastMessage, setToastMessage] = useState("");
-  const basicStickyNotification = useRef();
-  const user = useSelector((state)=> state.auth.user)
-  const hasPermission = (permission) => {
-    return user.permissions.includes(permission)
+  // Get core statuses for parent selection
+  const { data: statusesResponse } = useGetProductstatussQuery({ type: 'core' });
+  
+  // Debug the response structure
+  console.log('statusesResponse:', statusesResponse);
+  
+  // Handle different possible data structures
+  let coreStatuses = [];
+  if (statusesResponse) {
+    if (Array.isArray(statusesResponse)) {
+      coreStatuses = statusesResponse;
+    } else if (statusesResponse.data) {
+      if (Array.isArray(statusesResponse.data)) {
+        coreStatuses = statusesResponse.data;
+      } else if (statusesResponse.data.data && Array.isArray(statusesResponse.data.data)) {
+        coreStatuses = statusesResponse.data.data;
+      }
+    }
   }
+  
+  // Filter for core statuses if not already filtered
+  coreStatuses = coreStatuses.filter(status => status?.is_core_status === true);
+  
+  console.log('Processed coreStatuses:', coreStatuses);
+  
+  const basicStickyNotification = useRef();
+  const user = useSelector((state) => state.auth.user);
+
+  const hasPermission = (permission) => {
+    return user.permissions.includes(permission);
+  };
+
+  // Table configuration for existing TableComponent
   const [data, setData] = useState([
     {
       title: t("Id"),
@@ -70,22 +93,22 @@ function index_main() {
       print: true,
       download: true,
     },
-   
     {
       title: t("Status Key"),
-      minWidth: 200,
+      minWidth: 150,
       field: "status_key",
       hozAlign: "center",
       headerHozAlign: "center",
       vertAlign: "middle",
       print: true,
       download: true,
-      
+      formatter: function (cell) {
+        const value = cell.getValue();
+        return `<span class="font-medium">${value || 'N/A'}</span>`;
+      }
     },
-    
-
     {
-      title: t("Status Name En"),
+      title: t("Status Name"),
       minWidth: 200,
       field: "status_name_en",
       hozAlign: "center",
@@ -93,49 +116,66 @@ function index_main() {
       vertAlign: "middle",
       print: true,
       download: true,
-      
+      formatter: function (cell) {
+        const rowData = cell.getRow().getData();
+        const isCoreStatus = rowData.is_core_status;
+        const badge = isCoreStatus 
+          ? '<span class="bg-blue-100 text-blue-800 text-xs font-medium px-2.5 py-0.5 rounded ml-2">Core</span>'
+          : '<span class="bg-green-100 text-green-800 text-xs font-medium px-2.5 py-0.5 rounded ml-2">Custom</span>';
+        
+        return `<div class="flex items-center">
+          <span>${cell.getValue()}</span>
+          ${badge}
+        </div>`;
+      }
     },
-    
-
-    {
-      title: t("Status Name Ch"),
-      minWidth: 200,
-      field: "status_name_ch",
-      hozAlign: "center",
-      headerHozAlign: "center",
-      vertAlign: "middle",
-      print: true,
-      download: true,
-      
-    },
-    
-
-    {
-      title: t("Status Name Az"),
-      minWidth: 200,
-      field: "status_name_az",
-      hozAlign: "center",
-      headerHozAlign: "center",
-      vertAlign: "middle",
-      print: true,
-      download: true,
-      
-    },
-    
-
     {
       title: t("Description"),
       minWidth: 200,
-      field: "description",
+      field: "description_en",
       hozAlign: "center",
       headerHozAlign: "center",
       vertAlign: "middle",
       print: true,
       download: true,
-      
+      formatter: function (cell) {
+        const value = cell.getValue();
+        return value ? (value.length > 50 ? value.substring(0, 50) + '...' : value) : 'N/A';
+      }
     },
-    
-
+    {
+      title: t("Sub-Statuses"),
+      minWidth: 120,
+      field: "sub_statuses",
+      hozAlign: "center",
+      headerHozAlign: "center",
+      vertAlign: "middle",
+      print: true,
+      download: true,
+      formatter: function (cell) {
+        const rowData = cell.getRow().getData();
+        const subStatusCount = rowData.sub_statuses ? rowData.sub_statuses.length : 0;
+        return `<div class="flex items-center justify-center">
+          <span class="bg-gray-100 text-gray-800 text-xs font-medium px-2.5 py-0.5 rounded">${subStatusCount}</span>
+        </div>`;
+      }
+    },
+    {
+      title: t("Status"),
+      minWidth: 100,
+      field: "is_active",
+      hozAlign: "center",
+      headerHozAlign: "center",
+      vertAlign: "middle",
+      print: true,
+      download: true,
+      formatter: function (cell) {
+        const isActive = cell.getValue();
+        return isActive 
+          ? '<span class="bg-green-100 text-green-800 text-xs font-medium px-2.5 py-0.5 rounded">Active</span>'
+          : '<span class="bg-red-100 text-red-800 text-xs font-medium px-2.5 py-0.5 rounded">Inactive</span>';
+      }
+    },
     {
       title: t("Actions"),
       minWidth: 200,
@@ -151,849 +191,675 @@ function index_main() {
         const element = stringToHTML(
           `<div class="flex items-center lg:justify-center"></div>`
         );
-        const a =
-          stringToHTML(`<div class="flex items-center lg:justify-center">
-              <a class="delete-btn flex items-center mr-3" href="javascript:;">
-                <i data-lucide="check-square" class="w-3.5 h-3.5 stroke-[1.7] mr-1.5"></i> Edit
-              </a>`);
-        const b = stringToHTML(`
-              <a class="edit-btn flex items-center text-danger" href="javascript:;">
-                <i data-lucide="trash-2" class="w-3.5 h-3.5 stroke-[1.7] mr-1.5"></i> Delete
-              </a>
-            </div>`);
-        a.addEventListener("click", function () {
-          const data = cell.getData();
-          Object.keys(data).forEach((key) => {
-            setValue(key, data[key]);
-          });
-          setShowUpdateModal(true);
+        const rowData = cell.getRow().getData();
+        const isCoreStatus = rowData.is_core_status;
+
+        const editBtn = stringToHTML(`<a class="edit-btn flex items-center mr-3" href="javascript:;">
+              <i data-lucide="edit" class="w-3.5 h-3.5 stroke-[1.7] mr-1.5"></i> Edit
+            </a>`);
+
+        const viewSubBtn = stringToHTML(`<a class="view-sub-btn flex items-center mr-3 text-primary" href="javascript:;">
+              <i data-lucide="list" class="w-3.5 h-3.5 stroke-[1.7] mr-1.5"></i> Sub-Statuses
+            </a>`);
+
+        const deleteBtn = stringToHTML(`<a class="delete-btn flex items-center text-danger" href="javascript:;">
+              <i data-lucide="trash-2" class="w-3.5 h-3.5 stroke-[1.7] mr-1.5"></i> Delete
+            </a>`);
+
+        editBtn.addEventListener("click", function () {
+          handleEdit(rowData);
         });
-        b.addEventListener("click", function () {
-          const data = cell.getData();
-          Object.keys(data).forEach((key) => {
-            setValue(key, data[key]);
-          });
-          setShowDeleteModal(true);
+
+        viewSubBtn.addEventListener("click", function () {
+          handleViewSubStatuses(rowData);
         });
-        let permission = "productstatus";
-        if(hasPermission(permission+'-edit')){
-          element.append(a)
+
+        if (!isCoreStatus) {
+          deleteBtn.addEventListener("click", function () {
+            handleDelete(rowData);
+          });
         }
-        if(hasPermission(permission+'-delete')){
-          element.append(b)
+
+        if (hasPermission('product-edit')) {
+          element.append(editBtn);
         }
+        
+        // Show sub-statuses button for core statuses (no permission check)
+        if (isCoreStatus) {
+          element.append(viewSubBtn);
+        }
+        
+        if (hasPermission('product-delete') && !isCoreStatus) {
+          element.append(deleteBtn);
+        }
+        
         return element;
       },
     },
-]);
-  const [searchColumns, setSearchColumns] = useState(['status_key', 'status_name_en', 'status_name_ch', 'status_name_az', 'description', ]);
+  ]);
 
-  // schema
-  const schema = yup
-    .object({
-     status_key : yup.string().required(t('The Status Key field is required')), 
-status_name_en : yup.string().required(t('The Status Name En field is required')), 
-status_name_ch : yup.string().required(t('The Status Name Ch field is required')), 
-status_name_az : yup.string().required(t('The Status Name Az field is required')), 
-description : yup.string().required(t('The Description field is required')), 
+  const [searchColumns, setSearchColumns] = useState([
+    'status_key', 
+    'status_name_en', 
+    'status_name_ch', 
+    'status_name_az', 
+    'description_en'
+  ]);
 
-    })
-    .required();
-
-  const {
-    register,
-    trigger,
-    getValues,
-    setValue,
-    handleSubmit,
-    formState: { errors },
-  } = useForm({
-    mode: "onChange",
-    resolver: yupResolver(schema),
+  // Form validation schemas
+  const statusSchema = yup.object({
+    status_name_en: yup.string().required(t("English name is required")),
+    status_name_ch: yup.string().nullable(),
+    status_name_az: yup.string().nullable(),
+    description_en: yup.string().nullable(),
+    description_ch: yup.string().nullable(),
+    description_az: yup.string().nullable(),
+    color_code: yup.string().matches(/^#[0-9A-Fa-f]{6}$/, t("Invalid color code")).nullable(),
   });
 
-   
+  const {
+    register: registerStatus,
+    handleSubmit: handleSubmitStatus,
+    formState: { errors: statusErrors },
+    reset: resetStatus,
+    setValue: setStatusValue,
+    getValues,
+  } = useForm({
+    mode: "onChange",
+    resolver: yupResolver(statusSchema),
+  });
 
-
-  const [refetch, setRefetch] = useState(false);
-  const getMiniDisplay = (url) => {
-    let data = app_url +'/api/file/' + url;
-    
-    const fileExtension = data.split('.').pop().toLowerCase();
-    const imageExtensions = ['jpg', 'jpeg', 'png', 'gif', 'bmp', 'svg', 'webp'];
-    const videoExtensions = ['mp4', 'webm', 'ogg', 'mov', 'avi', 'mkv'];
-
-    let element;
-    
-    if (imageExtensions.includes(fileExtension)) {
-      element = (
-        // <DynamicImage imagePath={url} token={token}/>
-        <img data-action="zoom" src={media_url + url} alt="Preview" style={{ width: '40px', height: '40px', objectFit: 'cover' }} className="rounded-md"/>
-      );
-    } else if (videoExtensions.includes(fileExtension)) {
-      element = <Lucide icon="Film" style={{ width: '40px', height: '40px', objectFit: 'cover' }} className="block mx-auto" />;
-    } else {
-      element = (
-        <a href={data} target="_blank" rel="noopener noreferrer">
-          <Lucide icon="File" style={{ width: '40px', height: '40px', objectFit: 'cover' }} className="block mx-auto" />
-        </a>
-      );
-    }
-
-    return ReactDOMServer.renderToString(element); // Convert JSX to HTML string
+  // Event handlers
+  const handleEdit = (status) => {
+    setSelectedStatus(status);
+    Object.keys(status).forEach((key) => {
+      setStatusValue(key, status[key]);
+    });
+    setShowUpdateModal(true);
   };
 
-    const onCreate = async (data) => {
-    console.log('🟡 onCreate called with data:', data);
-    console.log('🟡 Form errors:', errors);
-    console.log('🟡 Current form values:', getValues());
-    console.log('🟡 Form is valid:', Object.keys(errors).length === 0);
-    
-    // Check if form has validation errors
-    if (Object.keys(errors).length > 0) {
-      console.error('🔴 Form has validation errors:', errors);
-      setToastMessage(t("Please fix the form errors before submitting"));
-      basicStickyNotification.current?.showToast();
-      return;
-    }
-    
-    try {
-      const response = await createProductstatus(data);
-      console.log('🟡 API response:', response);
-      
-      if (response && (response.success === true || response.data?.success === true)) {
-        setToastMessage(t("Productstatus created successfully."));
-        setRefetch(true);
-        setShowCreateModal(false);
-        basicStickyNotification.current?.showToast();
-        // Auto-hide toast after 7 seconds
-        setTimeout(() => {
-          basicStickyNotification.current?.hideToast();
-        }, 7000);
-      } else {
-        console.error('🔴 API returned error:', response);
-        let errorMessage = t("Error creating Productstatus");
-        
-        // Check multiple possible error structures
-        const errorSources = [
-          response?.error?.data?.data?.errors,  // RTK Query error structure
-          response?.data?.data?.errors,         // Direct API response
-          response?.error?.data?.errors,        // Alternative error structure
-          response?.data?.errors                // Simple error structure
-        ];
-        
-        let validationErrors = null;
-        for (const errorSource of errorSources) {
-          if (errorSource && typeof errorSource === 'object') {
-            validationErrors = errorSource;
-            break;
-          }
-        }
-        
-        if (validationErrors) {
-          const errorFields = Object.keys(validationErrors);
-          if (errorFields.length > 0) {
-            // Get the first validation error message
-            const firstFieldErrors = validationErrors[errorFields[0]];
-            if (Array.isArray(firstFieldErrors) && firstFieldErrors.length > 0) {
-              errorMessage = firstFieldErrors[0];
-            } else if (typeof firstFieldErrors === 'string') {
-              errorMessage = firstFieldErrors;
-            }
-          }
-        } else {
-          // Handle parsing errors (when server returns HTML instead of JSON)
-          if (response?.error?.status === "PARSING_ERROR") {
-            errorMessage = t("Server error occurred. Please try again later or contact support.");
-          } else {
-            // Fallback to general error messages
-            const generalErrorSources = [
-              response?.error?.data?.message,
-              response?.data?.message,
-              response?.message,
-              response?.error?.error
-            ];
-            
-            for (const errorSource of generalErrorSources) {
-              if (errorSource && typeof errorSource === 'string') {
-                errorMessage = errorSource;
-                break;
-              }
-            }
-          }
-        }
-        
-        setToastMessage(errorMessage);
-        basicStickyNotification.current?.showToast();
-        // Auto-hide toast after 7 seconds
-        setTimeout(() => {
-          basicStickyNotification.current?.hideToast();
-        }, 7000);
-      }
-    } catch (error) {
-      console.error('🔴 Exception in onCreate:', error);
-      let errorMessage = t("Error creating Productstatus");
-      
-      // Check multiple possible error structures in catch block
-      const errorSources = [
-        error?.error?.data?.data?.errors,
-        error?.error?.data?.errors,
-        error?.response?.data?.data?.errors,
-        error?.response?.data?.errors,
-        error?.data?.data?.errors,
-        error?.data?.errors
-      ];
-      
-      let validationErrors = null;
-      for (const errorSource of errorSources) {
-        if (errorSource && typeof errorSource === 'object') {
-          validationErrors = errorSource;
-          break;
-        }
-      }
-      
-      if (validationErrors) {
-        const errorFields = Object.keys(validationErrors);
-        if (errorFields.length > 0) {
-          const firstFieldErrors = validationErrors[errorFields[0]];
-          if (Array.isArray(firstFieldErrors) && firstFieldErrors.length > 0) {
-            errorMessage = firstFieldErrors[0];
-          } else if (typeof firstFieldErrors === 'string') {
-            errorMessage = firstFieldErrors;
-          }
-        }
-      } else {
-        // Handle parsing errors in catch block
-        if (error?.error?.status === "PARSING_ERROR") {
-          errorMessage = t("Server error occurred. Please try again later or contact support.");
-        } else {
-          // Fallback to general error messages
-          const generalErrorSources = [
-            error?.error?.data?.message,
-            error?.response?.data?.message,
-            error?.data?.message,
-            error?.message
-          ];
-          
-          for (const errorSource of generalErrorSources) {
-            if (errorSource && typeof errorSource === 'string') {
-              errorMessage = errorSource;
-              break;
-            }
-          }
-        }
-      }
-      
-      setToastMessage(errorMessage);
-      basicStickyNotification.current?.showToast();
-      // Auto-hide toast after 7 seconds
-      setTimeout(() => {
-        basicStickyNotification.current?.hideToast();
-      }, 7000);
-    }
-  };;
+  const handleDelete = (status) => {
+    setSelectedStatus(status);
+    Object.keys(status).forEach((key) => {
+      setStatusValue(key, status[key]);
+    });
+    setConfirmationMessage(
+      t("Are you sure you want to delete the status") + ` "${status.status_name_en}"?`
+    );
+    setShowDeleteModal(true);
+  };
 
-    const onUpdate = async (data) => {
+  const handleCreateNew = () => {
+    setShowCreateModal(true);
+  };
+
+  const handleStatusTypeChange = (value) => {
+    setStatusType(value);
+    setRefetch(true); // Trigger table refresh
+  };
+
+  const handleViewSubStatuses = (status) => {
+    setSelectedStatus(status);
+    setShowSubStatusModal(true);
+  };
+
+  // Form submission handlers
+  const onSubmitStatus = async (data) => {
     try {
-      console.log('🟡 Updating productstatus with data:', data);
-      const response = await updateProductstatus(data);
-      console.log('🟡 Update productstatus response:', response);
-        
-      if (response && (response.success === true || response.data?.success === true)) {
-        setToastMessage(t('Productstatus updated successfully'));
-        setRefetch(true);
+      if (selectedStatus) {
+        await updateProductstatus({ id: selectedStatus.id, ...data }).unwrap();
         setShowUpdateModal(false);
-      } else {
-        // Handle validation errors with comprehensive error extraction
-        let errorMessage = t("Error updating Productstatus");
-        
-        // Check multiple possible error structures
-        const errorSources = [
-          response?.error?.data?.data?.errors,  // RTK Query error structure
-          response?.data?.data?.errors,         // Direct API response
-          response?.error?.data?.errors,        // Alternative error structure
-          response?.data?.errors                // Simple error structure
-        ];
-        
-        let validationErrors = null;
-        for (const errorSource of errorSources) {
-          if (errorSource && typeof errorSource === 'object') {
-            validationErrors = errorSource;
-            break;
-          }
-        }
-        
-        if (validationErrors) {
-          const errorFields = Object.keys(validationErrors);
-          if (errorFields.length > 0) {
-            // Get the first validation error message
-            const firstFieldErrors = validationErrors[errorFields[0]];
-            if (Array.isArray(firstFieldErrors) && firstFieldErrors.length > 0) {
-              errorMessage = firstFieldErrors[0];
-            } else if (typeof firstFieldErrors === 'string') {
-              errorMessage = firstFieldErrors;
-            }
-          }
-        } else {
-          // Handle parsing errors (when server returns HTML instead of JSON)
-          if (response?.error?.status === "PARSING_ERROR") {
-            errorMessage = t("Server error occurred. Please try again later or contact support.");
-          } else {
-            // Fallback to general error messages
-            const generalErrorSources = [
-              response?.error?.data?.message,
-              response?.data?.message,
-              response?.message,
-              response?.error?.error
-            ];
-            
-            for (const errorSource of generalErrorSources) {
-              if (errorSource && typeof errorSource === 'string') {
-                errorMessage = errorSource;
-                break;
-              }
-            }
-          }
-        }
-        
-        setToastMessage(errorMessage);
-        console.error('🔴 Update failed with response:', response);
-        setShowUpdateModal(true);
-      }
-    } catch (error) {
-      console.error('🔴 Update productstatus error:', error);
-      let errorMessage = t("Error updating Productstatus");
-      
-      // Check multiple possible error structures in catch block
-      const errorSources = [
-        error?.error?.data?.data?.errors,
-        error?.error?.data?.errors,
-        error?.response?.data?.data?.errors,
-        error?.response?.data?.errors,
-        error?.data?.data?.errors,
-        error?.data?.errors
-      ];
-      
-      let validationErrors = null;
-      for (const errorSource of errorSources) {
-        if (errorSource && typeof errorSource === 'object') {
-          validationErrors = errorSource;
-          break;
-        }
-      }
-      
-      if (validationErrors) {
-        const errorFields = Object.keys(validationErrors);
-        if (errorFields.length > 0) {
-          const firstFieldErrors = validationErrors[errorFields[0]];
-          if (Array.isArray(firstFieldErrors) && firstFieldErrors.length > 0) {
-            errorMessage = firstFieldErrors[0];
-          } else if (typeof firstFieldErrors === 'string') {
-            errorMessage = firstFieldErrors;
-          }
-        }
-      } else {
-        // Handle parsing errors in catch block
-        if (error?.error?.status === "PARSING_ERROR") {
-          errorMessage = t("Server error occurred. Please try again later or contact support.");
-        } else {
-          // Fallback to general error messages
-          const generalErrorSources = [
-            error?.error?.data?.message,
-            error?.response?.data?.message,
-            error?.data?.message,
-            error?.message
-          ];
-          
-          for (const errorSource of generalErrorSources) {
-            if (errorSource && typeof errorSource === 'string') {
-              errorMessage = errorSource;
-              break;
-            }
-          }
-        }
-      }
-      
-      setToastMessage(errorMessage);
-      setShowUpdateModal(true);
-    }
-      
-    basicStickyNotification.current?.showToast();
-    // Auto-hide toast after 7 seconds
-    setTimeout(() => {
-      basicStickyNotification.current?.hideToast();
-    }, 7000);
-  };;
-
-    const onDelete = async () => {
-    let id = getValues("id");
-    setShowDeleteModal(false);
-    
-    try {
-      console.log('🔴 Deleting productstatus with id:', id);
-      const response = await deleteProductstatus(id);
-      console.log('🔴 Delete productstatus response:', response);
-      
-      if (response && (response.success === true || response.data?.success === true)) {
-        setToastMessage(t("Productstatus deleted successfully."));
+        resetStatus();
+        setSelectedStatus(null);
         setRefetch(true);
-      } else {
-        // Handle validation errors specifically
-        if (response?.error?.data?.data?.errors) {
-          const validationErrors = response.error.data.data.errors;
-          const errorFields = Object.keys(validationErrors);
-          if (errorFields.length > 0) {
-            const firstError = validationErrors[errorFields[0]][0];
-            setToastMessage(firstError);
-          }
-        } else {
-          const errorMsg = response?.error?.data?.message || response?.message || response?.error || 'Unknown error occurred';
-          setToastMessage(`${t("Error deleting Productstatus")}: ${errorMsg}`);
-        }
-        console.error('🔴 Delete failed with response:', response);
       }
     } catch (error) {
-      console.error('🔴 Delete productstatus error:', error);
-      let errorMessage = t("Error deleting Productstatus");
+      console.error("Error updating status:", error);
+    }
+  };
+
+  const onCreateStatus = async (data) => {
+    try {
+      // Prepare data based on whether it's a sub-status or regular status
+      let submitData = { ...data };
       
-      if (error?.error?.data?.data?.errors) {
-        // Handle validation errors from error.error.data.data.errors structure
-        const validationErrors = error.error.data.data.errors;
-        const errorFields = Object.keys(validationErrors);
-        if (errorFields.length > 0) {
-          const firstError = validationErrors[errorFields[0]][0];
-          errorMessage = firstError;
-        }
-      } else if (error?.error?.data?.message) {
-        errorMessage = error.error.data.message;
-      } else if (error.response?.data?.message) {
-        errorMessage = error.response.data.message;
-      } else if (error.message) {
-        errorMessage = `${t("Error")}: ${error.message}`;
+      if (selectedParentStatus) {
+        // Creating a sub-status
+        submitData = {
+          ...data,
+          parent_status_id: selectedParentStatus.id,
+          sub_status_key: data.status_name_en.toLowerCase().replace(/\s+/g, '_'), // Auto-generate sub_status_key
+        };
       }
       
-      setToastMessage(errorMessage);
+      await createProductstatus(submitData).unwrap();
+      setShowCreateModal(false);
+      resetStatus();
+      setSelectedParentStatus(null);
+      setRefetch(true);
+    } catch (error) {
+      console.error("Error creating status:", error);
     }
-    
-    basicStickyNotification.current?.showToast();
-    // Auto-hide toast after 7 seconds
-    setTimeout(() => {
-      basicStickyNotification.current?.hideToast();
-    }, 7000);
-  };;    
+  };
 
-return (
-    <div>
+  const confirmDelete = async () => {
+    try {
+      const statusToDelete = selectedStatus;
+      
+      // Debug logging to see what we have
+      console.log('=== DELETE DEBUG ===');
+      console.log('selectedStatus:', statusToDelete);
+      console.log('selectedStatus.id:', statusToDelete?.id);
+      console.log('getValues("id"):', getValues("id"));
+      console.log('Form values:', getValues());
+      
+      // Try multiple ways to get the ID
+      let id = statusToDelete?.id;
+      if (!id) {
+        id = getValues("id");
+      }
+      if (!id && statusToDelete) {
+        // Sometimes the ID might be in a different field
+        id = statusToDelete.sub_status_id || statusToDelete.status_id;
+      }
+      
+      console.log('Final ID to use:', id);
+      
+      if (!id) {
+        console.error('No ID found anywhere!');
+        throw new Error('No ID found for status to delete');
+      }
+      
+      // Check if this is a sub-status (has parent_status_id)
+      if (statusToDelete?.parent_status_id) {
+        // Use sub-status delete endpoint
+        console.log('Deleting sub-status with endpoint:', `${app_url}/api/sub-status/${id}`);
+        const response = await fetch(`${app_url}/api/sub-status/${id}`, {
+          method: 'DELETE',
+          headers: {
+            'Authorization': `Bearer ${user.token}`,
+            'Content-Type': 'application/json',
+          },
+        });
+        
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+      } else {
+        // Use regular status delete endpoint
+        console.log('Deleting regular status with ID:', id);
+        await deleteProductstatus(id).unwrap();
+      }
+      
+      setShowDeleteModal(false);
+      setSelectedStatus(null);
+      setRefetch(prev => !prev);
+    } catch (error) {
+      console.error("Error deleting status:", error);
+    }
+  };
+
+  // Effects for notifications
+  useEffect(() => {
+    if (success || updated) {
+      basicStickyNotification.current?.showToast();
+    }
+  }, [success, updated]);
+
+  useEffect(() => {
+    if (deleted) {
+      basicStickyNotification.current?.showToast();
+    }
+  }, [deleted]);
+
+  return (
+    <div className="container mx-auto px-4 py-8">
+      {/* Header */}
+      <div className="flex items-center justify-between mb-6">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">{t("Product Statuses")}</h1>
+          <p className="text-gray-600 mt-1">
+            {t("Manage product workflow statuses and sub-statuses")}
+          </p>
+        </div>
+        <div className="flex items-center space-x-3">
+          {/* Status Type Filter */}
+          <FormSelect
+            value={statusType}
+            onChange={(e) => handleStatusTypeChange(e.target.value)}
+            className="w-40"
+          >
+            <option value="all">{t("All Statuses")}</option>
+            <option value="core">{t("Core Statuses")}</option>
+            <option value="custom">{t("Custom Statuses")}</option>
+          </FormSelect>
+          {/* Add New Button */}
+          <Button
+            type="button"
+            variant="primary"
+            onClick={handleCreateNew}
+          >
+            <Lucide icon="Plus" className="w-4 h-4 mr-2" />
+            {t("Add New")}
+          </Button>
+        </div>
+      </div>
+
+      {/* Core Status Information */}
+      {/* <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+        <div className="flex items-start">
+          <Lucide icon="Info" className="w-5 h-5 text-blue-600 mt-0.5 mr-3" />
+          <div>
+            <h3 className="text-sm font-medium text-blue-900 mb-1">
+              {t("Core System Statuses")}
+            </h3>
+            <p className="text-sm text-blue-700">
+              {t("The 12 core statuses form the backbone of the workflow and cannot be deleted. You can only edit their translations and descriptions. The 'Loading Goods' status locks editing of invoices and packing lists.")}
+            </p>
+          </div>
+        </div>
+      </div> */}
+
+      {/* Table */}
+      <div className="bg-white rounded-lg shadow-sm border">
+        <Can permission="product-list">
+          <TableComponent
+            key={`table-${statusType}`} // Force re-render when filter or key changes
+            endpoint={`${app_url}/api/productstatus?type=${statusType}`}
+            data={data}
+            searchColumns={searchColumns}
+            refetch={refetch}
+            setRefetch={setRefetch}
+            permission={"product"}
+            hideCreateButton={true}
+          />
+        </Can>
+      </div>
+
+      {/* Create Status Modal */}
       <Slideover
-        size="xl"
-        open={showDeleteModal}
+        open={showCreateModal}
         onClose={() => {
-          setShowDeleteModal(false);
+          setShowCreateModal(false);
+          resetStatus();
+          setSelectedParentStatus(null);
         }}
       >
         <Slideover.Panel>
-          <div className="p-5 text-center">
-            <Lucide
-              icon="XCircle"
-              className="w-16 h-16 mx-auto mt-3 text-danger"
-            />
-            <div className="mt-5 text-3xl">{t("Are you sure?")}</div>
-            <div className="mt-2 text-slate-500">{confirmationMessage}</div>
-          </div>
-          <div className="px-5 pb-8 text-center">
+          <Slideover.Title>
+            <h2 className="mr-auto text-base font-medium">{t("Create New Status")}</h2>
+          </Slideover.Title>
+          <Slideover.Description>
+            <form onSubmit={handleSubmitStatus(onCreateStatus)} className="space-y-4">
+              {/* Parent Status Selection */}
+              <div>
+                <FormLabel htmlFor="parent_status">{t("Status Type")}</FormLabel>
+                <FormSelect
+                  value={selectedParentStatus?.id || ''}
+                  onChange={(e) => {
+                    const parentId = e.target.value;
+                    if (parentId) {
+                      const parent = coreStatuses.find(s => s.id == parentId);
+                      setSelectedParentStatus(parent);
+                    } else {
+                      setSelectedParentStatus(null);
+                    }
+                  }}
+                  className="w-full"
+                >
+                  <option value="">{t("Custom Status (No Parent)")}</option>
+                  {Array.isArray(coreStatuses) && coreStatuses.length > 0 && coreStatuses.map((status) => (
+                    <option key={status.id} value={status.id}>
+                      {t("Sub-status of")}: {status.status_name_en}
+                    </option>
+                  ))}
+                </FormSelect>
+                <p className="text-sm text-gray-600 mt-1">
+                  {selectedParentStatus 
+                    ? t("Creating a sub-status under") + ` "${selectedParentStatus.status_name_en}"`
+                    : t("Creating a custom status (not recommended - use sub-statuses instead)")
+                  }
+                </p>
+              </div>
+
+              {/* English Name */}
+              <div>
+                <FormLabel htmlFor="status_name_en">{t("English Name")} *</FormLabel>
+                <FormInput
+                  {...registerStatus("status_name_en")}
+                  id="status_name_en"
+                  type="text"
+                  className={clsx({ "border-danger": statusErrors.status_name_en })}
+                />
+                {statusErrors.status_name_en && (
+                  <div className="text-danger mt-2">{statusErrors.status_name_en.message}</div>
+                )}
+              </div>
+
+              {/* Chinese Name */}
+              <div>
+                <FormLabel htmlFor="status_name_ch">{t("Chinese Name")}</FormLabel>
+                <FormInput
+                  {...registerStatus("status_name_ch")}
+                  id="status_name_ch"
+                  type="text"
+                />
+              </div>
+
+              {/* Azerbaijani Name */}
+              <div>
+                <FormLabel htmlFor="status_name_az">{t("Azerbaijani Name")}</FormLabel>
+                <FormInput
+                  {...registerStatus("status_name_az")}
+                  id="status_name_az"
+                  type="text"
+                />
+              </div>
+
+              {/* English Description */}
+              {/* <div>
+                <FormLabel htmlFor="description_en">{t("English Description")}</FormLabel>
+                <FormTextarea
+                  {...registerStatus("description_en")}
+                  id="description_en"
+                  rows={3}
+                />
+              </div> */}
+
+              {/* Chinese Description */}
+              {/* <div>
+                <FormLabel htmlFor="description_ch">{t("Chinese Description")}</FormLabel>
+                <FormTextarea
+                  {...registerStatus("description_ch")}
+                  id="description_ch"
+                  rows={3}
+                />
+              </div> */}
+
+              {/* Azerbaijani Description */}
+              {/* <div>
+                <FormLabel htmlFor="description_az">{t("Azerbaijani Description")}</FormLabel>
+                <FormTextarea
+                  {...registerStatus("description_az")}
+                  id="description_az"
+                  rows={3}
+                />
+              </div> */}
+
+              {/* Color Code */}
+              {/* <div>
+                <FormLabel htmlFor="color_code">{t("Color Code")}</FormLabel>
+                <FormInput
+                  {...registerStatus("color_code")}
+                  id="color_code"
+                  type="color"
+                  className="h-10"
+                />
+                {statusErrors.color_code && (
+                  <div className="text-danger mt-2">{statusErrors.color_code.message}</div>
+                )}
+              </div> */}
+
+              <div className="flex justify-end space-x-2 pt-4">
+                <Button
+                  type="button"
+                  variant="outline-secondary"
+                  onClick={() => {
+                    setShowCreateModal(false);
+                    resetStatus();
+                    setSelectedParentStatus(null);
+                  }}
+                >
+                  {t("Cancel")}
+                </Button>
+                <Button type="submit" variant="primary" disabled={loading}>
+                  {loading && <LoadingIcon icon="oval" className="w-4 h-4 mr-2" />}
+                  {selectedParentStatus ? t("Create Sub-Status") : t("Create Status")}
+                </Button>
+              </div>
+            </form>
+          </Slideover.Description>
+        </Slideover.Panel>
+      </Slideover>
+
+      {/* Update Status Modal */}
+      <Slideover
+        open={showUpdateModal}
+        onClose={() => {
+          setShowUpdateModal(false);
+          resetStatus();
+          setSelectedStatus(null);
+        }}
+      >
+        <Slideover.Panel>
+          <Slideover.Title>
+            <h2 className="mr-auto text-base font-medium">{t("Update Status")}: {selectedStatus?.status_name_en}</h2>
+          </Slideover.Title>
+          <Slideover.Description>
+            <form onSubmit={handleSubmitStatus(onSubmitStatus)} className="space-y-4">
+              {/* Core Status Warning */}
+              {selectedStatus?.is_core_status && (
+                <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
+                  <div className="flex items-start">
+                    <Lucide icon="AlertTriangle" className="w-4 h-4 text-yellow-600 mt-0.5 mr-2" />
+                    <p className="text-sm text-yellow-700">
+                      {t("This is a core status. Only translations and descriptions can be modified.")}
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              {/* English Name */}
+              <div>
+                <FormLabel htmlFor="status_name_en">{t("English Name")} *</FormLabel>
+                <FormInput
+                  {...registerStatus("status_name_en")}
+                  id="status_name_en"
+                  type="text"
+                  className={clsx({ "border-danger": statusErrors.status_name_en })}
+                />
+                {statusErrors.status_name_en && (
+                  <div className="text-danger mt-2">{statusErrors.status_name_en.message}</div>
+                )}
+              </div>
+
+              {/* Chinese Name */}
+              <div>
+                <FormLabel htmlFor="status_name_ch">{t("Chinese Name")}</FormLabel>
+                <FormInput
+                  {...registerStatus("status_name_ch")}
+                  id="status_name_ch"
+                  type="text"
+                />
+              </div>
+
+              {/* Azerbaijani Name */}
+              <div>
+                <FormLabel htmlFor="status_name_az">{t("Azerbaijani Name")}</FormLabel>
+                <FormInput
+                  {...registerStatus("status_name_az")}
+                  id="status_name_az"
+                  type="text"
+                />
+              </div>
+
+              <div className="flex justify-end space-x-2 pt-4">
+                <Button
+                  type="button"
+                  variant="outline-secondary"
+                  onClick={() => {
+                    setShowUpdateModal(false);
+                    resetStatus();
+                    setSelectedStatus(null);
+                  }}
+                >
+                  {t("Cancel")}
+                </Button>
+                <Button type="submit" variant="primary" disabled={updating}>
+                  {updating && <LoadingIcon icon="oval" className="w-4 h-4 mr-2" />}
+                  {t("Update Status")}
+                </Button>
+              </div>
+            </form>
+          </Slideover.Description>
+        </Slideover.Panel>
+      </Slideover>
+
+      {/* Sub-Statuses Modal */}
+      <Slideover
+        open={showSubStatusModal}
+        onClose={() => {
+          setShowSubStatusModal(false);
+          setSelectedStatus(null);
+        }}
+      >
+        <Slideover.Panel>
+          <Slideover.Title>
+            <h2 className="mr-auto text-base font-medium">
+              {t("Sub-Statuses of")}: {selectedStatus?.status_name_en}
+            </h2>
+          </Slideover.Title>
+          <Slideover.Description>
+            <div className="space-y-4">
+              {/* Add New Sub-Status Button */}
+              <div className="flex justify-between items-center">
+                <h3 className="text-lg font-medium">{t("Sub-Statuses")}</h3>
+                <Button
+                  type="button"
+                  variant="primary"
+                  size="sm"
+                  onClick={() => {
+                    setSelectedParentStatus(selectedStatus);
+                    setShowSubStatusModal(false);
+                    setShowCreateModal(true);
+                  }}
+                >
+                  <Lucide icon="Plus" className="w-4 h-4 mr-2" />
+                  {t("Add Sub-Status")}
+                </Button>
+              </div>
+
+              {/* Sub-Statuses List */}
+              <div className="space-y-3">
+                {selectedStatus?.sub_statuses && selectedStatus.sub_statuses.length > 0 ? (
+                  selectedStatus.sub_statuses.map((subStatus) => (
+                    <div key={subStatus.id} className="border rounded-lg p-4 bg-gray-50">
+                      <div className="flex justify-between items-start">
+                        <div className="flex-1">
+                          <h4 className="font-medium text-gray-900">{subStatus.status_name_en}</h4>
+                          {subStatus.status_name_ch && (
+                            <p className="text-sm text-gray-600">{t("Chinese")}: {subStatus.status_name_ch}</p>
+                          )}
+                          {subStatus.status_name_az && (
+                            <p className="text-sm text-gray-600">{t("Azerbaijani")}: {subStatus.status_name_az}</p>
+                          )}
+                          {subStatus.description_en && (
+                            <p className="text-sm text-gray-700 mt-2">{subStatus.description_en}</p>
+                          )}
+                          <p className="text-xs text-gray-500 mt-1">
+                            {t("Key")}: {subStatus.sub_status_key || subStatus.status_key}
+                          </p>
+                        </div>
+                        <div className="flex space-x-2 ml-4">
+                          <Button
+                            type="button"
+                            variant="outline-secondary"
+                            size="sm"
+                            onClick={() => {
+                              setShowSubStatusModal(false);
+                              handleEdit(subStatus);
+                            }}
+                          >
+                            <Lucide icon="edit" className="w-3 h-3" />
+                          </Button>
+                          <Button
+                            type="button"
+                            variant="outline-danger"
+                            size="sm"
+                            onClick={() => {
+                              setSelectedStatus(subStatus);
+                              setShowSubStatusModal(false);
+                              setShowDeleteModal(true);
+                            }}
+                          >
+                            <Lucide icon="trash-2" className="w-3 h-3" />
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <div className="text-center py-8 text-gray-500">
+                    <Lucide icon="list" className="w-12 h-12 mx-auto mb-4 text-gray-300" />
+                    <p>{t("No sub-statuses found for this status")}</p>
+                    <p className="text-sm">{t("Click 'Add Sub-Status' to create one")}</p>
+                  </div>
+                )}
+              </div>
+            </div>
+          </Slideover.Description>
+        </Slideover.Panel>
+      </Slideover>
+
+      {/* Delete Confirmation Modal */}
+      <Dialog
+        open={showDeleteModal}
+        onClose={() => {
+          setShowDeleteModal(false);
+          setSelectedStatus(null);
+        }}
+      >
+        <Dialog.Panel>
+          <Dialog.Title>
+            <h2 className="mr-auto text-base font-medium">{t("Confirm Deletion")}</h2>
+          </Dialog.Title>
+          <Dialog.Description className="grid grid-cols-12 gap-4 gap-y-3">
+            <div className="col-span-12">
+              <p>{confirmationMessage}</p>
+            </div>
+          </Dialog.Description>
+          <Dialog.Footer>
             <Button
               type="button"
               variant="outline-secondary"
               onClick={() => {
                 setShowDeleteModal(false);
+                setSelectedStatus(null);
               }}
-              className="w-24 mr-1"
+              className="w-20 mr-1"
             >
               {t("Cancel")}
             </Button>
             <Button
-              type="button"
               variant="danger"
-              className="w-24"
-              onClick={() => onDelete()}
+              type="button"
+              className="w-20"
+              onClick={confirmDelete}
+              disabled={deleting}
             >
+              {deleting && <LoadingIcon icon="oval" className="w-4 h-4 mr-2" />}
               {t("Delete")}
             </Button>
-          </div>
-        </Slideover.Panel>
-      </Slideover>
+          </Dialog.Footer>
+        </Dialog.Panel>
+      </Dialog>
 
-
-      <Slideover
-        size="xl"
-        open={showCreateModal}
-        onClose={() => {
-          setShowCreateModal(false);
-        }}
-      >
-        <Slideover.Panel className="text-center">
-          <form onSubmit={handleSubmit(onCreate)}>
-            <Slideover.Title>
-              <h2 className="mr-auto text-base font-medium">{t("Add New Productstatus")}</h2>
-            </Slideover.Title>
-            <Slideover.Description className="relative overflow-y-auto max-h-[calc(100vh-200px)]">
-              <div className="relative">
-                {loading || updating || deleting ? (
-                  <div className="w-full h-full z-[99999px] absolute backdrop-blur-md bg-gray-600">
-                    <div className="w-full h-full flex justify-center items-center">
-                      <LoadingIcon icon="tail-spin" className="w-8 h-8" />
-                    </div>
-                  </div>
-                ) : (
-                  <div className=" w-full grid grid-cols-2 gap-4 gap-y-3">
-                    
-<div className="mt-3 input-form">
-                      <FormLabel
-                        htmlFor="validation-form-1"
-                        className="flex justify-start items-start flex-col w-full sm:flex-row"
-                      >
-                        {t("Status Key")}
-                      </FormLabel>
-                      <FormInput
-                        {...register("status_key")}
-                        id="validation-form-1"
-                        type="text"
-                        name="status_key"
-                        className={clsx({
-                          "border-danger": errors.status_key,
-                        })}
-                        placeholder={t("Enter status_key")}
-                      />
-                      {errors.status_key && (
-                        <div className="mt-2 text-danger">
-                          {typeof errors.status_key.message === "string" &&
-                            errors.status_key.message}
-                        </div>
-                      )}
-                    </div>
-
-
-<div className="mt-3 input-form">
-                      <FormLabel
-                        htmlFor="validation-form-1"
-                        className="flex justify-start items-start flex-col w-full sm:flex-row"
-                      >
-                        {t("Status Name En")}
-                      </FormLabel>
-                      <FormInput
-                        {...register("status_name_en")}
-                        id="validation-form-1"
-                        type="text"
-                        name="status_name_en"
-                        className={clsx({
-                          "border-danger": errors.status_name_en,
-                        })}
-                        placeholder={t("Enter status_name_en")}
-                      />
-                      {errors.status_name_en && (
-                        <div className="mt-2 text-danger">
-                          {typeof errors.status_name_en.message === "string" &&
-                            errors.status_name_en.message}
-                        </div>
-                      )}
-                    </div>
-
-
-<div className="mt-3 input-form">
-                      <FormLabel
-                        htmlFor="validation-form-1"
-                        className="flex justify-start items-start flex-col w-full sm:flex-row"
-                      >
-                        {t("Status Name Ch")}
-                      </FormLabel>
-                      <FormInput
-                        {...register("status_name_ch")}
-                        id="validation-form-1"
-                        type="text"
-                        name="status_name_ch"
-                        className={clsx({
-                          "border-danger": errors.status_name_ch,
-                        })}
-                        placeholder={t("Enter status_name_ch")}
-                      />
-                      {errors.status_name_ch && (
-                        <div className="mt-2 text-danger">
-                          {typeof errors.status_name_ch.message === "string" &&
-                            errors.status_name_ch.message}
-                        </div>
-                      )}
-                    </div>
-
-
-<div className="mt-3 input-form">
-                      <FormLabel
-                        htmlFor="validation-form-1"
-                        className="flex justify-start items-start flex-col w-full sm:flex-row"
-                      >
-                        {t("Status Name Az")}
-                      </FormLabel>
-                      <FormInput
-                        {...register("status_name_az")}
-                        id="validation-form-1"
-                        type="text"
-                        name="status_name_az"
-                        className={clsx({
-                          "border-danger": errors.status_name_az,
-                        })}
-                        placeholder={t("Enter status_name_az")}
-                      />
-                      {errors.status_name_az && (
-                        <div className="mt-2 text-danger">
-                          {typeof errors.status_name_az.message === "string" &&
-                            errors.status_name_az.message}
-                        </div>
-                      )}
-                    </div>
-
-
-<div className="mt-3 input-form">
-                      <FormLabel
-                        htmlFor="validation-form-1"
-                        className="flex justify-start items-start flex-col w-full sm:flex-row"
-                      >
-                        {t("Description")}
-                      </FormLabel>
-                      <FormInput
-                        {...register("description")}
-                        id="validation-form-1"
-                        type="text"
-                        name="description"
-                        className={clsx({
-                          "border-danger": errors.description,
-                        })}
-                        placeholder={t("Enter description")}
-                      />
-                      {errors.description && (
-                        <div className="mt-2 text-danger">
-                          {typeof errors.description.message === "string" &&
-                            errors.description.message}
-                        </div>
-                      )}
-                    </div>
-
-
-                  </div>
-                      )}
-              </div>
-            </Slideover.Description>
-            <Slideover.Footer>
-              <Button
-                type="button"
-                variant="outline-secondary"
-                onClick={() => {
-                  setShowCreateModal(false);
-                }}
-                className="w-20 mx-2"
-              >
-                {t("Cancel")}
-              </Button>
-              <Button variant="primary" type="submit" className="w-20">
-                {t("Save")}
-              </Button>
-            </Slideover.Footer>
-          </form>
-        </Slideover.Panel>
-      </Slideover>
-      <Slideover
-        size="xl"
-        open={showUpdateModal}
-        onClose={() => {
-          setShowUpdateModal(false);
-        }}
-      >
-        <Slideover.Panel className="text-center">
-          <form onSubmit={handleSubmit(onUpdate)}>
-            <Slideover.Title>
-              <h2 className="mr-auto text-base font-medium">{t("Edit Productstatus")}</h2>
-            </Slideover.Title>
-            <Slideover.Description className="relative overflow-y-auto max-h-[calc(100vh-200px)]">
-              <div className="relative">
-                {loading || updating || deleting ? (
-                  <div className="w-full h-full z-[99999px] absolute backdrop-blur-md bg-gray-600">
-                    <div className="w-full h-full flex justify-center items-center">
-                      <LoadingIcon icon="tail-spin" className="w-8 h-8" />
-                    </div>
-                  </div>
-                ) : (
-                  <div className=" w-full grid grid-cols-1  gap-4 gap-y-3">
-                    
-<div className="mt-3 input-form">
-                      <FormLabel
-                        htmlFor="validation-form-1"
-                        className="flex justify-start items-start flex-col w-full sm:flex-row"
-                      >
-                        {t("Status Key")}
-                      </FormLabel>
-                      <FormInput
-                        {...register("status_key")}
-                        id="validation-form-1"
-                        type="text"
-                        name="status_key"
-                        className={clsx({
-                          "border-danger": errors.status_key,
-                        })}
-                        placeholder={t("Enter status_key")}
-                      />
-                      {errors.status_key && (
-                        <div className="mt-2 text-danger">
-                          {typeof errors.status_key.message === "string" &&
-                            errors.status_key.message}
-                        </div>
-                      )}
-                    </div>
-
-
-<div className="mt-3 input-form">
-                      <FormLabel
-                        htmlFor="validation-form-1"
-                        className="flex justify-start items-start flex-col w-full sm:flex-row"
-                      >
-                        {t("Status Name En")}
-                      </FormLabel>
-                      <FormInput
-                        {...register("status_name_en")}
-                        id="validation-form-1"
-                        type="text"
-                        name="status_name_en"
-                        className={clsx({
-                          "border-danger": errors.status_name_en,
-                        })}
-                        placeholder={t("Enter status_name_en")}
-                      />
-                      {errors.status_name_en && (
-                        <div className="mt-2 text-danger">
-                          {typeof errors.status_name_en.message === "string" &&
-                            errors.status_name_en.message}
-                        </div>
-                      )}
-                    </div>
-
-
-<div className="mt-3 input-form">
-                      <FormLabel
-                        htmlFor="validation-form-1"
-                        className="flex justify-start items-start flex-col w-full sm:flex-row"
-                      >
-                        {t("Status Name Ch")}
-                      </FormLabel>
-                      <FormInput
-                        {...register("status_name_ch")}
-                        id="validation-form-1"
-                        type="text"
-                        name="status_name_ch"
-                        className={clsx({
-                          "border-danger": errors.status_name_ch,
-                        })}
-                        placeholder={t("Enter status_name_ch")}
-                      />
-                      {errors.status_name_ch && (
-                        <div className="mt-2 text-danger">
-                          {typeof errors.status_name_ch.message === "string" &&
-                            errors.status_name_ch.message}
-                        </div>
-                      )}
-                    </div>
-
-
-<div className="mt-3 input-form">
-                      <FormLabel
-                        htmlFor="validation-form-1"
-                        className="flex justify-start items-start flex-col w-full sm:flex-row"
-                      >
-                        {t("Status Name Az")}
-                      </FormLabel>
-                      <FormInput
-                        {...register("status_name_az")}
-                        id="validation-form-1"
-                        type="text"
-                        name="status_name_az"
-                        className={clsx({
-                          "border-danger": errors.status_name_az,
-                        })}
-                        placeholder={t("Enter status_name_az")}
-                      />
-                      {errors.status_name_az && (
-                        <div className="mt-2 text-danger">
-                          {typeof errors.status_name_az.message === "string" &&
-                            errors.status_name_az.message}
-                        </div>
-                      )}
-                    </div>
-
-
-<div className="mt-3 input-form">
-                      <FormLabel
-                        htmlFor="validation-form-1"
-                        className="flex justify-start items-start flex-col w-full sm:flex-row"
-                      >
-                        {t("Description")}
-                      </FormLabel>
-                      <FormInput
-                        {...register("description")}
-                        id="validation-form-1"
-                        type="text"
-                        name="description"
-                        className={clsx({
-                          "border-danger": errors.description,
-                        })}
-                        placeholder={t("Enter description")}
-                      />
-                      {errors.description && (
-                        <div className="mt-2 text-danger">
-                          {typeof errors.description.message === "string" &&
-                            errors.description.message}
-                        </div>
-                      )}
-                    </div>
-
-
-                  </div>
-                )}
-              </div>
-            </Slideover.Description>
-            <Slideover.Footer>
-              <Button
-                type="button"
-                variant="outline-secondary"
-                onClick={() => {
-                  setShowUpdateModal(false);
-                }}
-                className="w-20 mx-2"
-              >
-                {t("Cancel")}
-              </Button>
-              <Button variant="primary" type="submit" className="w-20">
-                {t("Update")}
-              </Button>
-            </Slideover.Footer>
-          </form>
-        </Slideover.Panel>
-      </Slideover>
+      {/* Notifications */}
       <Notification
         getRef={(el) => {
           basicStickyNotification.current = el;
         }}
+        options={{ duration: 3000 }}
         className="flex flex-col sm:flex-row"
       >
-        <div className="font-medium">{toastMessage}</div>
+        <div className="font-medium">
+          {success && t("Status created successfully")}
+          {updated && t("Status updated successfully")}
+          {deleted && t("Status deleted successfully")}
+        </div>
       </Notification>
-      <Can permission="productstatus-list">
-        <TableComponent
-          setShowCreateModal={setShowCreateModal}
-          endpoint={app_url + "/api/productstatus"}
-          data={data}
-          searchColumns={searchColumns}
-          refetch={refetch}
-          setRefetch={setRefetch}
-          permission={"Productstatus"}
-        />
-      </Can>
     </div>
   );
 }
-export default index_main;
+
+export default ProductStatusIndex;

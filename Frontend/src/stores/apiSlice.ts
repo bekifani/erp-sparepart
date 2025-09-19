@@ -466,6 +466,22 @@ export const {
     useLazyGetProductstatusDetailQuery,
     useDeleteProductstatusMutation,
     useGetProductstatussQuery,
+    
+    // Product Status Hooks
+    useGetSubStatusesQuery,
+    useCreateSubStatusMutation,
+    useUpdateSubStatusMutation,
+    useDeleteSubStatusMutation,
+    
+    // Workflow Hooks
+    useGetStatusWorkflowQuery,
+    
+    // Core Status Hooks
+    useGetCoreStatusesQuery,
+    useGetCustomStatusesQuery,
+    
+    // Legacy Compatibility
+    useGetAllProductstatussQuery,
 
 
     useCreateCustomerinvoiceMutation,
